@@ -1,0 +1,95 @@
+version: "3.9"
+
+services:
+  api-gateway:
+    build:
+      context: ./backend/apps/api-gateway
+      dockerfile: Dockerfile
+    container_name: api-gateway
+    ports:
+      - "8000:3000"
+    environment:
+      MONGO_URI: mongodb://auth-db:27017/auth_db
+    networks:
+      - pettopia-network
+  auth-service:
+    build:
+      context: ./backend/apps/auth-service
+      dockerfile: Dockerfile
+    container_name: auth-service
+    ports:
+      - "8001:3000"
+    environment:
+      MONGO_URI: mongodb://auth-db:27017/auth_db
+    networks:
+      - pettopia-network
+  billing-service:
+    build:
+      context: ./backend/apps/billing-service
+      dockerfile: Dockerfile
+    container_name: billing-service
+    ports:
+      - "8007:3000"
+    environment:
+      MONGO_URI: mongodb://auth-db:27017/auth_db
+    networks:
+      - pettopia-network
+  communication-service:
+    build:
+      context: ./backend/apps/communication-service
+      dockerfile: Dockerfile
+    container_name: communication-service
+    ports:
+      - "8006:3000"
+    environment:
+      MONGO_URI: mongodb://auth-db:27017/auth_db
+    networks:
+      - pettopia-network
+  customer-service:
+    build:
+      context: ./backend/apps/customer-service
+      dockerfile: Dockerfile
+    container_name: customer-service
+    ports:
+      - "8002:3000"
+    environment:
+      MONGO_URI: mongodb://auth-db:27017/auth_db
+    networks:
+      - pettopia-network
+  healthcare-service:
+    build:
+      context: ./backend/apps/healthcare-service
+      dockerfile: Dockerfile
+    container_name: healthcare-service
+    ports:
+      - "8005:3000"
+    environment:
+      MONGO_URI: mongodb://auth-db:27017/auth_db
+    networks:
+      - pettopia-network
+  partner-service:
+    build:
+      context: ./backend/apps/partner-service
+      dockerfile: Dockerfile
+    container_name: partner-service
+    ports:
+      - "8004:3000"
+    environment:
+      MONGO_URI: mongodb://auth-db:27017/auth_db
+    networks:
+      - pettopia-network
+  petcare-service:
+    build:
+      context: ./backend/apps/petcare-service
+      dockerfile: Dockerfile
+    container_name: petcare-service
+    ports:
+      - "8003:3000"
+    environment:
+      MONGO_URI: mongodb://auth-db:27017/auth_db
+    networks:
+      - pettopia-network
+
+networks:
+  pettopia-network:
+    driver: bridge
