@@ -16,9 +16,12 @@ export class AppController {
     @Inject('CUSTOMER_SERVICE') private readonly userClient: ClientProxy,
   ) {}
 
-  @Get('id')
+  @Get(':id')
   @HttpCode(HttpStatus.OK)
-  getUserById(@Param('id') id: string) {
-    return lastValueFrom(this.userClient.send({ cmd: 'getUserById' }, { id }));
+  async getUserById(@Param('id') id: string) {
+    const user = await lastValueFrom(
+      this.userClient.send({ cmd: 'getUserById' }, { id }),
+    );
+    return user;
   }
 }

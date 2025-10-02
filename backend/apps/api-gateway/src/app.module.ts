@@ -6,6 +6,7 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
 import { JwtModule } from '@nestjs/jwt';
 
 const customer_port = parseInt(process.env.TCP_CUSTOMER_PORT || '5002', 10);
+const auth_port = parseInt(process.env.TCP_AUTH_PORT || '5001', 10);
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -17,6 +18,13 @@ const customer_port = parseInt(process.env.TCP_CUSTOMER_PORT || '5002', 10);
         transport: Transport.TCP,
         options: {
           port: customer_port,
+        },
+      },
+      {
+        name: 'AUTH_SERVICE',
+        transport: Transport.TCP,
+        options: {
+          port: auth_port,
         },
       },
     ]),

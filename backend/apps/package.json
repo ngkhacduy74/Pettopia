@@ -1,0 +1,17 @@
+{
+  "name": "apps",
+  "version": "1.0.0",
+  "main": "index.js",
+  "private": true,
+  "workspaces": [
+    "*"
+  ],
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "concurrently -n gateway,auth,billing,comm,customer,healthcare,partner,petcare -c blue,green,yellow,magenta,cyan,red,white,gray \"npm run start --workspace api-gateway\" \"npm run start --workspace auth-service\" \"npm run start --workspace billing-service\" \"npm run start --workspace communication-service\" \"npm run start --workspace customer-service\" \"npm run start --workspace healthcare-service\" \"npm run start --workspace partner-service\" \"npm run start --workspace petcare-service\""
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": ""
+}
