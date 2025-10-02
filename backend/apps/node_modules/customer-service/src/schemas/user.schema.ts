@@ -64,7 +64,7 @@ export class User {
   email: Email;
 
   @Prop({
-    type: String,
+    type: PhoneSchema,
     required: true,
     match: [
       /^(0|\+84)\d{9}$/,
@@ -82,7 +82,7 @@ export class User {
   username: string;
 
   @Prop({
-    type: PhoneSchema,
+    type: String,
     required: [true, 'Password is required'],
     minlength: [8, 'Mật khẩu phải có ít nhất 8 ký tự'],
     match: [

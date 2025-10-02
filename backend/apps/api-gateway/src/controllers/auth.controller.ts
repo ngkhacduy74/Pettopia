@@ -13,7 +13,7 @@ import { lastValueFrom } from 'rxjs';
 import { ClientProxy } from '@nestjs/microservices';
 
 @Controller('api/v1/auth')
-export class AppController {
+export class AuthController {
   constructor(
     @Inject('AUTH_SERVICE') private readonly authservice: ClientProxy,
   ) {}

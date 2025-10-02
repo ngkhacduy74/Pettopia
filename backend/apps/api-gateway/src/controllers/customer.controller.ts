@@ -11,7 +11,7 @@ import { lastValueFrom } from 'rxjs';
 import { ClientProxy } from '@nestjs/microservices';
 
 @Controller('api/v1/customer')
-export class AppController {
+export class CustomerController {
   constructor(
     @Inject('CUSTOMER_SERVICE') private readonly userClient: ClientProxy,
   ) {}

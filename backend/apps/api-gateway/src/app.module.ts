@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
-import { AppController } from './controllers/customer.controller';
+import { AuthController } from './controllers/auth.controller';
+import { CustomerController } from './controllers/customer.controller';
 import { AppService } from './app.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ClientsModule, Transport } from '@nestjs/microservices';
@@ -37,7 +38,7 @@ const auth_port = parseInt(process.env.TCP_AUTH_PORT || '5001', 10);
       }),
     }),
   ],
-  controllers: [AppController],
+  controllers: [AuthController, CustomerController],
   providers: [AppService],
 })
 export class AppModule {}
