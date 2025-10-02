@@ -1,22 +1,28 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, UsePipes, ValidationPipe } from '@nestjs/common';
 import { AppService } from './app.service';
-import { MessagePattern } from '@nestjs/microservices';
+import { MessagePattern, Payload } from '@nestjs/microservices';
 import { User } from './schemas/user.schema';
+import { GetUserByIdDto } from './dto/request/get-user-by-id.dto';
+import { GetUserByUsernameDto } from './dto/request/get-user-by-username.dto';
+import { GetUserByEmailDto } from './dto/request/get-user-by-email.dto';
+import { CheckPhoneExistDto } from './dto/request/check-phone-exist.dto';
+import { CreateUserDto } from './dto/user/create-user.dto';
 
+@UsePipes(new ValidationPipe({ transform: true, whitelist: true, forbidNonWhitelisted: true }))
 @Controller()
 export class AppController {
   constructor(private readonly appService: AppService) {}
   @MessagePattern({ cmd: 'getUserById' })
-  async getUserById(data: { id: string }): Promise<User> {
+  async getUserById(@Payload() data: GetUserByIdDto): Promise<User> {
     try {
+      const result = await this.appService.getUserById(data.id);
+    return result;
     } catch (err) {
       throw new Error(err);
     }
-    const result = await this.appService.getUserById(data.id);
-    return result;
   }
   @MessagePattern({ cmd: 'getUserByUsername' })
-  async getUserByUsername(data: { username: string }): Promise<User> {
+  async getUserByUsername(@Payload() data: GetUserByUsernameDto): Promise<User> {
     try {
       const result = await this.appService.getUserByUsername(data.username);
       return result;
@@ -25,7 +31,7 @@ export class AppController {
     }
   }
   @MessagePattern({ cmd: 'getUserByEmail' })
-  async getUserByEmail(data: { email_address: string }): Promise<any> {
+  async getUserByEmail(@Payload() data: GetUserByEmailDto): Promise<any> {
     try {
       const result = await this.appService.getUserByEmail(data.email_address);
       return result;
@@ -34,7 +40,7 @@ export class AppController {
     }
   }
   @MessagePattern({ cmd: 'checkPhoneExist' })
-  async checkPhoneExist(data: { phone_number: string }): Promise<Boolean> {
+  async checkPhoneExist(@Payload() data: CheckPhoneExistDto): Promise<Boolean> {
     try {
       const result = await this.appService.checkPhoneExist(data.phone_number);
       return result;
@@ -43,10 +49,10 @@ export class AppController {
     }
   }
   @MessagePattern({ cmd: 'createUser' })
-  async createUser(data: { user: User }): Promise<User> {
+  async createUser(@Payload() data: CreateUserDto): Promise<User> {
     try {
-      const result = await this.appService.createUser(data.user);
-      return result;
+      const result = await this.appService.createUser(data);
+      return result
     } catch (err) {
       throw new Error(err);
     }

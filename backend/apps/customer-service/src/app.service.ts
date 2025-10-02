@@ -8,6 +8,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { RpcException } from '@nestjs/microservices';
 import { UsersRepository } from './repositories/user.repositories';
+import { CreateUserDto } from './dto/user/create-user.dto';
 
 @Injectable()
 export class AppService {
@@ -57,7 +58,7 @@ export class AppService {
       throw new Error(err);
     }
   }
-  async createUser(user: User): Promise<User> {
+  async createUser(user: CreateUserDto): Promise<User> {
     try {
       const save_user = await this.userRepositories.createUser(user);
       return save_user || null;
