@@ -3,6 +3,8 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
+import { User, UserSchema } from './schemas/user.schema';
+import { UsersRepository } from './repositories/user.repositories';
 
 @Module({
   imports: [
@@ -16,9 +18,10 @@ import { MongooseModule } from '@nestjs/mongoose';
         uri: configService.get<string>('CUSTOMER_DB_URI'),
       }),
     }),
+    MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
   ],
 
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, UsersRepository],
 })
 export class AppModule {}

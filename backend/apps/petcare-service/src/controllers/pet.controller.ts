@@ -1,0 +1,61 @@
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  HttpCode,
+  HttpStatus,
+  Query,
+} from '@nestjs/common';
+import { PetService } from '../services/pet.service';
+import { CreatePetDto } from '../dto/pet/create-pet.dto';
+import { UpdatePetDto } from '../dto/pet/update-pet.dto';
+import { PetResponseDto } from '../dto/pet/pet-response.dto';
+
+@Controller('pets')
+export class PetController {
+  constructor(private readonly petService: PetService) {}
+
+  @Post()
+  @HttpCode(HttpStatus.CREATED)
+  async create(@Body() createPetDto: CreatePetDto): Promise<PetResponseDto> {
+    return this.petService.create(createPetDto);
+  }
+
+  @Get()
+  async findAll(): Promise<PetResponseDto[]> {
+    return this.petService.findAll();
+  }
+
+  @Get('count')
+  async getPetCount(): Promise<{ count: number }> {
+    return this.petService.getPetCount();
+  }
+
+  @Get('species/:species')
+  async findBySpecies(@Param('species') species: string): Promise<PetResponseDto[]> {
+    return this.petService.findBySpecies(species);
+  }
+
+  @Get(':pet_id')
+  async findById(@Param('pet_id') pet_id: string): Promise<PetResponseDto> {
+    return this.petService.findById(pet_id);
+  }
+
+  @Patch(':pet_id')
+  async update(
+    @Param('pet_id') pet_id: string,
+    @Body() updatePetDto: UpdatePetDto,
+  ): Promise<PetResponseDto> {
+    return this.petService.update(pet_id, updatePetDto);
+  }
+
+  @Delete(':pet_id')
+  @HttpCode(HttpStatus.OK)
+  async delete(@Param('pet_id') pet_id: string): Promise<{ message: string }> {
+    return this.petService.delete(pet_id);
+  }
+}
