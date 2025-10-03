@@ -4,6 +4,8 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { User, UserDocument } from '../schemas/user.schema';
 import { CreateUserDto } from 'src/dto/user/create-user.dto';
+import { UserStatus } from 'src/dto/request/update-user-status.dto';
+import { GetAllUsersDto, PaginatedUsersResponse } from 'src/dto/request/get-all-user.dto';
 
 @Injectable()
 export class UsersRepository {
@@ -78,4 +80,75 @@ export class UsersRepository {
       throw new Error(err);
     }
   }
+
+  async deleteUserById(id: string): Promise<any> {
+    try {
+      const result = await this.userModel.findOneAndDelete({ id },{is_active: false}).exec();
+      return result;
+    } catch (err) {
+      throw new Error(err);
+    }
+  }
+  async updateUserStatus(id: string, status: UserStatus): Promise<any> {
+    try {
+      const result = await this.userModel.findOneAndUpdate({ id }, { is_active: status }).exec();
+      return result;
+    } catch (err) {
+      throw new Error(err);
+    }
+  }
+
+async getAllUsers(data: GetAllUsersDto): Promise<PaginatedUsersResponse<User>> {
+  try {
+    const {
+      page,
+      limit,
+      search,
+      status, 
+      role,
+      sort_field,
+      sort_order,   
+    } = data;
+
+    const safePage = Math.max(Number(page) || 1, 1);
+    const safeLimit = Math.max(Number(limit) || 15, 1);
+    const skip = (safePage - 1) * safeLimit;
+    const filter: any = {};
+    if (search) {
+      const regex = new RegExp(search, 'i');
+      filter.$or = [
+        { fullname: regex },
+        { username: regex },
+        { 'email.email_address': regex },
+        { 'phone.phone_number': regex },
+      ];
+    }
+    if (status) {
+      filter.is_active = status === 'active';
+    }
+    if (role) {
+      filter.role = role;
+    }
+    const sort: any = {};
+    if (sort_field) {
+      sort[sort_field] = sort_order === 'asc' ? 1 : -1;
+    } else {
+      sort['createdAt'] = -1;
+    }
+    const [items, total] = await Promise.all([
+      this.userModel.find(filter).sort(sort).skip(skip).limit(safeLimit).exec(),
+      this.userModel.countDocuments(filter).exec(),
+    ]);
+
+    return {
+      items,
+      total,
+      page: safePage,
+      limit: safeLimit,
+    };
+  } catch (err) {
+    throw new Error(err);
+  }
 }
+}
+    

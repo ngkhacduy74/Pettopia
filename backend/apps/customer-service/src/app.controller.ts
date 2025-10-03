@@ -7,6 +7,9 @@ import { GetUserByUsernameDto } from './dto/request/get-user-by-username.dto';
 import { GetUserByEmailDto } from './dto/request/get-user-by-email.dto';
 import { CheckPhoneExistDto } from './dto/request/check-phone-exist.dto';
 import { CreateUserDto } from './dto/user/create-user.dto';
+import { DeleteUserByIdDto } from './dto/request/delete-user-by-id.dto';
+import { UpdateUserStatusDto } from './dto/request/update-user-status.dto';
+import { GetAllUsersDto, PaginatedUsersResponse } from './dto/request/get-all-user.dto';
 
 @UsePipes(new ValidationPipe({ transform: true, whitelist: true, forbidNonWhitelisted: true }))
 @Controller()
@@ -57,4 +60,30 @@ export class AppController {
       throw new Error(err);
     }
   }
+  @MessagePattern({ cmd: 'updateUserStatus' })
+  async updateUserStatus(@Payload() data: UpdateUserStatusDto): Promise<User> {
+    try {
+      const result = await this.appService.updateUserStatus(data.id, data.status);
+      return result;
+    } catch (err) {
+      throw new Error(err);
+    }
+  }
+  @MessagePattern({ cmd: 'deleteUserById' })
+  async deleteUserById(@Payload() data: DeleteUserByIdDto): Promise<User> {
+    try {
+      const result = await this.appService.deleteUserById(data.id);
+      return result;
+    } catch (err) {
+      throw new Error(err);
+    }
+  }
+  @MessagePattern({ cmd: 'getAllUsers' })
+async getAllUsers(@Payload() data: GetAllUsersDto): Promise<PaginatedUsersResponse<User>> {
+  try {
+    return await this.appService.getAllUsers(data);
+  } catch (err) {
+    throw new Error(err);
+  }
+}
 }
