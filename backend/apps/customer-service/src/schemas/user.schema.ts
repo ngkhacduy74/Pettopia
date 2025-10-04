@@ -109,11 +109,10 @@ export class User {
   reward_point: number;
 
   @Prop({
-    type: Number,
-    required: [true, 'Age is required'],
-    min: [12, 'Age must be positive'],
+    type: Date,
+    required: [true, 'dob is required'],
   })
-  age: number;
+  dob: Date;
 
   @Prop({ default: true })
   is_active: boolean;

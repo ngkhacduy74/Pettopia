@@ -6,11 +6,11 @@ import { ValidationPipe } from '@nestjs/common';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.connectMicroservice<MicroserviceOptions>({
-    transport:Transport.TCP,
-    options:{
-      port: parseInt(process.env.TCP_AUTH_PORT || '5001', 10),
-    }
-  })
+    transport: Transport.TCP,
+    options: {
+      port: 5001,
+    },
+  });
   app.useGlobalPipes(
     new ValidationPipe({
       transform: true,

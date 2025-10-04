@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   HttpCode,
+  HttpException,
   HttpStatus,
   Inject,
   Param,
@@ -16,23 +17,24 @@ import { ClientProxy } from '@nestjs/microservices';
 export class AuthController {
   constructor(
     @Inject('AUTH_SERVICE') private readonly authservice: ClientProxy,
+    @Inject('CUSTOMER_SERVICE') private readonly customerService: ClientProxy,
   ) {}
 
+  @Get('/test')
+  @HttpCode(HttpStatus.OK)
+  async test(@Param('id') id: string) {
+    return lastValueFrom(this.customerService.send({ cmd: 'test' }, {}));
+  }
   @Post('login')
   @HttpCode(HttpStatus.OK)
   async login(@Body() data: any) {
-    const result = await lastValueFrom(
-      this.authservice.send({ cmd: 'login' }, data),
-    );
-    return result;
+    console.log(data);
+    return lastValueFrom(this.authservice.send({ cmd: 'login' }, data));
   }
 
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
   async register(@Body() data: any) {
-    const result = await lastValueFrom(
-      this.authservice.send({ cmd: 'register' }, data),
-    );
-    return result;
+    return lastValueFrom(this.authservice.send({ cmd: 'register' }, data));
   }
 }

@@ -1,22 +1,26 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { LoginDto } from './dtos/login.dto';
-import { ClientProxy } from '@nestjs/microservices';
+import { ClientProxy, RpcException } from '@nestjs/microservices';
 import { RegisterDto } from './dtos/register.dto';
 import { lastValueFrom } from 'rxjs';
-import { bcrypt } from 'bcrypt';
+import * as bcrypt from 'bcrypt';
+
 @Injectable()
 export class AppService {
   constructor(
     @Inject('CUSTOMER_SERVICE') private customerClient: ClientProxy,
   ) {}
   async login(data: LoginDto): Promise<any> {
+    console.log('data customer service', data);
     try {
-      const exist_user = await this.customerClient.send(
-        {
-          cmd: 'getUserByUsername',
-        },
-        { username: data.username },
+      const exist_user = await lastValueFrom(
+        this.customerClient.send(
+          { cmd: 'getUserByUsername' },
+          { username: data.username },
+        ),
       );
+
+      console.log('exist_user', exist_user);
       if (!exist_user) {
         throw new NotFoundException('Không tìm thấy user');
       }
@@ -24,7 +28,8 @@ export class AppService {
       throw new Error(err);
     }
   }
-  async register(data: RegisterDto): Promise<any> {
+
+  async register(data: any): Promise<any> {
     try {
       const exist_phone = await lastValueFrom(
         this.customerClient.send(
@@ -32,23 +37,27 @@ export class AppService {
           { phone_number: data.phone_number },
         ),
       );
+
       const exist_email = await lastValueFrom(
         this.customerClient.send(
           { cmd: 'getUserByEmail' },
-          { email: data.email_address },
+          { email_address: data.email_address },
         ),
       );
-      if (exist_email == true) {
-        throw new Error(
-          'Email đã được đăng kí bằng 1 tài khoản khác. Vui lòng sử dụng email khác',
+
+      if (exist_email.status == false) {
+        throw new RpcException(
+          'Email đã được đăng ký bằng 1 tài khoản khác. Vui lòng sử dụng email khác',
         );
       }
-      if (exist_phone == true) {
-        throw new Error('Đăng kí thất bại ! Số điện thoại đã tồn tại');
+
+      if (exist_phone.status == false) {
+        throw new RpcException('Đăng ký thất bại! Số điện thoại đã tồn tại');
       }
 
       const salt = await bcrypt.genSalt(10);
       const hashPass = await bcrypt.hash(data.password, salt);
+
       const newUser = {
         fullname: data.fullname,
         gender: data.gender,
@@ -56,7 +65,6 @@ export class AppService {
         password: hashPass,
         dob: data.dob,
         avatar_url: data.avatar_url,
-
         email: {
           email_address: data.email_address,
           verified: false,
@@ -65,14 +73,19 @@ export class AppService {
           phone_number: data.phone_number,
           verified: false,
         },
-
         is_active: true,
       };
+
       const savedUser = await lastValueFrom(
-        this.customerClient.send({ cmd: 'createUser' }, { user: newUser }),
+        this.customerClient.send({ cmd: 'createUser' }, newUser),
       );
+
+      return savedUser;
     } catch (err) {
-      throw new Error(err);
+      console.error('Register error:', err);
+      throw new RpcException(
+        err?.message || 'Lỗi không xác định từ auth-service',
+      );
     }
   }
 }

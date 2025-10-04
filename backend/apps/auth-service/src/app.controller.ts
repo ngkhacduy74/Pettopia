@@ -3,13 +3,14 @@ import { AppService } from './app.service';
 import { MessagePattern } from '@nestjs/microservices';
 import { LoginDto } from './dtos/login.dto';
 import { RegisterDto } from './dtos/register.dto';
-@UsePipes(new ValidationPipe({ transform: true, whitelist: true, forbidNonWhitelisted: true }))
+
 @Controller()
 export class AppController {
   constructor(private readonly appService: AppService) {}
 
   @MessagePattern({ cmd: 'login' })
   login(data: LoginDto) {
+    console.log('kjakahsd', data);
     return this.appService.login(data);
   }
   @MessagePattern({ cmd: 'register' })

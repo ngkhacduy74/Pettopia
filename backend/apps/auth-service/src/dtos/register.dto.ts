@@ -16,9 +16,9 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 export enum Gender {
-  MALE = 'MALE',
-  FEMALE = 'FEMALE',
-  OTHER = 'OTHER',
+  MALE = 'male',
+  FEMALE = 'female',
+  OTHER = 'other',
 }
 export class RegisterDto {
   @IsString({ message: 'Họ và tên phải là chuỗi ký tự.' })

@@ -11,7 +11,10 @@ import { RpcException } from '@nestjs/microservices';
 import { UsersRepository } from './repositories/user.repositories';
 import { CreateUserDto } from './dto/user/create-user.dto';
 import { UserStatus } from './dto/request/update-user-status.dto';
-import { GetAllUsersDto, PaginatedUsersResponse } from './dto/request/get-all-user.dto';
+import {
+  GetAllUsersDto,
+  PaginatedUsersResponse,
+} from './dto/request/get-all-user.dto';
 
 @Injectable()
 export class AppService {
@@ -32,7 +35,7 @@ export class AppService {
       return user;
     } catch (err) {
       if (err instanceof RpcException) {
-        throw err; 
+        throw err;
       }
       throw new RpcException(
         new InternalServerErrorException(
@@ -44,7 +47,7 @@ export class AppService {
   async getUserByUsername(username: string): Promise<User> {
     try {
       const user = await this.userRepositories.findOneByUsername(username);
-
+      console.log('user by username', user);
       if (!user) {
         throw new NotFoundException(
           `Không tìm thấy người dùng với username: ${username}`,
@@ -67,9 +70,9 @@ export class AppService {
       const user = await this.userRepositories.findUserByEmail(email_address);
 
       if (!user) {
-        return false; 
+        return false;
       }
-
+      console.log('user return  by repositories', user);
       return user;
     } catch (err) {
       throw new InternalServerErrorException(
@@ -82,7 +85,7 @@ export class AppService {
     try {
       const exist = await this.userRepositories.checkPhoneExist(phone_number);
 
-      return !!exist; 
+      return !!exist;
     } catch (err) {
       throw new InternalServerErrorException(
         err.message || 'Error checking phone number existence',
@@ -103,7 +106,9 @@ export class AppService {
         throw new ConflictException('User already exists (duplicate field)');
       }
 
-      throw new InternalServerErrorException(err.message || 'Error creating user');
+      throw new InternalServerErrorException(
+        err.message || 'Error creating user',
+      );
     }
   }
   async deleteUserById(id: string): Promise<User> {
@@ -111,32 +116,48 @@ export class AppService {
       const delete_user = await this.userRepositories.deleteUserById(id);
 
       if (!delete_user) {
-        throw new NotFoundException(`User with id ${id} not found or already deleted`);
+        throw new NotFoundException(
+          `User with id ${id} not found or already deleted`,
+        );
       }
 
       return delete_user;
     } catch (err) {
-      throw new InternalServerErrorException(err.message || 'Failed to delete user');
+      throw new InternalServerErrorException(
+        err.message || 'Failed to delete user',
+      );
     }
   }
   async updateUserStatus(id: string, status: UserStatus): Promise<User> {
     try {
-      const update_user = await this.userRepositories.updateUserStatus(id, status);
+      const update_user = await this.userRepositories.updateUserStatus(
+        id,
+        status,
+      );
 
       if (!update_user) {
-        throw new NotFoundException(`User with id ${id} not found or could not be updated`);
+        throw new NotFoundException(
+          `User with id ${id} not found or could not be updated`,
+        );
       }
 
       return update_user;
     } catch (err) {
-      throw new InternalServerErrorException(err.message || 'Something went wrong');
+      throw new InternalServerErrorException(
+        err.message || 'Something went wrong',
+      );
     }
   }
-  async getAllUsers(data: GetAllUsersDto): Promise<PaginatedUsersResponse<User>> {
+  async getAllUsers(
+    data: GetAllUsersDto,
+  ): Promise<PaginatedUsersResponse<User>> {
     try {
       return await this.userRepositories.getAllUsers(data);
     } catch (err) {
       throw new Error(err);
     }
+  }
+  async test(): Promise<any> {
+    return { message: 'đã chạy connect được vào customer' };
   }
 }

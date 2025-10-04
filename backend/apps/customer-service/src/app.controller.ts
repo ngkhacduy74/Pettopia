@@ -9,9 +9,18 @@ import { CheckPhoneExistDto } from './dto/request/check-phone-exist.dto';
 import { CreateUserDto } from './dto/user/create-user.dto';
 import { DeleteUserByIdDto } from './dto/request/delete-user-by-id.dto';
 import { UpdateUserStatusDto } from './dto/request/update-user-status.dto';
-import { GetAllUsersDto, PaginatedUsersResponse } from './dto/request/get-all-user.dto';
+import {
+  GetAllUsersDto,
+  PaginatedUsersResponse,
+} from './dto/request/get-all-user.dto';
 
-@UsePipes(new ValidationPipe({ transform: true, whitelist: true, forbidNonWhitelisted: true }))
+@UsePipes(
+  new ValidationPipe({
+    transform: true,
+    whitelist: true,
+    forbidNonWhitelisted: true,
+  }),
+)
 @Controller()
 export class AppController {
   constructor(private readonly appService: AppService) {}
@@ -19,13 +28,15 @@ export class AppController {
   async getUserById(@Payload() data: GetUserByIdDto): Promise<User> {
     try {
       const result = await this.appService.getUserById(data.id);
-    return result;
+      return result;
     } catch (err) {
       throw new Error(err);
     }
   }
   @MessagePattern({ cmd: 'getUserByUsername' })
-  async getUserByUsername(@Payload() data: GetUserByUsernameDto): Promise<User> {
+  async getUserByUsername(
+    @Payload() data: GetUserByUsernameDto,
+  ): Promise<User> {
     try {
       const result = await this.appService.getUserByUsername(data.username);
       return result;
@@ -37,6 +48,7 @@ export class AppController {
   async getUserByEmail(@Payload() data: GetUserByEmailDto): Promise<any> {
     try {
       const result = await this.appService.getUserByEmail(data.email_address);
+      console.log('result_getUserByEmail', result);
       return result;
     } catch (err) {
       throw new Error(err);
@@ -52,10 +64,10 @@ export class AppController {
     }
   }
   @MessagePattern({ cmd: 'createUser' })
-  async createUser(@Payload() data: CreateUserDto): Promise<User> {
+  async createUser(@Payload() data: any): Promise<User> {
     try {
       const result = await this.appService.createUser(data);
-      return result
+      return result;
     } catch (err) {
       throw new Error(err);
     }
@@ -63,7 +75,10 @@ export class AppController {
   @MessagePattern({ cmd: 'updateUserStatus' })
   async updateUserStatus(@Payload() data: UpdateUserStatusDto): Promise<User> {
     try {
-      const result = await this.appService.updateUserStatus(data.id, data.status);
+      const result = await this.appService.updateUserStatus(
+        data.id,
+        data.status,
+      );
       return result;
     } catch (err) {
       throw new Error(err);
@@ -78,12 +93,19 @@ export class AppController {
       throw new Error(err);
     }
   }
-  @MessagePattern({ cmd: 'getAllUsers' })
-async getAllUsers(@Payload() data: GetAllUsersDto): Promise<PaginatedUsersResponse<User>> {
-  try {
-    return await this.appService.getAllUsers(data);
-  } catch (err) {
-    throw new Error(err);
+  @MessagePattern({ cmd: 'test' })
+  async test(@Payload() data: any): Promise<any> {
+    return { message: 'đã chạy vào custoemr serrvice' };
   }
-}
+
+  @MessagePattern({ cmd: 'getAllUsers' })
+  async getAllUsers(
+    @Payload() data: GetAllUsersDto,
+  ): Promise<PaginatedUsersResponse<User>> {
+    try {
+      return await this.appService.getAllUsers(data);
+    } catch (err) {
+      throw new Error(err);
+    }
+  }
 }

@@ -14,7 +14,7 @@ const customer_port = parseInt(process.env.TCP_CUSTOMER_PORT || '5002', 10);
         name: 'CUSTOMER_SERVICE',
         transport: Transport.TCP,
         options: {
-          port: customer_port,
+          port: 5002,
         },
       },
     ]),
