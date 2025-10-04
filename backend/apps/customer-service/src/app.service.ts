@@ -72,7 +72,6 @@ export class AppService {
       if (!user) {
         return false;
       }
-      console.log('user return  by repositories', user);
       return user;
     } catch (err) {
       throw new InternalServerErrorException(

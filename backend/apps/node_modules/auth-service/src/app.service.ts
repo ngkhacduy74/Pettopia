@@ -4,11 +4,13 @@ import { ClientProxy, RpcException } from '@nestjs/microservices';
 import { RegisterDto } from './dtos/register.dto';
 import { lastValueFrom } from 'rxjs';
 import * as bcrypt from 'bcrypt';
+import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class AppService {
   constructor(
     @Inject('CUSTOMER_SERVICE') private customerClient: ClientProxy,
+    private readonly jwtService: JwtService,
   ) {}
   async login(data: LoginDto): Promise<any> {
     console.log('data customer service', data);
@@ -20,10 +22,16 @@ export class AppService {
         ),
       );
 
-      console.log('exist_user', exist_user);
       if (!exist_user) {
         throw new NotFoundException('Không tìm thấy user');
       }
+      const isMatch = await bcrypt.compare(data.password, exist_user.password);
+      if (!isMatch) {
+        throw new RpcException('Mật khẩu không đúng');
+      }
+      const { password, ...result } = exist_user;
+      const token = this.jwtService.sign(result);
+      return { status: true, token: token };
     } catch (err) {
       throw new Error(err);
     }

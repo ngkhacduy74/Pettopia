@@ -82,6 +82,7 @@ export class User {
   username: string;
 
   @Prop({
+    select: false,
     type: String,
     required: [true, 'Password is required'],
     minlength: [8, 'Mật khẩu phải có ít nhất 8 ký tự'],
@@ -123,8 +124,6 @@ export class User {
 const SALT_ROUNDS = 10;
 function transformValue(doc: any, ref: { [key: string]: any }) {
   delete ref._id;
-  delete ref.password;
-
   delete ref.__v;
   return ref;
 }
