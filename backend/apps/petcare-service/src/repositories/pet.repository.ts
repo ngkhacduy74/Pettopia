@@ -8,7 +8,7 @@ import { UpdatePetDto } from '../dto/pet/update-pet.dto';
 @Injectable()
 export class PetRepository {
   constructor(
-    @InjectModel(Pet.name) private petModel: Model<PetDocument>,
+    @InjectModel(Pet.name, 'petcare') private petModel: Model<PetDocument>,
   ) {}
 
   async create(createPetDto: CreatePetDto): Promise<Pet> {
