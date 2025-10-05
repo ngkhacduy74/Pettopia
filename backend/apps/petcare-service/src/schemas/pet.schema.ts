@@ -69,6 +69,13 @@ export class Pet {
     required: [true, 'Date of birth is required'],
   })
   dateOfBirth: Date;
+
+  @Prop({
+    type: String,
+    required: [true, 'User ID is required'],
+    trim: true,
+  })
+  userId: string;
 }
 
 function transformValue(doc: any, ref: { [key: string]: any }) {

@@ -19,10 +19,13 @@ import { PetResponseDto } from '../dto/pet/pet-response.dto';
 export class PetController {
   constructor(private readonly petService: PetService) {}
 
-  @Post()
+  @Post(':userId')
   @HttpCode(HttpStatus.CREATED)
-  async create(@Body() createPetDto: CreatePetDto): Promise<PetResponseDto> {
-    return this.petService.create(createPetDto);
+  async create(
+    @Param('userId') userId: string,
+    @Body() createPetDto: CreatePetDto,
+  ): Promise<PetResponseDto> {
+    return this.petService.create(userId, createPetDto);
   }
 
   @Get()

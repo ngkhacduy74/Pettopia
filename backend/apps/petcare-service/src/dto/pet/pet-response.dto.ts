@@ -9,4 +9,5 @@ export class PetResponseDto {
   color: string;
   weight: number;
   dateOfBirth: Date;
+  userId: string;
 }

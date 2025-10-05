@@ -9,11 +9,12 @@ import { Pet } from '../schemas/pet.schema';
 export class PetService {
   constructor(private readonly petRepository: PetRepository) {}
 
-  async create(createPetDto: CreatePetDto): Promise<PetResponseDto> {
+  async create(userId: string, createPetDto: CreatePetDto): Promise<PetResponseDto> {
     try {
       
       const petData = {
         ...createPetDto,
+        userId,
         dateOfBirth: new Date(createPetDto.dateOfBirth),
       };
 
@@ -111,6 +112,7 @@ export class PetService {
       color: pet.color,
       weight: pet.weight,
       dateOfBirth: pet.dateOfBirth,
+      userId: pet.userId,
     };
   }
 }
