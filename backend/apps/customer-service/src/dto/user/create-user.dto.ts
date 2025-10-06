@@ -1,5 +1,11 @@
-
-import { IsString, IsEmail, IsPhoneNumber, IsOptional, IsBoolean, IsDate } from 'class-validator';
+import {
+  IsString,
+  IsEmail,
+  IsPhoneNumber,
+  IsOptional,
+  IsBoolean,
+  IsDate,
+} from 'class-validator';
 
 class EmailDto {
   @IsEmail()

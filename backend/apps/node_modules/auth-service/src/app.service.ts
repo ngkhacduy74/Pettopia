@@ -5,7 +5,7 @@ import { RegisterDto } from './dtos/register.dto';
 import { lastValueFrom } from 'rxjs';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
-
+import * as uuid from 'uuid';
 @Injectable()
 export class AppService {
   constructor(
@@ -67,6 +67,7 @@ export class AppService {
       const hashPass = await bcrypt.hash(data.password, salt);
 
       const newUser = {
+        id: uuid.v4(),
         fullname: data.fullname,
         gender: data.gender,
         username: data.username,
@@ -83,7 +84,7 @@ export class AppService {
         },
         is_active: true,
       };
-
+      console.log('newUser', newUser);
       const savedUser = await lastValueFrom(
         this.customerClient.send({ cmd: 'createUser' }, newUser),
       );

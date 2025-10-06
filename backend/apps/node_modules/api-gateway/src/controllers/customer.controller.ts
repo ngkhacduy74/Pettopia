@@ -26,7 +26,7 @@ export class CustomerController {
   constructor(
     @Inject('CUSTOMER_SERVICE') private readonly customerService: ClientProxy,
   ) {}
-  @UseGuards(JwtAuthGuard)
+  // @UseGuards(JwtAuthGuard)
   @Get(':id')
   @HttpCode(HttpStatus.OK)
   async getUserById(@Param('id') id: string) {
@@ -46,36 +46,35 @@ export class CustomerController {
     return user;
   }
 
-@UseGuards(JwtAuthGuard, RoleGuard)
-@Roles(Role.ADMIN, Role.Staff)
-@Patch(':id/status')
-@HttpCode(HttpStatus.OK)
-async updateUserStatus(
-  @Param('id') id: string,
-  @Body('status') status: 'active' | 'deactive',
-) {
-  const user = await lastValueFrom(
-    this.customerService.send(
-      { cmd: 'updateUserStatus' },
-      { id, status },
-    ),
-  );
-  return user;
-}
-@UseGuards(JwtAuthGuard, RoleGuard)
-@Roles(Role.ADMIN, Role.Staff)
-@Get()
-@HttpCode(HttpStatus.OK)
-async getAllUsers(
-  @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
-  @Query('limit', new DefaultValuePipe(15), ParseIntPipe) limit: number,
-  @Query('search') search?: string,
-  @Query('status') status?: 'active' | 'deactive',
-  @Query('role') role?: string,
-  @Query('sort_field') sort_field?: string,
-  @Query('sort_order') sort_order?: 'asc' | 'desc',
-) {
-  const dto = { page, limit, search, status, role, sort_field, sort_order };
-  return await lastValueFrom(this.customerService.send({ cmd: 'getAllUsers' }, dto));
-}
+  // @UseGuards(JwtAuthGuard, RoleGuard)
+  // @Roles(Role.ADMIN, Role.Staff)
+  @Patch(':id/status')
+  @HttpCode(HttpStatus.OK)
+  async updateUserStatus(
+    @Param('id') id: string,
+    @Body('status') status: 'active' | 'deactive',
+  ) {
+    const user = await lastValueFrom(
+      this.customerService.send({ cmd: 'updateUserStatus' }, { id, status }),
+    );
+    return user;
+  }
+  // @UseGuards(JwtAuthGuard, RoleGuard)
+  // @Roles(Role.ADMIN, Role.Staff)
+  @Get()
+  @HttpCode(HttpStatus.OK)
+  async getAllUsers(
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('limit', new DefaultValuePipe(15), ParseIntPipe) limit: number,
+    @Query('search') search?: string,
+    @Query('status') status?: 'active' | 'deactive',
+    @Query('role') role?: string,
+    @Query('sort_field') sort_field?: string,
+    @Query('sort_order') sort_order?: 'asc' | 'desc',
+  ) {
+    const dto = { page, limit, search, status, role, sort_field, sort_order };
+    return await lastValueFrom(
+      this.customerService.send({ cmd: 'getAllUsers' }, dto),
+    );
+  }
 }

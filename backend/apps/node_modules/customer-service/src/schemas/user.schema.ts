@@ -55,7 +55,7 @@ export class User {
     default: () => uuid.v4(),
     trim: true,
   })
-  user_id: string;
+  id: string;
 
   @Prop({ type: String, required: [true, 'Fullname is required'], trim: true })
   fullname: string;
