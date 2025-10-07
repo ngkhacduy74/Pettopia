@@ -10,7 +10,6 @@ export class AppController {
 
   @MessagePattern({ cmd: 'login' })
   login(data: LoginDto) {
-    console.log('kjakahsd', data);
     return this.appService.login(data);
   }
   @MessagePattern({ cmd: 'register' })

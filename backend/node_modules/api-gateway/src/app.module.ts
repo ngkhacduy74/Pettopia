@@ -5,6 +5,7 @@ import { AppService } from './app.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { JwtModule } from '@nestjs/jwt';
+import { PetController } from './controllers/petcare.controller';
 
 @Module({
   imports: [
@@ -26,6 +27,13 @@ import { JwtModule } from '@nestjs/jwt';
           port: 5001,
         },
       },
+      {
+        name: 'PETCARE_SERVICE',
+        transport: Transport.TCP,
+        options: {
+          port: 5003,
+        },
+      },
     ]),
     JwtModule.registerAsync({
       imports: [ConfigModule],
@@ -36,7 +44,7 @@ import { JwtModule } from '@nestjs/jwt';
       }),
     }),
   ],
-  controllers: [AuthController, CustomerController],
+  controllers: [AuthController, CustomerController, PetController],
   providers: [AppService],
 })
 export class AppModule {}

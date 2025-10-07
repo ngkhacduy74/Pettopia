@@ -50,7 +50,6 @@ export class AppController {
   async getUserByEmail(@Payload() data: GetUserByEmailDto): Promise<any> {
     try {
       const result = await this.appService.getUserByEmail(data.email_address);
-      console.log('result_getUserByEmail', result);
       return result;
     } catch (err) {
       throw new Error(err);
