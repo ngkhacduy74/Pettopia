@@ -13,6 +13,9 @@ export class Identification {
   @Prop({ type: String, required: true, unique: true })
   identification_id: string;
 
+  @Prop({ type: String, required: false })
+  pet_id: string;
+
   @Prop({ type: String, required: true })
   fullname: string;
 

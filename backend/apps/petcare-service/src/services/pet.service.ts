@@ -47,6 +47,7 @@ export class PetService {
         dateOfBirth: new Date(data.dateOfBirth),
       };
       const identifyData = {
+        pet_id: petData.id,
         fullname: data.name,
         gender: data.gender,
         date_of_birth: data.dateOfBirth,
@@ -59,7 +60,6 @@ export class PetService {
       if (!pet) {
         throw new BadRequestException('Failed to create pet');
       }
-      console.log('pet', pet);
       const createIdentifies =
         await this.identifyService.createIndentification(identifyData);
       if (!createIdentifies) {
