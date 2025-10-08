@@ -1,5 +1,7 @@
 import { Controller, Get, UsePipes, ValidationPipe } from '@nestjs/common';
+
 import { AppService } from './app.service';
+
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { User } from './schemas/user.schema';
 import { GetUserByIdDto } from './dto/request/get-user-by-id.dto';
@@ -48,7 +50,6 @@ export class AppController {
   async getUserByEmail(@Payload() data: GetUserByEmailDto): Promise<any> {
     try {
       const result = await this.appService.getUserByEmail(data.email_address);
-      console.log('result_getUserByEmail', result);
       return result;
     } catch (err) {
       throw new Error(err);

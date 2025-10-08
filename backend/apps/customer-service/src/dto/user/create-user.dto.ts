@@ -59,4 +59,8 @@ export class CreateUserDto {
   @IsDate()
   @IsOptional()
   updated_at?: Date = new Date();
+
+  @IsString()
+  @IsOptional()
+  address?: string;
 }

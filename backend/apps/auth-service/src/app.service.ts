@@ -83,6 +83,7 @@ export class AppService {
           verified: false,
         },
         is_active: true,
+        address: data.address,
       };
       console.log('newUser', newUser);
       const savedUser = await lastValueFrom(
