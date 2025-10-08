@@ -3,6 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
   Inject,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { PetRepository } from '../repositories/pet.repository';
 import { CreatePetDto } from '../dto/pet/create-pet.dto';
@@ -10,13 +11,17 @@ import { CreatePetDto } from '../dto/pet/create-pet.dto';
 import { PetResponseDto } from '../dto/pet/pet-response.dto';
 import { Pet } from '../schemas/pet.schema';
 import { v4 as uuidv4 } from 'uuid';
-import { lastValueFrom } from 'rxjs';
+import { identity, lastValueFrom } from 'rxjs';
 import { ClientProxy, RpcException } from '@nestjs/microservices';
 import { mapToResponseDto } from '../dto/response/pet.response';
+import { CreateIdentificationDto } from 'src/dto/pet/create-indentify.dto';
+import { generatePetId } from 'src/common/id_identify.common';
+import { IdentifyService } from './identification.service';
 @Injectable()
 export class PetService {
   constructor(
     private readonly petRepository: PetRepository,
+    private readonly identifyService: IdentifyService,
     @Inject('CUSTOMER_SERVICE') private customerClient: ClientProxy,
   ) {}
 
@@ -25,7 +30,6 @@ export class PetService {
       const user = await lastValueFrom(
         this.customerClient.send({ cmd: 'getUserById' }, { id: data.user_id }),
       );
-      
       if (!user) {
         throw new RpcException('User not found');
       }
@@ -34,6 +38,7 @@ export class PetService {
         fullname: user.fullname,
         phone: user.phone.phone_number,
         email: user.email.email_address,
+        address: user.address,
       };
       const petData = {
         id: uuidv4(),
@@ -41,11 +46,31 @@ export class PetService {
         owner: ownerData,
         dateOfBirth: new Date(data.dateOfBirth),
       };
+      const identifyData = {
+        fullname: data.name,
+        gender: data.gender,
+        date_of_birth: data.dateOfBirth,
+        species: data.species,
+        color: data.color,
+        address: ownerData.address,
+        avatar_url: data.avatar_url,
+      };
       const pet = await this.petRepository.create(petData);
       if (!pet) {
         throw new BadRequestException('Failed to create pet');
       }
       console.log('pet', pet);
+      const createIdentifies =
+        await this.identifyService.createIndentification(identifyData);
+      if (!createIdentifies) {
+        return {
+          message: 'Không tạo được thẻ căn cước',
+          location: 'pet-service',
+          error: new InternalServerErrorException(
+            'Failed to create identification',
+          ),
+        };
+      }
       return pet;
     } catch (error) {
       throw new BadRequestException('Failed to create pet: ' + error.message);

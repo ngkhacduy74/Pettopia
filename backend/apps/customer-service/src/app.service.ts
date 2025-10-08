@@ -25,7 +25,7 @@ export class AppService {
   async getUserById(id: string): Promise<User> {
     try {
       const user = await this.userRepositories.findOneById(id);
-
+console.log("userReopsasd",user)
       if (!user) {
         throw new RpcException(
           new NotFoundException(`Không tìm thấy người dùng với id: ${id}`),
