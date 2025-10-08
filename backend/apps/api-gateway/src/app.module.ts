@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { AuthController } from './controllers/auth.controller';
 import { CustomerController } from './controllers/customer.controller';
+import { AppointmentsController } from './controllers/appointments.controller';
 import { AppService } from './app.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ClientsModule, Transport } from '@nestjs/microservices';
@@ -26,6 +27,13 @@ import { JwtModule } from '@nestjs/jwt';
           port: 5001,
         },
       },
+      {
+        name: 'HEALTHCARE_SERVICE',
+        transport: Transport.TCP,
+        options: {
+          port: 5005,
+        },
+      },
     ]),
     JwtModule.registerAsync({
       imports: [ConfigModule],
@@ -36,7 +44,7 @@ import { JwtModule } from '@nestjs/jwt';
       }),
     }),
   ],
-  controllers: [AuthController, CustomerController],
+  controllers: [AuthController, CustomerController, AppointmentsController ],
   providers: [AppService],
 })
 export class AppModule {}
