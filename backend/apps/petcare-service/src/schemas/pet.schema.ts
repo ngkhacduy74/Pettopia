@@ -1,7 +1,18 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 import { v4 as uuidv4 } from 'uuid';
+@Schema({ _id: false })
+export class Address {
+  @Prop({ type: String })
+  city: string;
 
+  @Prop({ type: String })
+  district: string;
+
+  @Prop({ type: String })
+  ward: string;
+}
+export const AddressSchema = SchemaFactory.createForClass(Address);
 @Schema({ _id: false, versionKey: false })
 export class Owner {
   @Prop({ type: String, required: true })
@@ -16,8 +27,8 @@ export class Owner {
   @Prop({ type: String, required: true })
   email: string;
 
-  @Prop({ type: String, required: false })
-  address?: string;
+  @Prop({ type: AddressSchema, required: false })
+  address?: Address;
 }
 export const OwnerSchema = SchemaFactory.createForClass(Owner);
 
@@ -92,8 +103,8 @@ export class Pet {
   @Prop({ type: OwnerSchema, required: true })
   owner: Owner;
 
-  @Prop({ type: String, trim: true })
-  avatar_url?: string;
+  @Prop({ type: String, trim: true, required: true })
+  avatar_url: string;
 
   @Prop({ type: [String], default: [] })
   medical_records?: string[];

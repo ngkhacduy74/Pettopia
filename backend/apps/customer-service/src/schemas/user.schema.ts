@@ -104,7 +104,7 @@ export class User {
   bio?: string;
 
   @Prop({ type: AddressSchema })
-  address?: Address;
+  address: Address;
 
   @Prop({ type: Number, default: 0, min: [0, 'Reward point must be positive'] })
   reward_point: number;

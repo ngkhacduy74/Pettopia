@@ -2,6 +2,8 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
+import { getModelToken } from '@nestjs/mongoose';
+import { User } from './schemas/user.schema';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -21,6 +23,8 @@ async function bootstrap() {
       port: tcp_port,
     },
   });
+  const userModel = app.get(getModelToken(User.name));
+  await userModel.syncIndexes();
   await app.startAllMicroservices();
   await app.listen(port!);
   console.log('Customer-service run successfull');

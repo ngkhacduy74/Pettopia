@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Pet, PetDocument } from '../schemas/pet.schema';
@@ -11,8 +11,19 @@ import { PaginatedPetsResponse } from '../dto/pet/paginated-pets-response.dto';
 export class PetRepository {
   constructor(@InjectModel(Pet.name) private petModel: Model<PetDocument>) {}
 
-  async create(petDataToSave: Partial<Pet>): Promise<Pet> {
-    return this.petModel.create(petDataToSave);
+  async create(petDataToSave: CreatePetDto | any): Promise<Pet> {
+    try {
+      const pet = await this.petModel.create(petDataToSave);
+
+      if (!pet) {
+        throw new InternalServerErrorException('Không thể tạo pet trong DB');
+      }
+      return pet;
+    } catch (error) {
+      throw new InternalServerErrorException(
+        'Lỗi khi lưu Pet vào cơ sở dữ liệu: ' + error.message,
+      );
+    }
   }
 
   async findAll(): Promise<Pet[]> {

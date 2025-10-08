@@ -6,6 +6,7 @@ import {
   IsNotEmpty,
   Min,
   IsOptional,
+  IsDate,
 } from 'class-validator';
 import { Gender } from '../../schemas/pet.schema';
 
@@ -33,15 +34,14 @@ export class CreatePetDto {
   @Min(0, { message: 'Weight must be positive' })
   weight: number;
 
-  @IsDateString({}, { message: 'Date of birth must be a valid date' })
+  @IsDate({ message: 'Date of birth must be a valid date' })
   dateOfBirth: Date;
 
   @IsString()
   @IsNotEmpty({ message: 'Breed is required' })
   breed: string;
   @IsString()
-  @IsOptional()
-  avatar_url?: string;
+  avatar_url: string;
 
   @IsOptional()
   medical_records?: string[];
