@@ -82,7 +82,7 @@ export class PetRepository {
   }
 
   async findById(pet_id: string): Promise<Pet | null> {
-    return this.petModel.findOne({ pet_id }).exec();
+    return this.petModel.findOne({ id: pet_id }).exec();
   }
 
   // async update(
