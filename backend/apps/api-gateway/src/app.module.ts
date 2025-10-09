@@ -14,13 +14,6 @@ import { PetController } from './controllers/petcare.controller';
     }),
     ClientsModule.register([
       {
-        name: 'CUSTOMER_SERVICE',
-        transport: Transport.TCP,
-        options: {
-          port: 5002,
-        },
-      },
-      {
         name: 'AUTH_SERVICE',
         transport: Transport.TCP,
         options: {
@@ -28,10 +21,45 @@ import { PetController } from './controllers/petcare.controller';
         },
       },
       {
+        name: 'CUSTOMER_SERVICE',
+        transport: Transport.TCP,
+        options: {
+          port: 5002,
+        },
+      },
+      {
         name: 'PETCARE_SERVICE',
         transport: Transport.TCP,
         options: {
           port: 5003,
+        },
+      },
+      {
+        name: 'PARTNER_SERVICE',
+        transport: Transport.TCP,
+        options: {
+          port: 5004,
+        },
+      },
+      {
+        name: 'HEALTHCARE_SERVICE',
+        transport: Transport.TCP,
+        options: {
+          port: 5005,
+        },
+      },
+      {
+        name: 'COMMUNICATION_SERVICE',
+        transport: Transport.TCP,
+        options: {
+          port: 5006,
+        },
+      },
+      {
+        name: 'BILLING_SERVICE',
+        transport: Transport.TCP,
+        options: {
+          port: 5007,
         },
       },
     ]),

@@ -1,9 +1,6 @@
 import {
   Body,
   Controller,
-  DefaultValuePipe,
-  Delete,
-  Get,
   HttpCode,
   HttpStatus,
   Inject,
@@ -14,7 +11,6 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { AppService } from '../app.service';
 import { lastValueFrom } from 'rxjs';
 import { ClientProxy } from '@nestjs/microservices';
 import { Role, Roles } from 'src/decorators/roles.decorator';
