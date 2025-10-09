@@ -71,7 +71,12 @@ export class PetService {
           ),
         };
       }
-      return pet;
+      return {
+        message: 'Tạo thú cưng thành công',
+        statusCode: 201,
+        pet: pet,
+        identifies: createIdentifies,
+      };
     } catch (error) {
       throw new BadRequestException('Failed to create pet: ' + error.message);
     }
