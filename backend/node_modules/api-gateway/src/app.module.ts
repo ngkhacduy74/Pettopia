@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { AuthController } from './controllers/auth.controller';
 import { CustomerController } from './controllers/customer.controller';
+import { AppointmentsController } from './controllers/appointments.controller';
 import { AppService } from './app.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ClientsModule, Transport } from '@nestjs/microservices';
@@ -72,7 +73,7 @@ import { PetController } from './controllers/petcare.controller';
       }),
     }),
   ],
-  controllers: [AuthController, CustomerController, PetController],
+  controllers: [AuthController, CustomerController, PetController, AppointmentsController],
   providers: [AppService],
 })
 export class AppModule {}

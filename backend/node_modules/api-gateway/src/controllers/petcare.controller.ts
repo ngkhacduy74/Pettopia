@@ -30,4 +30,32 @@ export class PetController {
       this.petService.send({ cmd: 'createPet' }, data), //lỗi ở api gateway khi mà truyền userId vào
     );
   }
+   @Get('/all')
+  async getAllPets() {
+    return await lastValueFrom(
+      this.petService.send({ cmd: 'getAllPets' }, {}),
+    );
+  }
+
+  @Get('/count')
+  async getPetCount() {
+    return await lastValueFrom(
+      this.petService.send({ cmd: 'getPetCount' }, {}),
+    );
+  }
+
+  @Get('/:id')
+  async getPetById(@Param('id') pet_id: string) {
+    return await lastValueFrom(
+      this.petService.send({ cmd: 'getPetById' }, { pet_id }),
+    );
+  }
+
+  @Delete('/:id')
+  @HttpCode(HttpStatus.OK)
+  async deletePet(@Param('id') pet_id: string) {
+    return await lastValueFrom(
+      this.petService.send({ cmd: 'deletePet' }, { pet_id }),
+    );
+  }
 }
