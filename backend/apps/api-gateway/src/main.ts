@@ -13,7 +13,11 @@ async function bootstrap() {
       exceptionFactory: (errors) => new BadRequestException(errors),
     }),
   );
-
+  app.enableCors({
+    origin: 'http://localhost:4001',
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    credentials: true,
+  });
   const config = new DocumentBuilder()
     .setTitle('API Gateway')
     .setDescription('Tài liệu API tổng hợp cho hệ thống')
