@@ -16,6 +16,7 @@ import { ClientProxy } from '@nestjs/microservices';
 import { Role, Roles } from 'src/decorators/roles.decorator';
 import { JwtAuthGuard } from 'src/guard/jwtAuth.guard';
 import { RoleGuard } from 'src/guard/role.guard';
+import { UserToken } from 'src/decorators/user.decorator';
 
 @Controller('api/v1/partner')
 export class PartnerController {
@@ -23,12 +24,11 @@ export class PartnerController {
     @Inject('PARTNER_SERVICE') private readonly partnerService: ClientProxy,
   ) {}
   @UseGuards(JwtAuthGuard)
-  @Post('/create')
+  @Post('/clinic/register')
   @HttpCode(HttpStatus.CREATED)
-  async createPet(@Body() data: any) {
-    console.log('dataPet', data);
+  async clinicRegister(@Body() data: any, @UserToken('id') userId: any) {
     return await lastValueFrom(
-      this.partnerService.send({ cmd: 'createPet' }, data),
+      this.partnerService.send({ cmd: 'registerClinic' }, { ...data, userId }),
     );
   }
 }

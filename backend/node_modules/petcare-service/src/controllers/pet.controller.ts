@@ -20,14 +20,6 @@ import { MessagePattern } from '@nestjs/microservices';
 export class PetController {
   constructor(private readonly petService: PetService) {}
 
-  // @Post(':userId')
-  // @HttpCode(HttpStatus.CREATED)
-  // async create(
-  //   @Param('userId') userId: string,
-  //   @Body() createPetDto: CreatePetDto,
-  // ): Promise<PetResponseDto> {
-  //   return this.petService.create(userId, createPetDto);
-  // }
   @MessagePattern({ cmd: 'createPet' })
   async createPet(data: CreatePetDto): Promise<PetResponseDto> {
     console.log('dataPetService', data);
