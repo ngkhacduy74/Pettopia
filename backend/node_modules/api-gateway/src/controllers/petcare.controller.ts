@@ -17,6 +17,7 @@ import { Role, Roles } from 'src/decorators/roles.decorator';
 import { JwtAuthGuard } from 'src/guard/jwtAuth.guard';
 import { RoleGuard } from 'src/guard/role.guard';
 import { UserToken } from 'src/decorators/user.decorator';
+import { Get, Delete } from '@nestjs/common';
 
 @Controller('api/v1/pet')
 export class PetController {
