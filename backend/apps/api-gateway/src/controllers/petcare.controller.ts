@@ -1,6 +1,8 @@
 import {
   Body,
   Controller,
+  Delete,
+  Get,
   HttpCode,
   HttpStatus,
   Inject,
@@ -27,14 +29,12 @@ export class PetController {
   @HttpCode(HttpStatus.CREATED)
   async createPet(@Body() data: any) {
     return await lastValueFrom(
-      this.petService.send({ cmd: 'createPet' }, data), //lỗi ở api gateway khi mà truyền userId vào
+      this.petService.send({ cmd: 'createPet' }, data),
     );
   }
-   @Get('/all')
+  @Get('/all')
   async getAllPets() {
-    return await lastValueFrom(
-      this.petService.send({ cmd: 'getAllPets' }, {}),
-    );
+    return await lastValueFrom(this.petService.send({ cmd: 'getAllPets' }, {}));
   }
 
   @Get('/count')
