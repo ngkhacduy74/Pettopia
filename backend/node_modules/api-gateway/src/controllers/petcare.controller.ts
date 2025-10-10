@@ -1,9 +1,6 @@
 import {
   Body,
   Controller,
-  DefaultValuePipe,
-  Delete,
-  Get,
   HttpCode,
   HttpStatus,
   Inject,
@@ -14,12 +11,12 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { AppService } from '../app.service';
 import { lastValueFrom } from 'rxjs';
 import { ClientProxy } from '@nestjs/microservices';
 import { Role, Roles } from 'src/decorators/roles.decorator';
 import { JwtAuthGuard } from 'src/guard/jwtAuth.guard';
 import { RoleGuard } from 'src/guard/role.guard';
+import { UserToken } from 'src/decorators/user.decorator';
 
 @Controller('api/v1/pet')
 export class PetController {
@@ -29,9 +26,8 @@ export class PetController {
   @Post('/create')
   @HttpCode(HttpStatus.CREATED)
   async createPet(@Body() data: any) {
-    console.log('dataPet', data);
     return await lastValueFrom(
-      this.petService.send({ cmd: 'createPet' }, data),
+      this.petService.send({ cmd: 'createPet' }, data), //lỗi ở api gateway khi mà truyền userId vào
     );
   }
    @Get('/all')

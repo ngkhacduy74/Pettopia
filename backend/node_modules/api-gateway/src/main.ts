@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { BadRequestException, ValidationPipe } from '@nestjs/common';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -12,7 +13,25 @@ async function bootstrap() {
       exceptionFactory: (errors) => new BadRequestException(errors),
     }),
   );
+
+  const config = new DocumentBuilder()
+    .setTitle('API Gateway')
+    .setDescription('Tài liệu API tổng hợp cho hệ thống')
+    .addBearerAuth()
+    .build();
+
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('api/docs', app, document, {
+    swaggerOptions: { persistAuthorization: true },
+  });
+
   await app.listen(process.env.API_GATEWAY_PORT!);
-  console.log(`api gateway đang chạy tên cổng ${process.env.API_GATEWAY_PORT}`);
+  console.log(
+    `🚀 API Gateway đang chạy tại http://localhost:${process.env.API_GATEWAY_PORT}`,
+  );
+  console.log(
+    `📘 Swagger docs: http://localhost:${process.env.API_GATEWAY_PORT}/api/docs`,
+  );
 }
+
 bootstrap();
