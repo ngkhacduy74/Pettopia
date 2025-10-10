@@ -73,7 +73,12 @@ import { PetController } from './controllers/petcare.controller';
       }),
     }),
   ],
-  controllers: [AuthController, CustomerController, PetController, AppointmentsController],
+  controllers: [
+    AuthController,
+    CustomerController,
+    PetController,
+    AppointmentsController,
+  ],
   providers: [AppService],
 })
 export class AppModule {}
