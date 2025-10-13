@@ -10,4 +10,5 @@ export class PetResponseDto {
   breed: string;
   dateOfBirth: Date;
   owner: object;
+  avatar_url: string;
 }

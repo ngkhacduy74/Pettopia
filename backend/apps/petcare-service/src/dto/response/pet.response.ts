@@ -12,5 +12,6 @@ export function mapToResponseDto(pet: Pet): PetResponseDto {
     weight: pet.weight,
     dateOfBirth: pet.dateOfBirth,
     owner: pet.owner,
+    avatar_url: pet.avatar_url,
   };
 }
