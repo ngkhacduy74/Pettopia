@@ -1,6 +1,8 @@
 import {
   Body,
   Controller,
+  Delete,
+  Get,
   HttpCode,
   HttpStatus,
   Inject,
@@ -17,7 +19,7 @@ import { Role, Roles } from 'src/decorators/roles.decorator';
 import { JwtAuthGuard } from 'src/guard/jwtAuth.guard';
 import { RoleGuard } from 'src/guard/role.guard';
 import { UserToken } from 'src/decorators/user.decorator';
-import { Get, Delete } from '@nestjs/common';
+
 
 @Controller('api/v1/pet')
 export class PetController {
@@ -28,14 +30,12 @@ export class PetController {
   @HttpCode(HttpStatus.CREATED)
   async createPet(@Body() data: any) {
     return await lastValueFrom(
-      this.petService.send({ cmd: 'createPet' }, data), //lỗi ở api gateway khi mà truyền userId vào
+      this.petService.send({ cmd: 'createPet' }, data),
     );
   }
-   @Get('/all')
+  @Get('/all')
   async getAllPets() {
-    return await lastValueFrom(
-      this.petService.send({ cmd: 'getAllPets' }, {}),
-    );
+    return await lastValueFrom(this.petService.send({ cmd: 'getAllPets' }, {}));
   }
 
   @Get('/count')

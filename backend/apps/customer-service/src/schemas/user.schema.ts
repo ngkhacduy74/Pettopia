@@ -6,6 +6,7 @@ export class Address {
   @Prop({ type: String, required: true, trim: true }) city: string;
   @Prop({ type: String, required: true, trim: true }) district: string;
   @Prop({ type: String, required: true, trim: true }) ward: string;
+  @Prop({ type: String, required: true, trim: true }) description: string;
 }
 export const AddressSchema = SchemaFactory.createForClass(Address);
 

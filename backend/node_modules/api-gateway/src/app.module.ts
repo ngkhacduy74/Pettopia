@@ -15,6 +15,13 @@ import { PetController } from './controllers/petcare.controller';
     }),
     ClientsModule.register([
       {
+        name: 'AUTH_SERVICE',
+        transport: Transport.TCP,
+        options: {
+          port: 5001,
+        },
+      },
+      {
         name: 'CUSTOMER_SERVICE',
         transport: Transport.TCP,
         options: {
@@ -22,10 +29,17 @@ import { PetController } from './controllers/petcare.controller';
         },
       },
       {
-        name: 'AUTH_SERVICE',
+        name: 'PETCARE_SERVICE',
         transport: Transport.TCP,
         options: {
-          port: 5001,
+          port: 5003,
+        },
+      },
+      {
+        name: 'PARTNER_SERVICE',
+        transport: Transport.TCP,
+        options: {
+          port: 5004,
         },
       },
       {
@@ -36,10 +50,17 @@ import { PetController } from './controllers/petcare.controller';
         },
       },
       {
-        name: 'PETCARE_SERVICE',
+        name: 'COMMUNICATION_SERVICE',
         transport: Transport.TCP,
         options: {
-          port: 5003,
+          port: 5006,
+        },
+      },
+      {
+        name: 'BILLING_SERVICE',
+        transport: Transport.TCP,
+        options: {
+          port: 5007,
         },
       },
     ]),
@@ -52,7 +73,12 @@ import { PetController } from './controllers/petcare.controller';
       }),
     }),
   ],
-  controllers: [AuthController, CustomerController, PetController, AppointmentsController],
+  controllers: [
+    AuthController,
+    CustomerController,
+    PetController,
+    AppointmentsController,
+  ],
   providers: [AppService],
 })
 export class AppModule {}
