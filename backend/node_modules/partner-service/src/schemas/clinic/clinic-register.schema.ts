@@ -6,9 +6,58 @@ export class Address {
   @Prop({ type: String, required: true, trim: true }) city: string;
   @Prop({ type: String, required: true, trim: true }) district: string;
   @Prop({ type: String, required: true, trim: true }) ward: string;
-  @Prop({ type: String, required: true, trim: true }) street: string;
+  @Prop({ type: String, required: true, trim: true }) detail: string;
 }
 export const AddressSchema = SchemaFactory.createForClass(Address);
+
+@Schema({ _id: false })
+export class Representative {
+  // Thông tin người đại diện cho phòng khám
+  @Prop({
+    type: String,
+    required: true,
+    trim: true,
+    match: [/^[A-Za-zÀ-ỹ\s]+$/, 'Tên không hợp lệ'],
+  })
+  name: string;
+
+  @Prop({
+    type: String,
+    required: true,
+    trim: true,
+    unique: true,
+    match: [/^[0-9]{9,12}$/, 'CCCD/CMND không hợp lệ'],
+  })
+  identify_number: string;
+
+  @Prop({
+    type: String,
+    required: false,
+    trim: true,
+    // match: [/^https?:\/\/.+\.(jpg|jpeg|png|gif)$/i, 'URL ảnh không hợp lệ'],
+  })
+  avatar_url?: string;
+
+  @Prop({
+    type: [String],
+    required: true,
+    validate: [
+      (v: string[]) => v.length > 0,
+      'Phải có ít nhất một giấy phép hành nghề',
+    ],
+  })
+  responsible_licenses: string[];
+
+  @Prop({
+    type: Date,
+    required: false,
+    validate: {
+      validator: (v: Date) => v <= new Date(),
+      message: 'Ngày cấp phép không được lớn hơn ngày hiện tại',
+    },
+  })
+  license_issued_date?: Date;
+}
 
 @Schema({ _id: false })
 export class Email {
@@ -86,9 +135,6 @@ export class Clinic_Register {
   @Prop({ type: AddressSchema, required: true })
   address: Address;
 
-  @Prop({ type: Number, min: 1900, max: new Date().getFullYear() })
-  established_year: number;
-
   @Prop({ type: String, trim: true })
   description: string;
 
@@ -104,6 +150,9 @@ export class Clinic_Register {
     default: RegisterStatus.PENDING,
   })
   status: RegisterStatus;
+
+  @Prop({ type: Representative, required: true })
+  representative: Representative;
 
   @Prop({ type: String, trim: true })
   note?: string;

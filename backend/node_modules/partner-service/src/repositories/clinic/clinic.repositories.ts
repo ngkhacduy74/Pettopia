@@ -1,0 +1,209 @@
+// src/users/users.repository.ts
+import {
+  BadRequestException,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
+import { CreateClinicFormDto } from 'src/dto/clinic/create-clinic-form.dto';
+import { CreateClinicDto } from 'src/dto/clinic/create-clinic.dto';
+import { UpdateStatusClinicDto } from 'src/dto/clinic/update-status.dto';
+import {
+  Clinic_Register,
+  ClinicRegisterDocument,
+  RegisterStatus,
+} from 'src/schemas/clinic/clinic-register.schema';
+import { Clinic, ClinicDocument } from 'src/schemas/clinic/clinic.schema';
+
+@Injectable()
+export class ClinicsRepository {
+  constructor(
+    @InjectModel(Clinic_Register.name)
+    private clinicFormModel: Model<ClinicRegisterDocument>,
+    @InjectModel(Clinic.name)
+    private clinicModel: Model<ClinicDocument>,
+  ) {}
+
+  async createClinicForm(
+    data: CreateClinicFormDto,
+  ): Promise<ClinicRegisterDocument> {
+    try {
+      const clinicDocument = new this.clinicFormModel(data);
+      const result = await clinicDocument.save();
+      return result;
+    } catch (err) {
+      throw new InternalServerErrorException(
+        err.message || 'Lỗi cơ sở dữ liệu khi tạo form clinic',
+      );
+    }
+  }
+  async findOneClinicForm(id: string): Promise<any> {
+    try {
+      const findOne = await this.clinicFormModel
+        .findOne({ id: id })
+        .lean()
+        .exec();
+      if (!findOne) {
+        return null;
+      }
+      return findOne;
+    } catch (err) {
+      throw new InternalServerErrorException(
+        err.message || `Lỗi cơ sở dữ liệu khi tìm form clinic với ID: ${id}`,
+      );
+    }
+  }
+  async updateStatusClinicForm(
+    updateStatus: UpdateStatusClinicDto,
+  ): Promise<any> {
+    const { id, status, note } = updateStatus;
+
+    const clinic = await this.clinicFormModel.findOne({ id });
+    if (!clinic) {
+      throw new NotFoundException(`Không tìm thấy đơn đăng ký với id: ${id}`);
+    }
+
+    if (clinic.status !== RegisterStatus.PENDING) {
+      throw new BadRequestException(
+        'Chỉ có thể cập nhật khi đơn đang chờ duyệt',
+      );
+    }
+
+    clinic.status = status;
+    if (note) clinic.note = note;
+
+    const saved = await clinic.save();
+
+    return {
+      id: saved.id,
+      clinic_name: saved.clinic_name,
+      status: saved.status,
+      note: saved.note,
+      updateAt: new Date(),
+    };
+  }
+
+  async findAll(filters: {
+    status?: string;
+    skip: number;
+    limit: number;
+  }): Promise<{ data: ClinicRegisterDocument[]; total: number }> {
+    const query: any = {};
+
+    if (filters.status) {
+      query.status = filters.status;
+    }
+
+    const total = await this.clinicFormModel.countDocuments(query);
+
+    const data = await this.clinicFormModel
+      .find(query)
+      .sort({ createdAt: -1 })
+      .skip(filters.skip)
+      .limit(filters.limit);
+    return { data, total };
+  }
+  async createClinic(data: CreateClinicDto): Promise<ClinicDocument> {
+    try {
+      const existClinic = await this.clinicModel.findOne({
+        $or: [{ id: data.id }, { license_number: data.license_number }],
+      });
+
+      if (existClinic) {
+        throw new BadRequestException(
+          'Phòng khám với ID hoặc số giấy phép hành nghề này đã tồn tại',
+        );
+      }
+
+      const newClinic = new this.clinicModel(data);
+      const savedClinic = await newClinic.save();
+      return savedClinic;
+    } catch (err) {
+      if (err instanceof BadRequestException) throw err;
+      throw new InternalServerErrorException(
+        err.message || 'Lỗi cơ sở dữ liệu khi tạo phòng khám',
+      );
+    }
+  }
+  async rollbackStatusToPending(
+    id: string,
+  ): Promise<{ success: boolean; message: string }> {
+    try {
+      const result = await this.clinicFormModel.updateOne(
+        { id },
+        { status: RegisterStatus.PENDING },
+      );
+
+      if (result.matchedCount === 0) {
+        throw new NotFoundException(
+          `Không tìm thấy đơn đăng ký với id: ${id} để rollback`,
+        );
+      }
+
+      if (result.modifiedCount === 0) {
+        throw new BadRequestException(
+          `Rollback thất bại: trạng thái đơn có thể đã là PENDING hoặc không thể cập nhật`,
+        );
+      }
+
+      return {
+        success: true,
+        message: `Đã rollback trạng thái đơn ${id} về PENDING thành công.`,
+      };
+    } catch (err) {
+      if (
+        err instanceof NotFoundException ||
+        err instanceof BadRequestException
+      ) {
+        throw err;
+      }
+      throw new InternalServerErrorException(
+        err.message || `Lỗi cơ sở dữ liệu khi rollback trạng thái đơn ${id}`,
+      );
+    }
+  }
+  async updateActiveStatus(id: string, is_active: boolean): Promise<any> {
+    const updatedClinic = await this.clinicModel
+      .findOneAndUpdate(
+        { id: id },
+        {
+          is_active: is_active,
+          updatedAt: new Date(),
+        },
+        {
+          new: true,
+        },
+      )
+      .exec();
+
+    return updatedClinic;
+  }
+  async findAllClinic(skip: number, limit: number): Promise<any> {
+    try {
+      const clinics = await this.clinicModel
+        .find()
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean()
+        .exec();
+      return clinics;
+    } catch (err) {
+      throw new InternalServerErrorException(
+        err.message || 'Lỗi cơ sở dữ liệu khi truy vấn danh sách phòng khám',
+      );
+    }
+  }
+
+  async countAllClinic(): Promise<number> {
+    try {
+      return await this.clinicModel.countDocuments();
+    } catch (err) {
+      throw new InternalServerErrorException(
+        err.message || 'Lỗi cơ sở dữ liệu khi đếm tổng số phòng khám',
+      );
+    }
+  }
+}

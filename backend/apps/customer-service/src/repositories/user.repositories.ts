@@ -17,7 +17,6 @@ export class UsersRepository {
   async findOneById(id: string): Promise<User | null> {
     try {
       const result = await this.userModel.findOne({ id }).lean().exec();
-      console.log("hello1233",result);
       return result;
     } catch (err) {
       throw new Error(err);

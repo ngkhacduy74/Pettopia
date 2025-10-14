@@ -42,14 +42,14 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ClinicRegisterSchema = exports.Clinic_Register = exports.RegisterStatus = exports.PhoneSchema = exports.Phone = exports.EmailSchema = exports.Email = exports.AddressSchema = exports.Address = void 0;
+exports.ClinicRegisterSchema = exports.Clinic_Register = exports.RegisterStatus = exports.PhoneSchema = exports.Phone = exports.EmailSchema = exports.Email = exports.Representative = exports.AddressSchema = exports.Address = void 0;
 const mongoose_1 = require("@nestjs/mongoose");
 const uuid = __importStar(require("uuid"));
 let Address = class Address {
     city;
     district;
     ward;
-    street;
+    detail;
 };
 exports.Address = Address;
 __decorate([
@@ -67,11 +67,71 @@ __decorate([
 __decorate([
     (0, mongoose_1.Prop)({ type: String, required: true, trim: true }),
     __metadata("design:type", String)
-], Address.prototype, "street", void 0);
+], Address.prototype, "detail", void 0);
 exports.Address = Address = __decorate([
     (0, mongoose_1.Schema)({ _id: false })
 ], Address);
 exports.AddressSchema = mongoose_1.SchemaFactory.createForClass(Address);
+let Representative = class Representative {
+    name;
+    identify_number;
+    avatar_url;
+    responsible_licenses;
+    license_issued_date;
+};
+exports.Representative = Representative;
+__decorate([
+    (0, mongoose_1.Prop)({
+        type: String,
+        required: true,
+        trim: true,
+        match: [/^[A-Za-zÀ-ỹ\s]+$/, 'Tên không hợp lệ'],
+    }),
+    __metadata("design:type", String)
+], Representative.prototype, "name", void 0);
+__decorate([
+    (0, mongoose_1.Prop)({
+        type: String,
+        required: true,
+        trim: true,
+        unique: true,
+        match: [/^[0-9]{9,12}$/, 'CCCD/CMND không hợp lệ'],
+    }),
+    __metadata("design:type", String)
+], Representative.prototype, "identify_number", void 0);
+__decorate([
+    (0, mongoose_1.Prop)({
+        type: String,
+        required: false,
+        trim: true,
+    }),
+    __metadata("design:type", String)
+], Representative.prototype, "avatar_url", void 0);
+__decorate([
+    (0, mongoose_1.Prop)({
+        type: [String],
+        required: true,
+        validate: [
+            (v) => v.length > 0,
+            'Phải có ít nhất một giấy phép hành nghề',
+        ],
+    }),
+    __metadata("design:type", Array)
+], Representative.prototype, "responsible_licenses", void 0);
+__decorate([
+    (0, mongoose_1.Prop)({
+        type: Date,
+        required: false,
+        validate: {
+            validator: (v) => v <= new Date(),
+            message: 'Ngày cấp phép không được lớn hơn ngày hiện tại',
+        },
+    }),
+    __metadata("design:type", Date)
+], Representative.prototype, "license_issued_date", void 0);
+exports.Representative = Representative = __decorate([
+    (0, mongoose_1.Schema)({ _id: false })
+], Representative);
 let Email = class Email {
     email_address;
     verified;
@@ -137,11 +197,11 @@ let Clinic_Register = class Clinic_Register {
     phone;
     license_number;
     address;
-    established_year;
     description;
     logo_url;
     website;
     status;
+    representative;
     note;
 };
 exports.Clinic_Register = Clinic_Register;
@@ -180,10 +240,6 @@ __decorate([
     __metadata("design:type", Address)
 ], Clinic_Register.prototype, "address", void 0);
 __decorate([
-    (0, mongoose_1.Prop)({ type: Number, min: 1900, max: new Date().getFullYear() }),
-    __metadata("design:type", Number)
-], Clinic_Register.prototype, "established_year", void 0);
-__decorate([
     (0, mongoose_1.Prop)({ type: String, trim: true }),
     __metadata("design:type", String)
 ], Clinic_Register.prototype, "description", void 0);
@@ -203,6 +259,10 @@ __decorate([
     }),
     __metadata("design:type", String)
 ], Clinic_Register.prototype, "status", void 0);
+__decorate([
+    (0, mongoose_1.Prop)({ type: Representative, required: true }),
+    __metadata("design:type", Representative)
+], Clinic_Register.prototype, "representative", void 0);
 __decorate([
     (0, mongoose_1.Prop)({ type: String, trim: true }),
     __metadata("design:type", String)

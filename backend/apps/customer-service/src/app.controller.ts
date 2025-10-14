@@ -8,7 +8,6 @@ import { GetUserByIdDto } from './dto/request/get-user-by-id.dto';
 import { GetUserByUsernameDto } from './dto/request/get-user-by-username.dto';
 import { GetUserByEmailDto } from './dto/request/get-user-by-email.dto';
 import { CheckPhoneExistDto } from './dto/request/check-phone-exist.dto';
-import { CreateUserDto } from './dto/user/create-user.dto';
 import { DeleteUserByIdDto } from './dto/request/delete-user-by-id.dto';
 import { UpdateUserStatusDto } from './dto/request/update-user-status.dto';
 import {

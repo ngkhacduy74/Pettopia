@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Get,
   HttpCode,
   HttpStatus,
   Inject,
@@ -23,12 +24,90 @@ export class PartnerController {
   constructor(
     @Inject('PARTNER_SERVICE') private readonly partnerService: ClientProxy,
   ) {}
-  @UseGuards(JwtAuthGuard)
+  // @UseGuards(JwtAuthGuard)
+  // @Post('/clinic/register')
+  // @HttpCode(HttpStatus.CREATED)
+  // async clinicRegister(@Body() data: any, @UserToken('id') user_id: any) {
+  //   return await lastValueFrom(
+  //     this.partnerService.send({ cmd: 'registerClinic' }, { ...data, user_id }),
+  //   );
+  // }
+
+  // @UseGuards(JwtAuthGuard)
+  @Get('/clinic/form')
+  @HttpCode(HttpStatus.OK)
+  async getAllClinicForm(
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
+    @Query('status') status?: string,
+  ): Promise<any> {
+    return await lastValueFrom(
+      this.partnerService.send(
+        { cmd: 'getAllClinicForm' },
+        { page, limit, status },
+      ),
+    );
+  }
   @Post('/clinic/register')
   @HttpCode(HttpStatus.CREATED)
-  async clinicRegister(@Body() data: any, @UserToken('id') userId: any) {
+  async clinicRegister(@Body() data: any) {
+    const user_id = '1628ed97-590d-4184-847f-94af4264f8d8';
     return await lastValueFrom(
-      this.partnerService.send({ cmd: 'registerClinic' }, { ...data, userId }),
+      this.partnerService.send({ cmd: 'registerClinic' }, { ...data, user_id }),
+    );
+  }
+
+  @Get('/clinic/:id')
+  @HttpCode(HttpStatus.OK)
+  async getClinicFormById(@Param('id') idForm: string) {
+    return await lastValueFrom(
+      this.partnerService.send({ cmd: 'getClinicFormById' }, { id: idForm }),
+    );
+  }
+
+  @Post('/clinic/status/:id')
+  @HttpCode(HttpStatus.OK)
+  async updateStatusClinicForm(@Param('id') idForm: string, @Body() body: any) {
+    const payload = { id: idForm, ...body };
+    return await lastValueFrom(
+      this.partnerService.send({ cmd: 'updateStatusClinicForm' }, payload),
+    );
+  }
+
+  @Get('/clinic')
+  @HttpCode(HttpStatus.OK)
+  async findAllClinic(
+    @Query('page', new ParseIntPipe({ optional: true }))
+    page: number = 1,
+    @Query('limit', new ParseIntPipe({ optional: true }))
+    limit: number = 10,
+  ): Promise<any> {
+    return await lastValueFrom(
+      this.partnerService.send({ cmd: 'findAllClinic' }, { page, limit }),
+    );
+  }
+
+  @Patch('/clinic/:id')
+  @HttpCode(HttpStatus.OK)
+  async updateClinicInfo(
+    @Param('id') idClinic: string,
+    @Body() updateData: any,
+  ) {
+    const payload = { id: idClinic, ...updateData };
+    return await lastValueFrom(
+      this.partnerService.send({ cmd: 'updateClinicInfo' }, payload),
+    );
+  }
+
+  @Patch('/clinic/active/:id')
+  @HttpCode(HttpStatus.OK)
+  async updateClinicActiveStatus(
+    @Param('id') idClinic: string,
+    @Body('is_active') is_active: boolean,
+  ) {
+    const payload = { id: idClinic, is_active };
+    return await lastValueFrom(
+      this.partnerService.send({ cmd: 'updateClinicActiveStatus' }, payload),
     );
   }
 }

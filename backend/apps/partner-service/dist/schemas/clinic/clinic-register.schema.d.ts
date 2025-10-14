@@ -3,7 +3,7 @@ export declare class Address {
     city: string;
     district: string;
     ward: string;
-    street: string;
+    detail: string;
 }
 export declare const AddressSchema: import("mongoose").Schema<Address, import("mongoose").Model<Address, any, any, any, Document<unknown, any, Address, any, {}> & Address & {
     _id: import("mongoose").Types.ObjectId;
@@ -14,6 +14,13 @@ export declare const AddressSchema: import("mongoose").Schema<Address, import("m
 } & {
     __v: number;
 }>;
+export declare class Representative {
+    name: string;
+    identify_number: string;
+    avatar_url?: string;
+    responsible_licenses: string[];
+    license_issued_date?: Date;
+}
 export declare class Email {
     email_address: string;
     verified: boolean;
@@ -53,11 +60,11 @@ export declare class Clinic_Register {
     phone: Phone;
     license_number: string;
     address: Address;
-    established_year: number;
     description: string;
     logo_url: string;
     website?: string;
     status: RegisterStatus;
+    representative: Representative;
     note?: string;
 }
 export type ClinicRegisterDocument = Clinic_Register & Document;
