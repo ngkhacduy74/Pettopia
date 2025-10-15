@@ -2,7 +2,7 @@ import { Controller, Logger } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { PetService } from '../services/pet.service';
 import { CreatePetDto } from '../dto/pet/create-pet.dto';
-// import { UpdatePetDto } from '../dto/pet/update-pet.dto';
+import { UpdatePetDto } from '../dto/pet/update-pet.dto';
 import { PetResponseDto } from '../dto/pet/pet-response.dto';
 import { GetAllPetsDto } from '../dto/pet/get-all-pets.dto';
 import { GetPetByIdDto } from '../dto/pet/get-pet-by-id.dto';
@@ -91,6 +91,16 @@ export class PetController {
   //   @Body() updatePetDto: UpdatePetDto,
   // ): Promise<PetResponseDto> {
   //   return this.petService.update(pet_id, updatePetDto);
+  @MessagePattern({ cmd: 'updatePet' })
+  async updatePet(data: { pet_id: string; updateData: UpdatePetDto }): Promise<any> {
+    try {
+      this.logger.log(`Received updatePet for ${data.pet_id}`);
+      return await this.petService.update(data.pet_id, data.updateData);
+    } catch (error) {
+      this.logger.error('Error updating pet:', error);
+      return { message: 'Failed to update pet', error: error.message } as any;
+    }
+  }
   // }
   // @Delete(':pet_id')
   // @HttpCode(HttpStatus.OK)

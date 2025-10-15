@@ -40,4 +40,37 @@ export class IdentifyService {
       );
     }
   }
+  async updateIdentificationByPetId(
+  pet_id: string,
+  updateData: Partial<CreateIdentificationDto>,
+): Promise<any> {
+  try {
+    const existingIdentify = await this.identificationRepositories.findByPetId(
+      pet_id,
+    );
+
+    if (!existingIdentify) {
+      throw new RpcException('Không tìm thấy căn cước cho thú cưng này!');
+    }
+
+    const updated = await this.identificationRepositories.updateByPetId(
+      pet_id,
+      updateData,
+    );
+
+    if (!updated) {
+      throw new RpcException('Cập nhật căn cước thú cưng thất bại!');
+    }
+
+    return {
+      message: 'Cập nhật căn cước thú cưng thành công!',
+      data: updated,
+    };
+  } catch (err) {
+    throw new BadRequestException(
+      'Failed to update identification: ' + err.message,
+    );
+  }
+}
+
 }

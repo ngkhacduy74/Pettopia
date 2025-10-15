@@ -51,6 +51,17 @@ export class PetController {
       this.petService.send({ cmd: 'getPetById' }, { pet_id }),
     );
   }
+  
+@Patch('/:id')
+  @HttpCode(HttpStatus.OK)
+  async updatePet(
+    @Param('id') pet_id: string,
+    @Body() updateData: any,
+  ) {
+    return await lastValueFrom(
+      this.petService.send({ cmd: 'updatePet' }, { pet_id, updateData }),
+    );
+  }
 
   @Delete('/:id')
   @HttpCode(HttpStatus.OK)
