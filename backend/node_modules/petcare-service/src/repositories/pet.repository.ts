@@ -93,6 +93,28 @@ export class PetRepository {
   //     .findOneAndUpdate({ pet_id }, updatePetDto, { new: true })
   //     .exec();
   // }
+  async update(pet_id: string, updateData: any): Promise<Pet> {
+  try {
+    const updatedPet = await this.petModel
+      .findOneAndUpdate({ id: pet_id }, updateData, {
+        new: true, // trả về document sau khi update
+        runValidators: true, // bật validation
+      })
+      .exec();
+
+    if (!updatedPet) {
+      throw new InternalServerErrorException(
+        `Không tìm thấy thú cưng với ID: ${pet_id}`,
+      );
+    }
+
+    return updatedPet;
+  } catch (error) {
+    throw new InternalServerErrorException(
+      'Lỗi khi cập nhật Pet: ' + error.message,
+    );
+  }
+}
 
   async delete(pet_id: string): Promise<Pet | null> {
     return this.petModel.findOneAndDelete({ pet_id }).exec();
@@ -102,6 +124,16 @@ export class PetRepository {
     return this.petModel.find({ species }).exec();
   }
 
+  async findByOwnerId(user_id: string): Promise<Pet[]> {
+  try {
+    // Tìm tất cả thú cưng có owner.user_id = user_id
+    return await this.petModel.find({ 'owner.user_id': user_id }).exec();
+  } catch (error) {
+    throw new InternalServerErrorException(
+      'Lỗi khi tìm thú cưng theo owner_id: ' + error.message,
+    );
+  }
+}
   async count(): Promise<number> {
     return this.petModel.countDocuments().exec();
   }

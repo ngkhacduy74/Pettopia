@@ -23,6 +23,25 @@ export class IdentificationRepository {
       throw new RpcException(err.message || 'Không thể lưu identification');
     }
   }
+async findByPetId(pet_id: string): Promise<Identification | null> {
+  try {
+    return await this.identificationModel.findOne({ pet_id });
+  } catch (err) {
+    throw new RpcException(err.message || 'Không thể tìm identification theo pet_id');
+  }
+}
+
+async updateByPetId(pet_id: string, updateData: any): Promise<Identification | null> {
+  try {
+    return await this.identificationModel.findOneAndUpdate(
+      { pet_id },
+      updateData,
+      { new: true },
+    );
+  } catch (err) {
+    throw new RpcException(err.message || 'Không thể cập nhật identification theo pet_id');
+  }
+}
 
   async checkIdExist(id_identify: string): Promise<Identification | null> {
     try {

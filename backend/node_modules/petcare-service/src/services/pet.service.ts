@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { PetRepository } from '../repositories/pet.repository';
 import { CreatePetDto } from '../dto/pet/create-pet.dto';
-// import { UpdatePetDto } from '../dto/pet/update-pet.dto';
+import { UpdatePetDto } from 'src/dto/pet/update-pet.dto';
 import { PetResponseDto } from '../dto/pet/pet-response.dto';
 import { Pet } from '../schemas/pet.schema';
 import { v4 as uuidv4 } from 'uuid';
@@ -17,6 +17,7 @@ import { mapToResponseDto } from '../dto/response/pet.response';
 import { CreateIdentificationDto } from 'src/dto/pet/create-indentify.dto';
 import { generatePetId } from 'src/common/id_identify.common';
 import { IdentifyService } from './identification.service';
+
 @Injectable()
 export class PetService {
   constructor(
@@ -125,6 +126,60 @@ export class PetService {
   //     throw new BadRequestException('Failed to update pet: ' + error.message);
   //   }
   // }
+  async update(pet_id: string, updatePetDto: UpdatePetDto): Promise<any> {
+  try {
+    // 1️⃣ Chuẩn hóa dữ liệu
+    const updateData = { ...updatePetDto };
+    if (updatePetDto.dateOfBirth) {
+      updateData.dateOfBirth = new Date(updatePetDto.dateOfBirth);
+    }
+
+    // 2️⃣ Cập nhật Pet
+    const pet = await this.petRepository.update(pet_id, updateData);
+    if (!pet) {
+      throw new NotFoundException(`Pet with ID ${pet_id} not found`);
+    }
+
+    // 3️⃣ Chuẩn bị dữ liệu cập nhật Identification
+    const identifyUpdateData = {
+      fullname: updateData.name,
+      gender: updateData.gender,
+      date_of_birth: updateData.dateOfBirth,
+      species: updateData.species,
+      color: updateData.color,
+      address: pet.owner?.address,
+      avatar_url: updateData.avatar_url,
+    };
+
+    // 4️⃣ Gọi IdentifyService để cập nhật định danh
+    const updatedIdentify =
+      await this.identifyService.updateIdentificationByPetId(
+        pet_id,
+        identifyUpdateData,
+      );
+
+    // 5️⃣ Trả kết quả
+    return {
+      message: 'Cập nhật thú cưng và định danh thành công!',
+      statusCode: 200,
+      pet,
+      identifies: updatedIdentify.data,
+    };
+  } catch (error) {
+    if (error instanceof NotFoundException) throw error;
+    throw new BadRequestException('Failed to update pet: ' + error.message);
+  }
+}
+async findByOwnerId(user_id: string): Promise<PetResponseDto[]> {
+  try {
+    const pets = await this.petRepository.findByOwnerId(user_id);
+    return pets.map((pet) => mapToResponseDto(pet));
+  } catch (error) {
+    throw new BadRequestException(
+      'Failed to fetch pets by owner: ' + error.message,
+    );
+  }
+}
 
   async delete(pet_id: string): Promise<{ message: string }> {
     try {
