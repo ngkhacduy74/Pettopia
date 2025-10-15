@@ -84,7 +84,15 @@ export class PetController {
   // async findById(@Param('pet_id') pet_id: string): Promise<PetResponseDto> {
   //   return this.petService.findById(pet_id);
   // }
-
+@MessagePattern({ cmd: 'getPetsByOwner' })
+async getPetsByOwner(data: { user_id: string }): Promise<PetResponseDto[]> {
+  try {
+    return await this.petService.findByOwnerId(data.user_id);
+  } catch (error) {
+    this.logger.error('Error fetching pets by owner:', error);
+    return [{ message: 'Failed to fetch pets by owner', error: error.message }] as any;
+  }
+}
   // @Patch(':pet_id')
   // async update(
   //   @Param('pet_id') pet_id: string,

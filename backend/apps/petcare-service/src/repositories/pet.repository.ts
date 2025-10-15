@@ -124,6 +124,16 @@ export class PetRepository {
     return this.petModel.find({ species }).exec();
   }
 
+  async findByOwnerId(user_id: string): Promise<Pet[]> {
+  try {
+    // Tìm tất cả thú cưng có owner.user_id = user_id
+    return await this.petModel.find({ 'owner.user_id': user_id }).exec();
+  } catch (error) {
+    throw new InternalServerErrorException(
+      'Lỗi khi tìm thú cưng theo owner_id: ' + error.message,
+    );
+  }
+}
   async count(): Promise<number> {
     return this.petModel.countDocuments().exec();
   }

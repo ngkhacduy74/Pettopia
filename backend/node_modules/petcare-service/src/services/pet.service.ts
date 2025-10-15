@@ -170,6 +170,16 @@ export class PetService {
     throw new BadRequestException('Failed to update pet: ' + error.message);
   }
 }
+async findByOwnerId(user_id: string): Promise<PetResponseDto[]> {
+  try {
+    const pets = await this.petRepository.findByOwnerId(user_id);
+    return pets.map((pet) => mapToResponseDto(pet));
+  } catch (error) {
+    throw new BadRequestException(
+      'Failed to fetch pets by owner: ' + error.message,
+    );
+  }
+}
 
   async delete(pet_id: string): Promise<{ message: string }> {
     try {
