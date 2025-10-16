@@ -1,11 +1,12 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
-import { v4 as uuidv4 } from 'uuid';
+import * as uuid from 'uuid';
 @Schema({ _id: false })
 export class Address {
   @Prop({ type: String, required: true, trim: true }) city: string;
   @Prop({ type: String, required: true, trim: true }) district: string;
   @Prop({ type: String, required: true, trim: true }) ward: string;
+  @Prop({ type: String, required: true, trim: true }) description: string;
 }
 export const AddressSchema = SchemaFactory.createForClass(Address);
 
@@ -52,10 +53,10 @@ export class User {
     type: String,
     required: [true, 'User ID is required'],
     unique: true,
-    default: uuidv4,
+    default: () => uuid.v4(),
     trim: true,
   })
-  user_id: string;
+  id: string;
 
   @Prop({ type: String, required: [true, 'Fullname is required'], trim: true })
   fullname: string;
@@ -64,7 +65,7 @@ export class User {
   email: Email;
 
   @Prop({
-    type: String,
+    type: PhoneSchema,
     required: true,
     match: [
       /^(0|\+84)\d{9}$/,
@@ -82,7 +83,8 @@ export class User {
   username: string;
 
   @Prop({
-    type: PhoneSchema,
+    select: false,
+    type: String,
     required: [true, 'Password is required'],
     minlength: [8, 'Mật khẩu phải có ít nhất 8 ký tự'],
     match: [
@@ -103,17 +105,16 @@ export class User {
   bio?: string;
 
   @Prop({ type: AddressSchema })
-  address?: Address;
+  address: Address;
 
   @Prop({ type: Number, default: 0, min: [0, 'Reward point must be positive'] })
   reward_point: number;
 
   @Prop({
-    type: Number,
-    required: [true, 'Age is required'],
-    min: [12, 'Age must be positive'],
+    type: Date,
+    required: [true, 'dob is required'],
   })
-  age: number;
+  dob: Date;
 
   @Prop({ default: true })
   is_active: boolean;
@@ -124,8 +125,6 @@ export class User {
 const SALT_ROUNDS = 10;
 function transformValue(doc: any, ref: { [key: string]: any }) {
   delete ref._id;
-  delete ref.password;
-
   delete ref.__v;
   return ref;
 }

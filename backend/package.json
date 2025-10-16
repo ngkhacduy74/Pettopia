@@ -1,0 +1,14 @@
+{
+  "name": "pettopia-backend",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "start": "concurrently -n gateway,auth,billing,comm,customer,healthcare,partner,petcare -c blue,green,yellow,magenta,cyan,red,white,gray \"npm run start --workspace api-gateway\" \"npm run start --workspace auth-service\" \"npm run start --workspace billing-service\" \"npm run start --workspace communication-service\" \"npm run start --workspace customer-service\" \"npm run start --workspace healthcare-service\" \"npm run start --workspace partner-service\" \"npm run start --workspace petcare-service\"",
+    "start:dev": "concurrently -n gateway,auth,billing,comm,customer,healthcare,partner,petcare -c blue,green,yellow,magenta,cyan,red,white,gray \"npm run start:dev --workspace api-gateway\" \"npm run start:dev --workspace auth-service\" \"npm run start:dev --workspace billing-service\" \"npm run start:dev --workspace communication-service\" \"npm run start:dev --workspace customer-service\" \"npm run start:dev --workspace healthcare-service\" \"npm run start:dev --workspace partner-service\" \"npm run start:dev --workspace petcare-service\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}
