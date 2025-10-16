@@ -58,7 +58,7 @@ export class ClinicsRepository {
   async updateStatusClinicForm(
     updateStatus: UpdateStatusClinicDto,
   ): Promise<any> {
-    const { id, status, note } = updateStatus;
+    const { id, status, note, review_by } = updateStatus;
 
     const clinic = await this.clinicFormModel.findOne({ id });
     if (!clinic) {
@@ -67,21 +67,22 @@ export class ClinicsRepository {
 
     if (clinic.status !== RegisterStatus.PENDING) {
       throw new BadRequestException(
-        'Chỉ có thể cập nhật khi đơn đang chờ duyệt',
+        'Chỉ có thể cập nhật khi đơn đang ở trạng thái chờ duyệt',
       );
     }
 
     clinic.status = status;
-    if (note) clinic.note = note;
-
+    clinic.note = note ?? '';
+    clinic.review_by = review_by;
     const saved = await clinic.save();
 
     return {
+      message: 'Cập nhật trạng thái đơn đăng ký thành công!',
       id: saved.id,
       clinic_name: saved.clinic_name,
       status: saved.status,
       note: saved.note,
-      updateAt: new Date(),
+      review_by: saved.review_by,
     };
   }
 

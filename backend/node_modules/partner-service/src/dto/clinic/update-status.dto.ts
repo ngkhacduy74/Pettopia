@@ -1,4 +1,4 @@
-import { IsEnum, IsNotEmpty, IsString } from 'class-validator';
+import { IsEnum, IsNotEmpty, IsString, IsUUID } from 'class-validator';
 import { RegisterStatus } from 'src/schemas/clinic/clinic-register.schema';
 
 export class UpdateStatusClinicDto {
@@ -12,4 +12,8 @@ export class UpdateStatusClinicDto {
 
   @IsString()
   note?: string;
+
+  @IsString()
+  @IsUUID('4')
+  review_by: string;
 }
