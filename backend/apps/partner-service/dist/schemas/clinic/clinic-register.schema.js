@@ -203,6 +203,7 @@ let Clinic_Register = class Clinic_Register {
     status;
     representative;
     note;
+    review_by;
 };
 exports.Clinic_Register = Clinic_Register;
 __decorate([
@@ -267,6 +268,17 @@ __decorate([
     (0, mongoose_1.Prop)({ type: String, trim: true }),
     __metadata("design:type", String)
 ], Clinic_Register.prototype, "note", void 0);
+__decorate([
+    (0, mongoose_1.Prop)({
+        type: String,
+        required: false,
+        match: [
+            /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+            'review_by phải là UUIDv4 hợp lệ',
+        ],
+    }),
+    __metadata("design:type", String)
+], Clinic_Register.prototype, "review_by", void 0);
 exports.Clinic_Register = Clinic_Register = __decorate([
     (0, mongoose_1.Schema)({
         timestamps: true,

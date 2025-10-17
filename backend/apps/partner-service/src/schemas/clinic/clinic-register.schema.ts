@@ -156,6 +156,16 @@ export class Clinic_Register {
 
   @Prop({ type: String, trim: true })
   note?: string;
+
+  @Prop({
+    type: String,
+    required: false,
+    match: [
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+      'review_by phải là UUIDv4 hợp lệ',
+    ],
+  })
+  review_by?: string;
 }
 
 function transformValue(doc: any, ret: any) {

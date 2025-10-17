@@ -66,6 +66,7 @@ export declare class Clinic_Register {
     status: RegisterStatus;
     representative: Representative;
     note?: string;
+    review_by?: string;
 }
 export type ClinicRegisterDocument = Clinic_Register & Document;
 export declare const ClinicRegisterSchema: import("mongoose").Schema<Clinic_Register, import("mongoose").Model<Clinic_Register, any, any, any, Document<unknown, any, Clinic_Register, any, {}> & Clinic_Register & {
