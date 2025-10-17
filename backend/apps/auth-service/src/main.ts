@@ -11,14 +11,6 @@ async function bootstrap() {
       port: 5001,
     },
   });
-  app.useGlobalPipes(
-    new ValidationPipe({
-      transform: true,
-      whitelist: true,
-      forbidNonWhitelisted: true,
-      forbidUnknownValues: true,
-    }),
-  );
   await app.startAllMicroservices();
   await app.listen(process.env.AUTH_PORT!);
   console.log('Auth-service run successfull');

@@ -1,11 +1,7 @@
-// register.dto.ts
-
 import {
   IsString,
   IsNotEmpty,
   IsEmail,
-  IsBoolean,
-  IsDate,
   IsUrl,
   MinLength,
   MaxLength,
@@ -13,13 +9,35 @@ import {
   IsMobilePhone,
   Matches,
   IsEnum,
+  ValidateNested, // Dùng cho validation lồng nhau
 } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Type } from 'class-transformer'; // Dùng cho validation lồng nhau và Date
+
 export enum Gender {
   MALE = 'male',
   FEMALE = 'female',
   OTHER = 'other',
 }
+
+// Đây là DTO cho địa chỉ. KHÔNG DÙNG DECORATOR CỦA MONGOOSE.
+export class AddressDto {
+  @IsString({ message: 'Thành phố phải là chuỗi ký tự.' })
+  @IsNotEmpty({ message: 'Thành phố không được để trống.' })
+  city: string;
+
+  @IsString({ message: 'Quận/Huyện phải là chuỗi ký tự.' })
+  @IsNotEmpty({ message: 'Quận/Huyện không được để trống.' })
+  district: string;
+
+  @IsString({ message: 'Phường/Xã phải là chuỗi ký tự.' })
+  @IsNotEmpty({ message: 'Phường/Xã không được để trống.' })
+  ward: string;
+
+  @IsString({ message: 'Mô tả địa chỉ phải là chuỗi ký tự.' })
+  @IsNotEmpty({ message: 'Mô tả địa chỉ không được để trống.' })
+  description: string;
+}
+
 export class RegisterDto {
   @IsString({ message: 'Họ và tên phải là chuỗi ký tự.' })
   @IsNotEmpty({ message: 'Họ và tên không được để trống.' })
@@ -63,8 +81,13 @@ export class RegisterDto {
   @MaxLength(2048, { message: 'URL quá dài.' })
   avatar_url?: string;
 
-  //   @IsNotEmpty({ message: 'Ngày sinh không được để trống.' })
-  //   @IsDate({ message: 'Ngày sinh phải là định dạng ngày tháng hợp lệ.' })
-  //   @Type(() => Date)
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => AddressDto)
+  address?: AddressDto;
+
+  @IsString({ message: 'Ngày sinh phải được gửi dưới dạng chuỗi hợp lệ.' })
+  @IsNotEmpty({ message: 'Ngày sinh không được để trống.' })
+  @Type(() => Date)
   dob: Date;
 }

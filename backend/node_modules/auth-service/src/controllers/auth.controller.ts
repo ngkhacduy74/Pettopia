@@ -1,9 +1,10 @@
 import { Controller, Get, UsePipes, ValidationPipe } from '@nestjs/common';
 import { AuthService } from '../services/auth.service';
-import { MessagePattern } from '@nestjs/microservices';
+import { MessagePattern, Payload } from '@nestjs/microservices';
 import { LoginDto } from '../dtos/login.dto';
 import { RegisterDto } from '../dtos/register.dto';
 import { OtpService } from 'src/services/otp.service';
+import { SendEmailOtpDto } from 'src/dtos/send-mail.dto';
 
 @Controller()
 export class AuthController {
