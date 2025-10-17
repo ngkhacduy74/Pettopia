@@ -37,7 +37,7 @@ export class AuthService {
     }
   }
 
-  async register(data: any): Promise<any> {
+  async register(data: RegisterDto): Promise<any> {
     try {
       const exist_phone = await lastValueFrom(
         this.customerClient.send(

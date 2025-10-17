@@ -58,4 +58,12 @@ export class AuthController {
       this.authService.send({ cmd: 'accept_invite' }, { token }),
     );
   }
+
+  @Post('send-otp-email')
+  @HttpCode(HttpStatus.OK)
+  async sendOtpEmail(@Body('email') email: string) {
+    return await lastValueFrom(
+      this.authService.send({ cmd: 'send-otp-email' }, { email }),
+    );
+  }
 }

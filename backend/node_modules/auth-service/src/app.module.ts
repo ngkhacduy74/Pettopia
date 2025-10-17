@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, ValidationPipe } from '@nestjs/common';
 import { AuthController } from './controllers/auth.controller';
 import { AuthService } from './services/auth.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -14,6 +14,10 @@ import {
 } from './schemas/vet.inviteToken';
 import { MailService } from './services/mail.services';
 import { VetInviteRepository } from './repositories/invite.repositories';
+import { OtpRepository } from './repositories/otp.repositories';
+import { Otp, OtpSchema } from './schemas/otp.schema';
+import { OtpService } from './services/otp.service';
+import { APP_PIPE } from '@nestjs/core';
 const customer_port = parseInt(process.env.TCP_CUSTOMER_PORT || '5002', 10);
 @Module({
   imports: [
@@ -23,6 +27,7 @@ const customer_port = parseInt(process.env.TCP_CUSTOMER_PORT || '5002', 10);
     MongooseModule.forFeature([
       { name: Mail.name, schema: MailSchema },
       { name: VetInviteToken.name, schema: VetInviteTokenSchema },
+      { name: Otp.name, schema: OtpSchema },
     ]),
     MongooseModule.forRootAsync({
       imports: [ConfigModule],
@@ -51,6 +56,22 @@ const customer_port = parseInt(process.env.TCP_CUSTOMER_PORT || '5002', 10);
   ],
 
   controllers: [AuthController, InviteController],
-  providers: [AuthService, InviteService, MailService, VetInviteRepository],
+  providers: [
+    AuthService,
+    InviteService,
+    MailService,
+    VetInviteRepository,
+    OtpRepository,
+    OtpService,
+    {
+      provide: APP_PIPE,
+      useValue: new ValidationPipe({
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        transform: true,
+        forbidUnknownValues: true,
+      }),
+    },
+  ],
 })
 export class AppModule {}
