@@ -2,10 +2,6 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 import * as uuid from 'uuid';
 
-// Tái sử dụng các Schema con (Sub-Schemas)
-// (Bạn cần import các Schema con này từ file gốc nếu chúng nằm ở file khác,
-// nhưng tôi định nghĩa lại ở đây để đảm bảo tính độc lập của file Schema)
-
 @Schema({ _id: false })
 export class SocialLink {
   @Prop({ type: String, trim: true })

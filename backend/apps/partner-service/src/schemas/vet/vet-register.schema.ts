@@ -1,12 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 import * as uuid from 'uuid';
-
-export enum VetRegisterStatus {
-  PENDING = 'pending',
-  APPROVED = 'approved',
-  REJECTED = 'rejected',
-}
+import { RegisterStatus } from '../clinic/clinic-register.schema';
 
 @Schema({ _id: false })
 export class SocialLink {
@@ -129,10 +124,10 @@ export class Vet_Register {
 
   @Prop({
     type: String,
-    enum: VetRegisterStatus,
-    default: VetRegisterStatus.PENDING,
+    enum: RegisterStatus,
+    default: RegisterStatus.PENDING,
   })
-  status: VetRegisterStatus;
+  status: RegisterStatus;
 
   @Prop({ type: String, trim: true })
   note?: string;

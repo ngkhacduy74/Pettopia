@@ -2,10 +2,13 @@ import {
   BadRequestException,
   Injectable,
   InternalServerErrorException,
+  NotFoundException,
 } from '@nestjs/common';
+import { identity } from 'rxjs';
 import { CreateClinicFormDto } from 'src/dto/clinic/create-clinic-form.dto';
 import { CreateClinicDto } from 'src/dto/clinic/create-clinic.dto';
 import { UpdateStatusClinicDto } from 'src/dto/clinic/update-status.dto';
+import { CreateVetDto } from 'src/dto/vet/create-vet.dto';
 import { UpdateStatusVetDto } from 'src/dto/vet/update-vet-form';
 import { VetRegisterDto } from 'src/dto/vet/vet-register-form';
 import { ClinicsRepository } from 'src/repositories/clinic/clinic.repositories';
@@ -15,10 +18,7 @@ import { VetDocument } from 'src/schemas/vet/vet.schema';
 
 @Injectable()
 export class VetService {
-  constructor(
-    private readonly vetRepositories: VetRepository,
-    // private readonly vetModel: VetDocument,
-  ) {}
+  constructor(private readonly vetRepositories: VetRepository) {}
 
   async vetRegister(
     user_id: string,
@@ -44,38 +44,102 @@ export class VetService {
       );
     }
   }
-  // async updateVetFormStatus(body: UpdateStatusVetDto): Promise<any> {
-  //   try {
-  //     const updatedVetForm =
-  //       await this.vetRepositories.updateVetFormStatus(body);
+  async updateVetFormStatus(body: UpdateStatusVetDto): Promise<any> {
+    try {
+      const { id, review_by, status, note } = body;
+      console.log('[updateVetFormStatus] Payload nhận được:', body);
+      const updatedVetForm = await this.vetRepositories.updateVetFormStatus({
+        id,
+        status,
+        note,
+        review_by,
+      });
 
-  //     if (updatedVetForm.status === RegisterStatus.APPROVED) {
-  //       const existingVet = await this.vetModel.findOne({
-  //         vet_form_id: updatedVetForm.id,
-  //       });
+      if (!updatedVetForm) {
+        throw new NotFoundException('Không tìm thấy hồ sơ bác sĩ để cập nhật.');
+      }
+      if (updatedVetForm.status === RegisterStatus.APPROVED) {
+        const existingVet = await this.vetRepositories.findOneVetByFormId(
+          updatedVetForm.id,
+        );
 
-  //       if (!existingVet) {
-  //         const newVet = await this.vetModel.create({
-  //           name: updatedVetForm.name,
-  //           email: updatedVetForm.email,
-  //           phone: updatedVetForm.phone,
-  //           clinic_id: updatedVetForm.clinic_id,
-  //           vet_form_id: updatedVetForm.id,
-  //           created_by: updatedVetForm.review_by,
-  //         });
-  //         console.log('✅ Bác sĩ mới được tạo:', newVet._id);
-  //       }
-  //     }
+        if (!existingVet) {
+          const newVetData: CreateVetDto = {
+            id: updatedVetForm.user_id,
+            is_active: true,
+            specialty: updatedVetForm.specialty,
+            subSpecialties: updatedVetForm.subSpecialties || [],
+            exp: updatedVetForm.exp,
+            bio: updatedVetForm.bio,
+            license_number: updatedVetForm.license_number,
+            license_image_url: updatedVetForm.license_image_url,
+            social_link: updatedVetForm.social_link,
+            certifications: updatedVetForm.certifications || [],
+            clinic_id: updatedVetForm.clinic_id,
+          };
 
-  //     return {
-  //       message: 'Cập nhật trạng thái hồ sơ bác sĩ thành công.',
-  //       vet_form: updatedVetForm,
-  //     };
-  //   } catch (error) {
-  //     console.error('Lỗi khi cập nhật hồ sơ bác sĩ:', error.message);
-  //     throw new InternalServerErrorException(
-  //       'Cập nhật trạng thái hồ sơ bác sĩ thất bại. Vui lòng thử lại.',
-  //     );
-  //   }
-  // }
+          try {
+            const newVet = await this.vetRepositories.createVet(newVetData);
+            console.log(
+              `[updateVetFormStatus] Bác sĩ mới được tạo: ${newVet.id}`,
+            );
+          } catch (createErr) {
+            console.error(
+              '[updateVetFormStatus] Lỗi khi tạo bác sĩ:',
+              createErr,
+            );
+            try {
+              await this.vetRepositories.rollBackStatusVetForm(
+                updatedVetForm.id,
+                RegisterStatus.PENDING,
+              );
+              console.warn(
+                '[updateVetFormStatus] Đã rollback trạng thái form về PENDING.',
+              );
+            } catch (rbErr) {
+              console.error('[updateVetFormStatus] Rollback thất bại:', rbErr);
+            }
+
+            throw new InternalServerErrorException(
+              'Tạo hồ sơ bác sĩ thất bại. Đã thực hiện hoàn tác trạng thái form.',
+            );
+          }
+        }
+      }
+      return {
+        message: 'Cập nhật trạng thái hồ sơ bác sĩ thành công.',
+        data: updatedVetForm,
+      };
+    } catch (error) {
+      console.error('[updateVetFormStatus] Lỗi:', error);
+      throw new InternalServerErrorException(
+        error.message ||
+          'Cập nhật trạng thái hồ sơ bác sĩ thất bại. Vui lòng thử lại sau.',
+      );
+    }
+  }
+  async getAllVetForm(page = 1, limit = 10, status?: string): Promise<any> {
+    try {
+      const skip = (page - 1) * limit;
+
+      const filter = status ? { status } : {};
+
+      const [forms, total] = await Promise.all([
+        this.vetRepositories.findAllVetForms(skip, limit, filter),
+        this.vetRepositories.countVetForms(filter),
+      ]);
+
+      return {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+        items: forms,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException(
+        'Không thể lấy danh sách hồ sơ bác sĩ.',
+      );
+    }
+  }
 }

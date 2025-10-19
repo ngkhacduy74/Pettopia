@@ -25,13 +25,31 @@ export class VetController {
       handleRpcError('VetController.vetRegister', err);
     }
   }
-  // @MessagePattern({ cmd: 'updateVetFormStatus' })
-  // async updateVetFormStatus(@Payload() payload: any): Promise<any> {
-  //   try {
-  //     const result = await this.vetService.updateVetFormStatus(payload);
-  //     return result;
-  //   } catch (err) {
-  //     handleRpcError('VetController.updateVetFormStatus', err);
-  //   }
-  // }
+  @MessagePattern({ cmd: 'updateVetFormStatus' })
+  async updateVetFormStatus(@Payload() payload: any): Promise<any> {
+    try {
+      const result = await this.vetService.updateVetFormStatus(payload);
+      return {
+        message: 'Cập nhật trạng thái form thú y thành công',
+        data: result,
+      };
+    } catch (err) {
+      handleRpcError('VetController.updateVetFormStatus', err);
+    }
+  }
+  @MessagePattern({ cmd: 'getAllVetForm' })
+  async getAllVetForm(@Payload() payload: any): Promise<any> {
+    try {
+      const { page = 1, limit = 10, status } = payload;
+      const result = await this.vetService.getAllVetForm(page, limit, status);
+
+      return {
+        message: 'Lấy danh sách hồ sơ bác sĩ thành công',
+        data: result,
+      };
+    } catch (err) {
+      handleRpcError('VetController.getAllVetForm', err);
+    }
+  }
+ 
 }

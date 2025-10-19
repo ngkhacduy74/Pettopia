@@ -1,4 +1,3 @@
-// api-gateway/src/guards/jwt-auth.guard.ts
 import {
   Injectable,
   CanActivate,
@@ -7,6 +6,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { TokenExpiredError } from 'jsonwebtoken';
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
@@ -15,14 +15,32 @@ export class JwtAuthGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
     const authHeader = request.headers.token;
+
     if (!authHeader) {
       throw new ForbiddenException(
         'Bạn đang thiếu token để thực hiện chức năng này',
       );
     }
-    const decoded_token = await this.jwtService.verify(authHeader);
-    console.log('token verify : ' + JSON.stringify(decoded_token));
-    request.user = decoded_token;
-    return true;
+
+    try {
+      const decoded_token = await this.jwtService.verify(authHeader);
+      console.log('Token verify:', decoded_token);
+      request.user = decoded_token;
+      return true;
+    } catch (error) {
+      // 👇 Xử lý từng loại lỗi cụ thể
+      if (error instanceof TokenExpiredError) {
+        throw new UnauthorizedException(
+          'Token đã hết hạn, vui lòng đăng nhập lại',
+        );
+      }
+
+      if (error.name === 'JsonWebTokenError') {
+        throw new UnauthorizedException('Token không hợp lệ');
+      }
+
+      console.error('Lỗi xác thực token:', error.message);
+      throw new UnauthorizedException('Xác thực token thất bại');
+    }
   }
 }
