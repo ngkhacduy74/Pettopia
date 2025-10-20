@@ -6,23 +6,38 @@ import {
   Post,
   Delete,
   UseGuards,
+  UsePipes,
+  ValidationPipe,
 } from '@nestjs/common';
+import { MessagePattern, Payload } from '@nestjs/microservices';
 import { PaymentService } from './payment.service.js';
 import type { CreatePaymentDto } from './types/dto.js';
 import { PaymentWebhookGuard } from './guards/payment-webhook.guard.js';
 
-@Controller('payments')
+@UsePipes(
+  new ValidationPipe({
+    transform: true,
+    whitelist: true,
+    forbidNonWhitelisted: true,
+  }),
+)
+@Controller()
 export class PaymentController {
   constructor(private readonly paymentService: PaymentService) {}
 
-  @Post()
-  async createPayment(@Body() body: CreatePaymentDto): Promise<any> {
+  @MessagePattern({ cmd: 'createPayment' })
+  async createPayment(@Payload() body: CreatePaymentDto): Promise<any> {
     return this.paymentService.createPayment(body);
   }
 
-  @Post('webhook')
+  @MessagePattern({ cmd: 'handleWebhook' })
   @UseGuards(PaymentWebhookGuard)
-  handleWebhook() {
+  handleWebhook(@Payload() data: any) {
     return this.paymentService.handleWebhook();
+  }
+
+  @MessagePattern({ cmd: 'test' })
+  async test(@Payload() data: any): Promise<any> {
+    return { message: 'VietQR-payos service is running' };
   }
 }
