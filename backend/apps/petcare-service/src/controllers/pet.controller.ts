@@ -11,7 +11,9 @@ import { GetPetByIdDto } from '../dto/pet/get-pet-by-id.dto';
 export class PetController {
   private readonly logger = new Logger(PetController.name);
 
-  constructor(private readonly petService: PetService) {}
+  constructor(private readonly petService: PetService,
+    
+  ) {}
 
   // @Post(':userId')
   // @HttpCode(HttpStatus.CREATED)

@@ -8,6 +8,8 @@ import { Mail, MailSchema } from './schemas/mail.schema';
 import { MongooseModule } from '@nestjs/mongoose';
 import { InviteController } from './controllers/invite.controller';
 import { InviteService } from './services/invite.service';
+import { CloudinaryController } from './controllers/cloudinary.controller';
+import { CloudinaryService } from './services/cloudinary.service';
 import {
   VetInviteToken,
   VetInviteTokenSchema,
@@ -55,7 +57,7 @@ const customer_port = parseInt(process.env.TCP_CUSTOMER_PORT || '5002', 10);
     }),
   ],
 
-  controllers: [AuthController, InviteController],
+  controllers: [AuthController, InviteController, CloudinaryController],
   providers: [
     AuthService,
     InviteService,
@@ -63,6 +65,7 @@ const customer_port = parseInt(process.env.TCP_CUSTOMER_PORT || '5002', 10);
     VetInviteRepository,
     OtpRepository,
     OtpService,
+    CloudinaryService,
     {
       provide: APP_PIPE,
       useValue: new ValidationPipe({

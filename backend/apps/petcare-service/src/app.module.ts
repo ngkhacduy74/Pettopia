@@ -31,6 +31,11 @@ import { Identification, IdentificationSchema } from './schemas/identification.s
           port: 5002,
         },
       },
+      {
+        name: 'AUTH_SERVICE',
+        transport: Transport.TCP,
+        options: { port: 5001 },
+  },
     ]),
   ],
   controllers: [PetController],
