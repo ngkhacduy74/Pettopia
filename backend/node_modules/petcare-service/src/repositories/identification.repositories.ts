@@ -52,4 +52,8 @@ async updateByPetId(pet_id: string, updateData: any): Promise<Identification | n
       throw new RpcException(err.message || 'Không thể check identification');
     }
   }
+  async deleteByPetId(pet_id: string): Promise<boolean> {
+  const result = await this.identificationModel.deleteOne({ pet_id });
+  return result.deletedCount > 0;
+}
 }

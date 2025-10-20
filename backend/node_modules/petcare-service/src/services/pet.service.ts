@@ -24,16 +24,27 @@ export class PetService {
     private readonly petRepository: PetRepository,
     private readonly identifyService: IdentifyService,
     @Inject('CUSTOMER_SERVICE') private customerClient: ClientProxy,
+    @Inject('AUTH_SERVICE') private readonly authClient: ClientProxy,
   ) {}
+  async create(payload: CreatePetDto & { fileBuffer?: string }): Promise<PetResponseDto | any> {
+  try {
+    // 1️⃣ Kiểm tra user tồn tại
+    const user = await lastValueFrom(
+      this.customerClient.send({ cmd: 'getUserById' }, { id: payload.user_id }),
+    );
+    if (!user) throw new RpcException('User not found');
 
-  async create(data: CreatePetDto): Promise<PetResponseDto | any> {
-    try {
-      const user = await lastValueFrom(
-        this.customerClient.send({ cmd: 'getUserById' }, { id: data.user_id }),
+    // 2️⃣ Upload ảnh (nếu có)
+    let imageUrl = payload.avatar_url;
+    if (payload.fileBuffer) {
+      const uploadResponse = await lastValueFrom(
+        this.authClient.send({ cmd: 'upload_image' }, { fileBuffer: payload.fileBuffer }),
       );
-      if (!user) {
-        throw new RpcException('User not found');
-      }
+      imageUrl = uploadResponse?.secure_url;
+      if (!imageUrl) throw new RpcException('Failed to upload image to Cloudinary');
+    }
+
+      // 3️⃣ Chuẩn bị dữ liệu owner
       const ownerData = {
         user_id: user.id,
         fullname: user.fullname,
@@ -41,47 +52,50 @@ export class PetService {
         email: user.email.email_address,
         address: user.address,
       };
+
+      // 4️⃣ Chuẩn bị dữ liệu Pet
       const petData = {
         id: uuidv4(),
-        ...data,
+        ...payload,
+        avatar_url: imageUrl,
         owner: ownerData,
-        dateOfBirth: new Date(data.dateOfBirth),
+        dateOfBirth: new Date(payload.dateOfBirth),
       };
+
+      // 5️⃣ Lưu Pet vào DB
+      const pet = await this.petRepository.create(petData);
+      if (!pet) throw new BadRequestException('Failed to create pet');
+
+      // 6️⃣ Tạo căn cước
       const identifyData = {
         pet_id: petData.id,
-        fullname: data.name,
-        gender: data.gender,
-        date_of_birth: data.dateOfBirth,
-        species: data.species,
-        color: data.color,
+        fullname: payload.name,
+        gender: payload.gender,
+        date_of_birth: payload.dateOfBirth,
+        species: payload.species,
+        color: payload.color,
         address: ownerData.address,
-        avatar_url: data.avatar_url,
+        avatar_url: imageUrl,
       };
-      const pet = await this.petRepository.create(petData);
-      if (!pet) {
-        throw new BadRequestException('Failed to create pet');
-      }
-      const createIdentifies =
-        await this.identifyService.createIndentification(identifyData);
+      const createIdentifies = await this.identifyService.createIndentification(identifyData);
+
       if (!createIdentifies) {
-        return {
-          message: 'Không tạo được thẻ căn cước',
-          location: 'pet-service',
-          error: new InternalServerErrorException(
-            'Failed to create identification',
-          ),
-        };
+        throw new InternalServerErrorException('Failed to create identification');
       }
+
+      // 7️⃣ Trả về kết quả
       return {
         message: 'Tạo thú cưng thành công',
         statusCode: 201,
-        pet: pet,
+        pet,
         identifies: createIdentifies,
       };
     } catch (error) {
+      console.error('❌ Error creating pet:', error);
       throw new BadRequestException('Failed to create pet: ' + error.message);
     }
   }
+
 
   async findAll(): Promise<PetResponseDto[]> {
     try {
@@ -126,21 +140,25 @@ export class PetService {
   //     throw new BadRequestException('Failed to update pet: ' + error.message);
   //   }
   // }
-  async update(pet_id: string, updatePetDto: UpdatePetDto): Promise<any> {
+  async update(pet_id: string, updatePetDto: UpdatePetDto, file?: Express.Multer.File): Promise<any> {
   try {
-    // 1️⃣ Chuẩn hóa dữ liệu
     const updateData = { ...updatePetDto };
     if (updatePetDto.dateOfBirth) {
       updateData.dateOfBirth = new Date(updatePetDto.dateOfBirth);
     }
 
-    // 2️⃣ Cập nhật Pet
-    const pet = await this.petRepository.update(pet_id, updateData);
-    if (!pet) {
-      throw new NotFoundException(`Pet with ID ${pet_id} not found`);
+    // Upload ảnh mới nếu có
+    if (file) {
+      const uploadResponse = await lastValueFrom(
+        this.authClient.send({ cmd: 'upload_image' }, file.path),
+      );
+      updateData.avatar_url = uploadResponse?.secure_url;
     }
 
-    // 3️⃣ Chuẩn bị dữ liệu cập nhật Identification
+    const pet = await this.petRepository.update(pet_id, updateData);
+    if (!pet) throw new NotFoundException(`Pet with ID ${pet_id} not found`);
+
+    // Cập nhật Identification tương ứng
     const identifyUpdateData = {
       fullname: updateData.name,
       gender: updateData.gender,
@@ -151,21 +169,19 @@ export class PetService {
       avatar_url: updateData.avatar_url,
     };
 
-    // 4️⃣ Gọi IdentifyService để cập nhật định danh
-    const updatedIdentify =
-      await this.identifyService.updateIdentificationByPetId(
-        pet_id,
-        identifyUpdateData,
-      );
+    const updatedIdentify = await this.identifyService.updateIdentificationByPetId(
+      pet_id,
+      identifyUpdateData,
+    );
 
-    // 5️⃣ Trả kết quả
     return {
-      message: 'Cập nhật thú cưng và định danh thành công!',
+      message: 'Cập nhật thú cưng và căn cước thành công!',
       statusCode: 200,
       pet,
       identifies: updatedIdentify.data,
     };
   } catch (error) {
+    console.error('❌ Error updating pet:', error);
     if (error instanceof NotFoundException) throw error;
     throw new BadRequestException('Failed to update pet: ' + error.message);
   }
@@ -182,19 +198,39 @@ async findByOwnerId(user_id: string): Promise<PetResponseDto[]> {
 }
 
   async delete(pet_id: string): Promise<{ message: string }> {
-    try {
-      const pet = await this.petRepository.delete(pet_id);
-      if (!pet) {
-        throw new NotFoundException(`Pet with ID ${pet_id} not found`);
-      }
-      return { message: 'Pet deleted successfully' };
-    } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw error;
-      }
-      throw new BadRequestException('Failed to delete pet: ' + error.message);
+  try {
+    // 1️⃣ Kiểm tra pet có tồn tại không
+    const existingPet = await this.petRepository.findById(pet_id);
+    if (!existingPet) {
+      throw new NotFoundException(`Pet with ID ${pet_id} not found`);
     }
+
+    // 2️⃣ Xóa căn cước (Identification) tương ứng
+    try {
+      const deletedIdentify =
+        await this.identifyService.deleteIdentificationByPetId(pet_id);
+
+      if (!deletedIdentify) {
+        throw new RpcException('Không thể xoá căn cước của thú cưng này!');
+      }
+    } catch (err) {
+      // Nếu lỗi khi xoá căn cước → log nhưng vẫn tiếp tục xoá pet
+      console.warn('⚠️ Failed to delete identification:', err.message);
+    }
+
+    // 3️⃣ Xoá pet trong repository
+    const deletedPet = await this.petRepository.delete(pet_id);
+    if (!deletedPet) {
+      throw new RpcException('Failed to delete pet from repository');
+    }
+
+    // 4️⃣ Trả kết quả
+    return { message: 'Đã xoá thú cưng và căn cước thành công!' };
+  } catch (error) {
+    if (error instanceof NotFoundException) throw error;
+    throw new BadRequestException('Failed to delete pet: ' + error.message);
   }
+}
 
   async findBySpecies(species: string): Promise<PetResponseDto[]> {
     try {

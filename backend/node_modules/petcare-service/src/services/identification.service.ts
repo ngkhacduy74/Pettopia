@@ -72,5 +72,22 @@ export class IdentifyService {
     );
   }
 }
+async deleteIdentificationByPetId(pet_id: string): Promise<{ message: string }> {
+  try {
+    const existingIdentify = await this.identificationRepositories.findByPetId(pet_id);
+    if (!existingIdentify) {
+      return { message: 'Không có căn cước nào liên kết với thú cưng này.' };
+    }
+
+    const deleted = await this.identificationRepositories.deleteByPetId(pet_id);
+    if (!deleted) {
+      throw new RpcException('Xóa căn cước thất bại!');
+    }
+
+    return { message: 'Đã xóa căn cước của thú cưng thành công!' };
+  } catch (err) {
+    throw new BadRequestException('Failed to delete identification: ' + err.message);
+  }
+}
 
 }

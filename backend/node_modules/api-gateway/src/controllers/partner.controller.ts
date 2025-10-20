@@ -117,4 +117,27 @@ export class PartnerController {
       this.partnerService.send({ cmd: 'updateClinicActiveStatus' }, payload),
     );
   }
+  @UseGuards(JwtAuthGuard)
+  @Post('/vet/register')
+  @HttpCode(HttpStatus.OK)
+  async vetRegister(@Body() data: any, @UserToken('id') user_id: string) {
+    return await lastValueFrom(
+      this.partnerService.send({ cmd: 'registerVet' }, { ...data, user_id }),
+    );
+  }
+
+  @Patch('/vet/status/form/:id')
+  @HttpCode(HttpStatus.OK)
+  async updateVetFormStatus(
+    @Param('id') idForm: string,
+    @Body() data: any,
+    @UserToken('id') user_id: string,
+  ) {
+    return await lastValueFrom(
+      this.partnerService.send(
+        { cmd: 'updateVetFormStatus' },
+        { data, user_id, idForm },
+      ),
+    );
+  }
 }
