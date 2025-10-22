@@ -102,10 +102,10 @@ async getPetsByOwner(data: { user_id: string }): Promise<PetResponseDto[]> {
   // ): Promise<PetResponseDto> {
   //   return this.petService.update(pet_id, updatePetDto);
   @MessagePattern({ cmd: 'updatePet' })
-  async updatePet(data: { pet_id: string; updateData: UpdatePetDto }): Promise<any> {
+  async updatePet(data: { pet_id: string; updateData: UpdatePetDto; fileBuffer?: string }): Promise<any> {
     try {
       this.logger.log(`Received updatePet for ${data.pet_id}`);
-      return await this.petService.update(data.pet_id, data.updateData);
+      return await this.petService.update(data);
     } catch (error) {
       this.logger.error('Error updating pet:', error);
       return { message: 'Failed to update pet', error: error.message } as any;

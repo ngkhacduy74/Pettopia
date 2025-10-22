@@ -34,7 +34,7 @@ export class PartnerController {
   //   );
   // }
 
-  // @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard)
   @Get('/clinic/form')
   @HttpCode(HttpStatus.OK)
   async getAllClinicForm(
@@ -58,7 +58,7 @@ export class PartnerController {
     );
   }
 
-  @Get('/clinic/:id')
+  @Get('/clinic/form/:id')
   @HttpCode(HttpStatus.OK)
   async getClinicFormById(@Param('id') idForm: string) {
     return await lastValueFrom(
@@ -80,7 +80,23 @@ export class PartnerController {
       this.partnerService.send({ cmd: 'updateStatusClinicForm' }, payload),
     );
   }
-
+  @Patch('/vet/status/form/:id')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.ADMIN, Role.Staff)
+  async updateVetFormStatus(
+    @Param('id') id: string,
+    @Body() data: any,
+    @UserToken('id') review_by: string,
+  ) {
+    const { status, note } = data;
+    return await lastValueFrom(
+      this.partnerService.send(
+        { cmd: 'updateVetFormStatus' },
+        { status, note, review_by, id },
+      ),
+    );
+  }
   @Get('/clinic')
   @HttpCode(HttpStatus.OK)
   async findAllClinic(
@@ -117,7 +133,8 @@ export class PartnerController {
       this.partnerService.send({ cmd: 'updateClinicActiveStatus' }, payload),
     );
   }
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.USER)
   @Post('/vet/register')
   @HttpCode(HttpStatus.OK)
   async vetRegister(@Body() data: any, @UserToken('id') user_id: string) {
@@ -125,19 +142,25 @@ export class PartnerController {
       this.partnerService.send({ cmd: 'registerVet' }, { ...data, user_id }),
     );
   }
-
-  @Patch('/vet/status/form/:id')
+  @Get('/vet/form')
   @HttpCode(HttpStatus.OK)
-  async updateVetFormStatus(
-    @Param('id') idForm: string,
-    @Body() data: any,
-    @UserToken('id') user_id: string,
-  ) {
+  async getAllVetForm(
+    @Query('page', new ParseIntPipe({ optional: true })) page = 1,
+    @Query('limit', new ParseIntPipe({ optional: true })) limit = 10,
+    @Query('status') status?: string,
+  ): Promise<any> {
     return await lastValueFrom(
       this.partnerService.send(
-        { cmd: 'updateVetFormStatus' },
-        { data, user_id, idForm },
+        { cmd: 'getAllVetForm' },
+        { page, limit, status },
       ),
+    );
+  }
+  @Get('/vet/form/:id')
+  @HttpCode(HttpStatus.OK)
+  async getVetFormById(@Param('id') id: string): Promise<any> {
+    return await lastValueFrom(
+      this.partnerService.send({ cmd: 'getVetFormById' }, { id }),
     );
   }
 }

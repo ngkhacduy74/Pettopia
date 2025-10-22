@@ -28,13 +28,13 @@ export class PetService {
   ) {}
   async create(payload: CreatePetDto & { fileBuffer?: string }): Promise<PetResponseDto | any> {
   try {
-    // 1️⃣ Kiểm tra user tồn tại
+    //  Kiểm tra user tồn tại
     const user = await lastValueFrom(
       this.customerClient.send({ cmd: 'getUserById' }, { id: payload.user_id }),
     );
     if (!user) throw new RpcException('User not found');
 
-    // 2️⃣ Upload ảnh (nếu có)
+    // Upload ảnh (nếu có)
     let imageUrl = payload.avatar_url;
     if (payload.fileBuffer) {
       const uploadResponse = await lastValueFrom(
@@ -44,7 +44,7 @@ export class PetService {
       if (!imageUrl) throw new RpcException('Failed to upload image to Cloudinary');
     }
 
-      // 3️⃣ Chuẩn bị dữ liệu owner
+      // Chuẩn bị dữ liệu owner
       const ownerData = {
         user_id: user.id,
         fullname: user.fullname,
@@ -140,19 +140,24 @@ export class PetService {
   //     throw new BadRequestException('Failed to update pet: ' + error.message);
   //   }
   // }
-  async update(pet_id: string, updatePetDto: UpdatePetDto, file?: Express.Multer.File): Promise<any> {
+  async update(payload:{pet_id: string, updateData: UpdatePetDto, fileBuffer?: string}): Promise<any> {
   try {
+     const { pet_id, updateData: updatePetDto, fileBuffer } = payload;
     const updateData = { ...updatePetDto };
     if (updatePetDto.dateOfBirth) {
       updateData.dateOfBirth = new Date(updatePetDto.dateOfBirth);
     }
 
     // Upload ảnh mới nếu có
-    if (file) {
+    let newImageUrl: string | undefined = undefined;
+    if (fileBuffer) {
       const uploadResponse = await lastValueFrom(
-        this.authClient.send({ cmd: 'upload_image' }, file.path),
+        this.authClient.send({ cmd: 'upload_image' }, { fileBuffer: fileBuffer }),
       );
-      updateData.avatar_url = uploadResponse?.secure_url;
+      newImageUrl = uploadResponse?.secure_url;
+      if (!newImageUrl) throw new RpcException('Failed to upload image to Cloudinary');
+    
+      updateData.avatar_url = newImageUrl;
     }
 
     const pet = await this.petRepository.update(pet_id, updateData);
@@ -166,7 +171,7 @@ export class PetService {
       species: updateData.species,
       color: updateData.color,
       address: pet.owner?.address,
-      avatar_url: updateData.avatar_url,
+      avatar_url: newImageUrl ?? pet.avatar_url,
     };
 
     const updatedIdentify = await this.identifyService.updateIdentificationByPetId(

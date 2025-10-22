@@ -78,13 +78,24 @@ async getPetsByOwner(@Param('user_id') user_id: string) {
 }
   
 @Patch('/:id')
+@UseInterceptors(FileInterceptor('avatar', {
+    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+    fileFilter: (req, file, cb) => {
+      if (!file.mimetype.match(/image\/(jpg|jpeg|png|gif)$/)) {
+        return cb(new Error('Only image files are allowed!'), false);
+      }
+      cb(null, true);
+    },
+  }))
   @HttpCode(HttpStatus.OK)
   async updatePet(
+    @UploadedFile() file: Express.Multer.File,
     @Param('id') pet_id: string,
     @Body() updateData: any,
   ) {
+    const fileBufferString = file ? file.buffer.toString('base64') : undefined;
     return await lastValueFrom(
-      this.petService.send({ cmd: 'updatePet' }, { pet_id, updateData }),
+      this.petService.send({ cmd: 'updatePet' }, { pet_id, updateData, fileBuffer: fileBufferString }),
     );
   }
 
