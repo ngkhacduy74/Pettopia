@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
@@ -49,6 +50,7 @@ export class PartnerController {
       ),
     );
   }
+  @UseGuards(JwtAuthGuard)
   @Post('/clinic/register')
   @HttpCode(HttpStatus.CREATED)
   async clinicRegister(@Body() data: any) {
@@ -65,7 +67,7 @@ export class PartnerController {
       this.partnerService.send({ cmd: 'getClinicFormById' }, { id: idForm }),
     );
   }
-  @UseGuards(JwtAuthGuard, VerifiedGuard)
+  @UseGuards(JwtAuthGuard)
   @Post('/clinic/status/:id')
   @HttpCode(HttpStatus.OK)
   async updateStatusClinicForm(
@@ -161,6 +163,59 @@ export class PartnerController {
   async getVetFormById(@Param('id') id: string): Promise<any> {
     return await lastValueFrom(
       this.partnerService.send({ cmd: 'getVetFormById' }, { id }),
+    );
+  }
+  @UseGuards(JwtAuthGuard)
+  @Post('/service')
+  @HttpCode(HttpStatus.CREATED)
+  async createService(@Body() data: any) {
+    return await lastValueFrom(
+      this.partnerService.send({ cmd: 'createService' }, data),
+    );
+  }
+  @Get('/service')
+  @HttpCode(HttpStatus.OK)
+  async getAllService(
+    @Query('page', new ParseIntPipe({ optional: true })) page = 1,
+    @Query('limit', new ParseIntPipe({ optional: true })) limit = 10,
+  ) {
+    return await lastValueFrom(
+      this.partnerService.send({ cmd: 'getAllService' }, { page, limit }),
+    );
+  }
+  @UseGuards(JwtAuthGuard)
+  @Patch(':id')
+  update(
+    @Param('id') id: string,
+    @Body() updateServiceDto: any,
+    @UserToken() clinic_id: any,
+  ) {
+    return this.partnerService.send(
+      { cmd: 'update_service' },
+      { serviceId: id, updateServiceDto, clinic_id },
+    );
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete(':id')
+  remove(@Param('id') id: string, @UserToken() clinic_id: any) {
+    return this.partnerService.send(
+      { cmd: 'remove_service' },
+      { serviceId: id, clinic_id },
+    );
+  }
+
+  @Patch('/service/status/:id')
+  @HttpCode(HttpStatus.OK)
+  async updateServiceStatus(
+    @Param('id') idService: string,
+    @Body('is_active') is_active: boolean,
+  ) {
+    return await lastValueFrom(
+      this.partnerService.send(
+        { cmd: 'updateServiceStatus' },
+        { id: idService, is_active },
+      ),
     );
   }
 }

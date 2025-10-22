@@ -93,6 +93,9 @@ export class ClinicService {
           };
           const createdClinic =
             await this.clinicRepositories.createClinic(createDto);
+          if (createdClinic) {
+            
+          }
           return {
             success: true,
             message: 'Duyệt đơn thành công và đã tạo phòng khám',
