@@ -210,7 +210,7 @@ export class AppService {
   async addRoleAutomatically(userId: string, role: string): Promise<any> {
     try {
       const updatedUser = await this.userRepositories.updateRole(userId, role);
-
+      console.log('updatedUser auto add role', updatedUser);
       if (!updatedUser) {
         throw new NotFoundException(`Không tìm thấy user với id: ${userId}`);
       }

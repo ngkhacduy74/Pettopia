@@ -1,10 +1,12 @@
 import {
   BadRequestException,
+  Inject,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
-import { identity } from 'rxjs';
+import { ClientProxy } from '@nestjs/microservices';
+import { identity, lastValueFrom } from 'rxjs';
 import { CreateClinicFormDto } from 'src/dto/clinic/create-clinic-form.dto';
 import { CreateClinicDto } from 'src/dto/clinic/create-clinic.dto';
 import { UpdateStatusClinicDto } from 'src/dto/clinic/update-status.dto';
@@ -18,7 +20,10 @@ import { VetDocument } from 'src/schemas/vet/vet.schema';
 
 @Injectable()
 export class VetService {
-  constructor(private readonly vetRepositories: VetRepository) {}
+  constructor(
+    private readonly vetRepositories: VetRepository,
+    @Inject('CUSTOMER_SERVICE') private readonly customerService: ClientProxy,
+  ) {}
 
   async vetRegister(
     user_id: string,
@@ -28,22 +33,39 @@ export class VetService {
       const existingVet = await this.vetRepositories.findVetById(user_id);
       if (existingVet) {
         throw new BadRequestException('Bác sĩ đã đăng ký trước đó.');
-      } else {
-        const newVetForm = await this.vetRepositories.create(
-          vetRegisterData,
-          user_id,
-        );
-        return {
-          message: 'Đăng ký bác sĩ thành công.',
-          vet: newVetForm,
-        };
       }
+
+      const existingLicense =
+        await this.vetRepositories.findVetFormByLicenseNumber(
+          vetRegisterData.license_number,
+        );
+      if (existingLicense) {
+        throw new BadRequestException(
+          `Số giấy phép hành nghề ${vetRegisterData.license_number} đã được đăng ký.`,
+        );
+      }
+
+      const newVetForm = await this.vetRepositories.create(
+        vetRegisterData,
+        user_id,
+      );
+      return {
+        message: 'Đăng ký bác sĩ thành công.',
+        vet: newVetForm,
+      };
     } catch (error) {
+      if (
+        error instanceof BadRequestException ||
+        error instanceof NotFoundException
+      ) {
+        throw error;
+      }
       throw new InternalServerErrorException(
-        'Đăng ký bác sĩ thất bại. Vui lòng thử lại.',
+        error.message || 'Đăng ký bác sĩ thất bại.',
       );
     }
   }
+
   async updateVetFormStatus(body: UpdateStatusVetDto): Promise<any> {
     try {
       const { id, review_by, status, note } = body;
@@ -83,6 +105,14 @@ export class VetService {
             console.log(
               `[updateVetFormStatus] Bác sĩ mới được tạo: ${newVet.id}`,
             );
+            if (newVet) {
+              const add_role_vet = await lastValueFrom(
+                this.customerService.send(
+                  { cmd: 'auto_add_user_role' },
+                  { userId: updatedVetForm.user_id, role: 'Vet' },
+                ),
+              );
+            }
           } catch (createErr) {
             console.error(
               '[updateVetFormStatus] Lỗi khi tạo bác sĩ:',
@@ -92,9 +122,6 @@ export class VetService {
               await this.vetRepositories.rollBackStatusVetForm(
                 updatedVetForm.id,
                 RegisterStatus.PENDING,
-              );
-              console.warn(
-                '[updateVetFormStatus] Đã rollback trạng thái form về PENDING.',
               );
             } catch (rbErr) {
               console.error('[updateVetFormStatus] Rollback thất bại:', rbErr);

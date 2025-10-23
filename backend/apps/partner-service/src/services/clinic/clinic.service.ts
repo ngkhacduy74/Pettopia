@@ -5,6 +5,7 @@ import {
   InternalServerErrorException,
 } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
+import { lastValueFrom } from 'rxjs';
 import { CreateClinicFormDto } from 'src/dto/clinic/create-clinic-form.dto';
 import { CreateClinicDto } from 'src/dto/clinic/create-clinic.dto';
 import { UpdateStatusClinicDto } from 'src/dto/clinic/update-status.dto';
@@ -24,6 +25,7 @@ export class ClinicService {
     createClinicFormData: CreateClinicFormDto,
   ): Promise<any> {
     try {
+      console.log('createClinicFormData12314', createClinicFormData);
       const result =
         await this.clinicRepositories.createClinicForm(createClinicFormData);
       if (!result) {
@@ -101,14 +103,12 @@ export class ClinicService {
           const createdClinic =
             await this.clinicRepositories.createClinic(createDto);
           if (createdClinic) {
-            const add_role_clinic = await this.customerService.send(
-              { cmd: 'auto_add_user_role' },
-              {
-                userId: clinicForm.user_id,
-                role: 'Vet',
-              },
+            const add_role_clinic = await lastValueFrom(
+              this.customerService.send(
+                { cmd: 'auto_add_user_role' },
+                { userId: clinicForm.user_id, role: 'Clinic' },
+              ),
             );
-            console.log(')autie;laadd_role_clinic12u12kjh', add_role_clinic);
           }
           return {
             success: true,

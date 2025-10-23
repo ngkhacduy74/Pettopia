@@ -126,6 +126,7 @@ export class AppController {
     @Payload() payload: { userId: string; role: string },
   ): Promise<any> {
     try {
+      console.log('đã chạy vào add role tự động');
       const { userId, role } = payload;
       const result = await this.appService.addRoleAutomatically(userId, role);
       return result;
