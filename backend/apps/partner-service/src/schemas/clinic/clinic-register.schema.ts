@@ -129,7 +129,15 @@ export class Clinic_Register {
   @Prop({ type: PhoneSchema, required: true })
   phone: Phone;
 
-  @Prop({ type: String, required: true, trim: true })
+  @Prop({
+    type: String,
+    required: true,
+    trim: true,
+    match: [
+      /^([0-9]{10}|[0-9]{3,6}\/[A-Z]{2,6}(-[A-Z]{2,10})?)$/,
+      'Số giấy phép không hợp lệ (phải là 10 số hoặc dạng 123/HNY-SNNPTNT)',
+    ],
+  })
   license_number: string;
 
   @Prop({ type: AddressSchema, required: true })

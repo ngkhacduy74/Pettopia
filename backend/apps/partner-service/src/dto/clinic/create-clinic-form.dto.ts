@@ -43,11 +43,11 @@ class RepresentativeDto {
   @Matches(/^[A-Za-zÀ-ỹ\s]+$/, { message: 'Tên không hợp lệ' })
   name: string;
 
-  @Matches(/^[0-9]{9,12}$/, { message: 'CCCD/CMND không hợp lệ' })
+  @Matches(/^[0-9]{9,12}$/, { message: 'CCCD/CMND không hợp lệ (9–12 số)' })
   identify_number: string;
 
   @IsOptional()
-  @IsString()
+  @IsString({ message: 'Đường dẫn ảnh đại diện phải là chuỗi' })
   avatar_url?: string;
 
   @ArrayMinSize(1, { message: 'Phải có ít nhất 1 giấy phép hành nghề' })
@@ -73,7 +73,10 @@ export class CreateClinicFormDto {
   @Type(() => PhoneDto)
   phone: PhoneDto;
 
-  @IsString()
+  @Matches(/^([0-9]{10}|[0-9]{3,6}\/[A-Z]{2,6}(-[A-Z]{2,10})?)$/, {
+    message:
+      'Số giấy phép không hợp lệ (phải là 10 số hoặc dạng 123/HNY-SNNPTNT)',
+  })
   license_number: string;
 
   @ValidateNested()
@@ -93,7 +96,7 @@ export class CreateClinicFormDto {
   website?: string;
 
   @IsOptional()
-  @IsEnum(RegisterStatus)
+  @IsEnum(RegisterStatus, { message: 'Trạng thái đăng ký không hợp lệ' })
   status?: RegisterStatus = RegisterStatus.PENDING;
 
   @ValidateNested()
