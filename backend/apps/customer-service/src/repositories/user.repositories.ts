@@ -1,5 +1,9 @@
 // src/users/users.repository.ts
-import { Injectable } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { User, UserDocument } from '../schemas/user.schema';
@@ -158,5 +162,60 @@ export class UsersRepository {
     } catch (err) {
       throw new Error(err);
     }
+  }
+  async addRoleToUser(id: string, newRole: string): Promise<User> {
+    try {
+      const validRoles = ['User', 'Admin', 'Vet', 'Staff', 'Clinic'];
+      if (!validRoles.includes(newRole)) {
+        throw new Error(`Role '${newRole}' không hợp lệ`);
+      }
+      const user = await this.userModel.findOne({ id: id }).exec();
+      if (!user) {
+        throw new Error(`User với id '${id}' không tồn tại`);
+      }
+      if (user.role.includes(newRole)) {
+        return user;
+      }
+      user.role.push(newRole);
+      await user.save();
+      return user;
+    } catch (err) {
+      throw new Error(err.message || 'Lỗi khi thêm role cho user');
+    }
+  }
+
+  async updateRole(id: string, newRole: string): Promise<User> {
+    try {
+      const validRoles = ['User', 'Admin', 'Vet', 'Staff', 'Clinic'];
+      if (!validRoles.includes(newRole)) {
+        throw new Error(`Role '${newRole}' không hợp lệ`);
+      }
+      const user = await this.userModel.findOne({ id: id }).exec();
+      if (!user) {
+        throw new Error(`User với id '${id}' không tồn tại`);
+      }
+      if (user.role.includes(newRole)) {
+        return user;
+      }
+      user.role.push(newRole);
+      await user.save();
+      return user;
+    } catch (err) {
+      throw new Error(err.message || 'Lỗi khi thêm role cho user');
+    }
+  }
+  async removeRoleFromUser(userId: string, role: string): Promise<User> {
+    const user = await this.userModel.findById(userId);
+    if (!user) {
+      throw new NotFoundException('Người dùng không tồn tại.');
+    }
+
+    if (!user.role.includes(role)) {
+      throw new NotFoundException(`Người dùng không có role: ${role}`);
+    }
+
+    user.role = user.role.filter((r) => r !== role);
+    await user.save();
+    return user;
   }
 }

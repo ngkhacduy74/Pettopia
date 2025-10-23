@@ -14,6 +14,7 @@ import {
   GetAllUsersDto,
   PaginatedUsersResponse,
 } from './dto/request/get-all-user.dto';
+import { handleRpcError } from './common/error.detail';
 
 @UsePipes(
   new ValidationPipe({
@@ -31,7 +32,7 @@ export class AppController {
       const result = await this.appService.getUserById(data.id);
       return result;
     } catch (err) {
-      throw new Error(err);
+      handleRpcError('AppController.getUserById', err);
     }
   }
   @MessagePattern({ cmd: 'getUserByUsername' })
@@ -42,7 +43,7 @@ export class AppController {
       const result = await this.appService.getUserByUsername(data.username);
       return result;
     } catch (err) {
-      throw new Error(err);
+      handleRpcError('AppController.getUserByUsername', err);
     }
   }
   @MessagePattern({ cmd: 'getUserByEmail' })
@@ -51,7 +52,7 @@ export class AppController {
       const result = await this.appService.getUserByEmail(data.email_address);
       return result;
     } catch (err) {
-      throw new Error(err);
+      handleRpcError('AppController.getUserByEmail', err);
     }
   }
   @MessagePattern({ cmd: 'checkPhoneExist' })
@@ -60,7 +61,7 @@ export class AppController {
       const result = await this.appService.checkPhoneExist(data.phone_number);
       return result;
     } catch (err) {
-      throw new Error(err);
+      handleRpcError('AppController.checkPhoneExist', err);
     }
   }
   @MessagePattern({ cmd: 'createUser' })
@@ -69,7 +70,7 @@ export class AppController {
       const result = await this.appService.createUser(data);
       return result;
     } catch (err) {
-      throw new Error(err);
+      handleRpcError('AppController.createUser', err);
     }
   }
   @MessagePattern({ cmd: 'updateUserStatus' })
@@ -81,7 +82,7 @@ export class AppController {
       );
       return result;
     } catch (err) {
-      throw new Error(err);
+      handleRpcError('AppController.updateUserStatus', err);
     }
   }
   @MessagePattern({ cmd: 'deleteUserById' })
@@ -90,7 +91,7 @@ export class AppController {
       const result = await this.appService.deleteUserById(data.id);
       return result;
     } catch (err) {
-      throw new Error(err);
+      handleRpcError('AppController.deleteUserById', err);
     }
   }
   @MessagePattern({ cmd: 'test' })
@@ -105,7 +106,44 @@ export class AppController {
     try {
       return await this.appService.getAllUsers(data);
     } catch (err) {
-      throw new Error(err);
+      handleRpcError('AppController.getAllUsers', err);
+    }
+  }
+  @MessagePattern({ cmd: 'add_user_role' })
+  async addRoleToUser(
+    @Payload() payload: { userId: string; role: string },
+  ): Promise<any> {
+    try {
+      const { userId, role } = payload;
+      const result = await this.appService.addRoleToUser(userId, role);
+      return result;
+    } catch (err) {
+      handleRpcError('UserController.addRoleToUser', err);
+    }
+  }
+  @MessagePattern({ cmd: 'auto_add_user_role' })
+  async autoAddUserRole(
+    @Payload() payload: { userId: string; role: string },
+  ): Promise<any> {
+    try {
+      const { userId, role } = payload;
+      const result = await this.appService.addRoleAutomatically(userId, role);
+      return result;
+    } catch (err) {
+      handleRpcError('UserController.autoAddUserRole', err);
+    }
+  }
+
+  @MessagePattern({ cmd: 'remove_user_role' })
+  async removeRoleFromUser(
+    @Payload() payload: { userId: string; role: string },
+  ): Promise<any> {
+    try {
+      const { userId, role } = payload;
+      const result = await this.appService.removeRoleFromUser(userId, role);
+      return result;
+    } catch (err) {
+      handleRpcError('UserController.removeRoleFromUser', err);
     }
   }
 }

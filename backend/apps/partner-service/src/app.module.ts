@@ -19,6 +19,9 @@ import {
 } from './schemas/vet/vet-register.schema';
 import { Vet, VetSchema } from './schemas/vet/vet.schema';
 import { VetController } from './controllers/vet/vet.controller';
+import { ServiceRepository } from './repositories/clinic/service.repositories';
+import { Service, ServiceSchema } from './schemas/clinic/service.schema';
+import { ClientsModule, Transport } from '@nestjs/microservices';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -28,6 +31,15 @@ import { VetController } from './controllers/vet/vet.controller';
       {
         ttl: 60000,
         limit: 10,
+      },
+    ]),
+    ClientsModule.register([
+      {
+        name: 'CUSTOMER_SERVICE',
+        transport: Transport.TCP,
+        options: {
+          port: 5002,
+        },
       },
     ]),
     MongooseModule.forRootAsync({
@@ -42,6 +54,7 @@ import { VetController } from './controllers/vet/vet.controller';
       { name: Clinic_Register.name, schema: ClinicRegisterSchema },
       { name: Clinic.name, schema: ClinicSchema },
       { name: Vet_Register.name, schema: VetRegisterSchema },
+      { name: Service.name, schema: ServiceSchema },
       { name: Vet.name, schema: VetSchema },
     ]),
   ],
@@ -51,6 +64,7 @@ import { VetController } from './controllers/vet/vet.controller';
     ClinicsRepository,
     VetRepository,
     VetService,
+    ServiceRepository,
     {
       provide: APP_PIPE,
       useValue: new ValidationPipe({

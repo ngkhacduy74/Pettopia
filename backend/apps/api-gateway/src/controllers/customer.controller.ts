@@ -77,4 +77,37 @@ export class CustomerController {
       this.customerService.send({ cmd: 'getAllUsers' }, dto),
     );
   }
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.ADMIN)
+  @Patch(':id/add-role')
+  @HttpCode(HttpStatus.OK)
+  async addRoleToUser(@Param('id') id: string, @Body('role') role: string) {
+    const result = await lastValueFrom(
+      this.customerService.send({ cmd: 'add_user_role' }, { userId: id, role }),
+    );
+    return {
+      message: `Đã thêm role "${role}" cho user ${id}`,
+      data: result,
+    };
+  }
+
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.ADMIN)
+  @Patch(':id/remove-role')
+  @HttpCode(HttpStatus.OK)
+  async removeRoleFromUser(
+    @Param('id') id: string,
+    @Body('role') role: string,
+  ) {
+    const result = await lastValueFrom(
+      this.customerService.send(
+        { cmd: 'remove_user_role' },
+        { userId: id, role },
+      ),
+    );
+    return {
+      message: `Đã xóa role "${role}" khỏi user ${id}`,
+      data: result,
+    };
+  }
 }

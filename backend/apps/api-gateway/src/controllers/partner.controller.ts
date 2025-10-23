@@ -67,7 +67,8 @@ export class PartnerController {
       this.partnerService.send({ cmd: 'getClinicFormById' }, { id: idForm }),
     );
   }
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.ADMIN, Role.STAFF)
   @Post('/clinic/status/:id')
   @HttpCode(HttpStatus.OK)
   async updateStatusClinicForm(
@@ -85,7 +86,7 @@ export class PartnerController {
   @Patch('/vet/status/form/:id')
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles(Role.ADMIN, Role.Staff)
+  @Roles(Role.ADMIN, Role.STAFF)
   async updateVetFormStatus(
     @Param('id') id: string,
     @Body() data: any,

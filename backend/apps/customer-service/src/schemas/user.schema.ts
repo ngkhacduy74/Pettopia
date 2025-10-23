@@ -95,11 +95,11 @@ export class User {
   password: string;
 
   @Prop({
-    type: String,
-    enum: ['User', 'Admin', 'Vet', 'Staff', 'Clinic_staff'],
-    default: 'User',
+    type: [String],
+    enum: ['User', 'Admin', 'Staff', 'Vet', 'Clinic'],
+    default: ['User'],
   })
-  role: string;
+  role: string[];
 
   @Prop()
   bio?: string;

@@ -1,5 +1,6 @@
 import {
   ConflictException,
+  Inject,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
@@ -7,7 +8,7 @@ import {
 import { User, UserDocument } from './schemas/user.schema';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { RpcException } from '@nestjs/microservices';
+import { ClientProxy, RpcException } from '@nestjs/microservices';
 import { UsersRepository } from './repositories/user.repositories';
 import { CreateUserDto } from './dto/user/create-user.dto';
 import { UserStatus } from './dto/request/update-user-status.dto';
@@ -157,5 +158,69 @@ export class AppService {
   }
   async test(): Promise<any> {
     return { message: 'đã chạy connect được vào customer' };
+  }
+  async addRoleToUser(id: string, newRole: string): Promise<User> {
+    try {
+      const updatedUser = await this.userRepositories.addRoleToUser(
+        id,
+        newRole,
+      );
+
+      if (!updatedUser) {
+        throw new RpcException(
+          new NotFoundException(`Không tìm thấy người dùng với id: ${id}`),
+        );
+      }
+
+      return updatedUser;
+    } catch (err) {
+      if (err instanceof RpcException) throw err;
+
+      throw new RpcException(
+        new InternalServerErrorException(
+          err.message || 'Lỗi khi thêm role cho user',
+        ),
+      );
+    }
+  }
+  async removeRoleFromUser(userId: string, role: string): Promise<User> {
+    try {
+      const updatedUser = await this.userRepositories.removeRoleFromUser(
+        userId,
+        role,
+      );
+
+      if (!updatedUser) {
+        throw new RpcException(
+          new NotFoundException(`Không tìm thấy người dùng với id: ${userId}`),
+        );
+      }
+
+      return updatedUser;
+    } catch (err) {
+      if (err instanceof RpcException) throw err;
+
+      throw new RpcException(
+        new InternalServerErrorException(
+          err.message || 'Lỗi khi xóa role khỏi người dùng',
+        ),
+      );
+    }
+  }
+  async addRoleAutomatically(userId: string, role: string): Promise<any> {
+    try {
+      const updatedUser = await this.userRepositories.updateRole(userId, role);
+
+      if (!updatedUser) {
+        throw new NotFoundException(`Không tìm thấy user với id: ${userId}`);
+      }
+
+      return {
+        message: `Thêm role ${role} thành công.`,
+        user: updatedUser,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException('Không thể thêm role cho user.');
+    }
   }
 }
