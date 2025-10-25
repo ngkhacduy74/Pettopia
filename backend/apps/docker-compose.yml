@@ -3,90 +3,114 @@ version: "3.9"
 services:
   api-gateway:
     build:
-      context: ./backend/apps/api-gateway
+      context: ./api-gateway
       dockerfile: Dockerfile
     container_name: api-gateway
     ports:
       - "8000:3000"
     environment:
-      MONGO_URI: mongodb://auth-db:27017/auth_db
+      # MONGO_URI: mongodb://auth-db:27017/auth_db
+      API_GATEWAY_PORT: 3000
+      NODE_ENV: production
+      SHOW_ERROR_DETAILS: "false"
     networks:
       - pettopia-network
   auth-service:
     build:
-      context: ./backend/apps/auth-service
+      context: ./auth-service
       dockerfile: Dockerfile
     container_name: auth-service
     ports:
-      - "8001:3000"
+      - "8001:3001"
     environment:
-      MONGO_URI: mongodb://auth-db:27017/auth_db
+      MONGO_URI: mongodb+srv://khacduy0704:khacduy0704@cluster0.5rfakrg.mongodb.net/db_auth
+      AUTH_PORT: 3001
+      NODE_ENV: production
+      SHOW_ERROR_DETAILS: "false"
     networks:
       - pettopia-network
   billing-service:
     build:
-      context: ./backend/apps/billing-service
+      context: ./billing-service
       dockerfile: Dockerfile
     container_name: billing-service
     ports:
-      - "8007:3000"
+      - "8007:3007"
     environment:
-      MONGO_URI: mongodb://auth-db:27017/auth_db
+      MONGO_URI: mongodb+srv://khacduy0704:khacduy0704@cluster0.5rfakrg.mongodb.net/db_billing
+      BILLING_PORT: 3007
+      NODE_ENV: production
+      SHOW_ERROR_DETAILS: "false"
     networks:
       - pettopia-network
   communication-service:
     build:
-      context: ./backend/apps/communication-service
+      context: ./communication-service
       dockerfile: Dockerfile
     container_name: communication-service
     ports:
-      - "8006:3000"
+      - "8006:3006"
     environment:
-      MONGO_URI: mongodb://auth-db:27017/auth_db
+      MONGO_URI: mongodb+srv://khacduy0704:khacduy0704@cluster0.5rfakrg.mongodb.net/db_communication
+      COMMUNICATION_PORT: 3006
+      NODE_ENV: production
+      SHOW_ERROR_DETAILS: "false"
     networks:
       - pettopia-network
   customer-service:
     build:
-      context: ./backend/apps/customer-service
+      context: ./customer-service
       dockerfile: Dockerfile
     container_name: customer-service
     ports:
-      - "8002:3000"
+      - "8002:3002"
     environment:
-      MONGO_URI: mongodb://auth-db:27017/auth_db
+      MONGO_URI: mongodb+srv://khacduy0704:khacduy0704@cluster0.5rfakrg.mongodb.net/db_customer
+      CUSTOMER_PORT: 3002
+      NODE_ENV: production
+      SHOW_ERROR_DETAILS: "false"
     networks:
       - pettopia-network
   healthcare-service:
     build:
-      context: ./backend/apps/healthcare-service
+      context: ./healthcare-service
       dockerfile: Dockerfile
     container_name: healthcare-service
     ports:
-      - "8005:3000"
+      - "8005:3005"
     environment:
-      MONGO_URI: mongodb://auth-db:27017/auth_db
+      MONGO_URI: mongodb+srv://khacduy0704:khacduy0704@cluster0.5rfakrg.mongodb.net/db_healthcare
+      HEALTHCARE_PORT: 3005
+      NODE_ENV: production
+      SHOW_ERROR_DETAILS: "false"
     networks:
       - pettopia-network
   partner-service:
     build:
-      context: ./backend/apps/partner-service
+      context: ./partner-service
       dockerfile: Dockerfile
     container_name: partner-service
     ports:
-      - "8004:3000"
+      - "8004:3004"
     environment:
-      MONGO_URI: mongodb://auth-db:27017/auth_db
+      MONGO_URI: mongodb+srv://khacduy0704:khacduy0704@cluster0.5rfakrg.mongodb.net/db_partner
+      PARTNER_PORT: 3004
+      NODE_ENV: production
+      SHOW_ERROR_DETAILS: "false"
     networks:
       - pettopia-network
   petcare-service:
     build:
-      context: ./backend/apps/petcare-service
+      context: ./petcare-service
       dockerfile: Dockerfile
     container_name: petcare-service
     ports:
-      - "8003:3000"
+      - "8003:3003"
     environment:
-      MONGO_URI: mongodb://auth-db:27017/auth_db
+      MONGO_URI: mongodb+srv://khacduy0704:khacduy0704@cluster0.5rfakrg.mongodb.net/db_petcare
+      PETCARE_PORT: 3003
+      NODE_ENV: production
+      SHOW_ERROR_DETAILS: "false"
     networks:
       - pettopia-network
 
