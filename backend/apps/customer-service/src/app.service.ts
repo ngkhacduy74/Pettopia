@@ -19,10 +19,7 @@ import {
 
 @Injectable()
 export class AppService {
-  constructor(
-    @InjectModel(User.name) private userModel: Model<UserDocument>,
-    private userRepositories: UsersRepository,
-  ) {}
+  constructor(private userRepositories: UsersRepository) {}
   async getUserById(id: string): Promise<User> {
     try {
       const user = await this.userRepositories.findOneById(id);
