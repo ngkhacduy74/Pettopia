@@ -12,7 +12,7 @@ import { handleRpcError } from 'src/common/error.detail';
   }),
 )
 @Controller()
-export class ClinicController {
+export class ServiceController {
   constructor(private readonly clinicService: ClinicService) {}
 
   @MessagePattern({ cmd: 'createService' })

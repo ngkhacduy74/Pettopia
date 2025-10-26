@@ -1,8 +1,8 @@
+
 import { Module } from '@nestjs/common';
 import { AuthController } from './controllers/auth.controller';
 import { CustomerController } from './controllers/customer.controller';
 import { AppointmentsController } from './controllers/appointments.controller';
-import { PaymentController } from './controllers/payment.controller';
 import { AppService } from './app.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ClientsModule, Transport } from '@nestjs/microservices';
@@ -65,13 +65,6 @@ import { PartnerController } from './controllers/partner.controller';
           port: 5007,
         },
       },
-      {
-        name: 'PAYMENT_SERVICE',
-        transport: Transport.TCP,
-        options: {
-          port: 5008,
-        },
-      },
     ]),
     JwtModule.registerAsync({
       imports: [ConfigModule],
@@ -88,7 +81,6 @@ import { PartnerController } from './controllers/partner.controller';
     PetController,
     AppointmentsController,
     PartnerController,
-    PaymentController,
   ],
   providers: [AppService],
 })

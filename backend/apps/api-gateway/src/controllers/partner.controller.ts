@@ -10,6 +10,7 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Put,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -26,14 +27,6 @@ export class PartnerController {
   constructor(
     @Inject('PARTNER_SERVICE') private readonly partnerService: ClientProxy,
   ) {}
-  // @UseGuards(JwtAuthGuard)
-  // @Post('/clinic/register')
-  // @HttpCode(HttpStatus.CREATED)
-  // async clinicRegister(@Body() data: any, @UserToken('id') user_id: any) {
-  //   return await lastValueFrom(
-  //     this.partnerService.send({ cmd: 'registerClinic' }, { ...data, user_id }),
-  //   );
-  // }
 
   @UseGuards(JwtAuthGuard)
   @Get('/clinic/form')
@@ -50,6 +43,7 @@ export class PartnerController {
       ),
     );
   }
+
   @UseGuards(JwtAuthGuard)
   @Post('/clinic/register')
   @HttpCode(HttpStatus.CREATED)
@@ -66,6 +60,7 @@ export class PartnerController {
       this.partnerService.send({ cmd: 'getClinicFormById' }, { id: idForm }),
     );
   }
+
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(Role.ADMIN, Role.STAFF)
   @Post('/clinic/status/:id')
@@ -75,13 +70,12 @@ export class PartnerController {
     @Body() body: any,
     @UserToken('id') review_by: string,
   ) {
-    console.log('iuqejaksdjk', review_by);
-    // const review_by = 'c2a92f15-1578-46a2-a782-8c6d1e3acaeb';
     const payload = { id: idForm, ...body, review_by };
     return await lastValueFrom(
       this.partnerService.send({ cmd: 'updateStatusClinicForm' }, payload),
     );
   }
+
   @Patch('/vet/status/form/:id')
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard, RoleGuard)
@@ -99,6 +93,7 @@ export class PartnerController {
       ),
     );
   }
+
   @Get('/clinic')
   @HttpCode(HttpStatus.OK)
   async findAllClinic(
@@ -135,6 +130,7 @@ export class PartnerController {
       this.partnerService.send({ cmd: 'updateClinicActiveStatus' }, payload),
     );
   }
+
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(Role.USER)
   @Post('/vet/register')
@@ -144,6 +140,7 @@ export class PartnerController {
       this.partnerService.send({ cmd: 'registerVet' }, { ...data, user_id }),
     );
   }
+
   @Get('/vet/form')
   @HttpCode(HttpStatus.OK)
   async getAllVetForm(
@@ -158,6 +155,7 @@ export class PartnerController {
       ),
     );
   }
+
   @Get('/vet/form/:id')
   @HttpCode(HttpStatus.OK)
   async getVetFormById(@Param('id') id: string): Promise<any> {
@@ -165,7 +163,9 @@ export class PartnerController {
       this.partnerService.send({ cmd: 'getVetFormById' }, { id }),
     );
   }
-  @UseGuards(JwtAuthGuard)
+
+  @UseGuards(JwtAuthGuard,RoleGuard)
+  @Roles( Role.CLINIC)
   @Post('/service')
   @HttpCode(HttpStatus.CREATED)
   async createService(@Body() data: any) {
@@ -173,6 +173,9 @@ export class PartnerController {
       this.partnerService.send({ cmd: 'createService' }, data),
     );
   }
+
+  @UseGuards(JwtAuthGuard,RoleGuard)
+  @Roles( Role.CLINIC)
   @Get('/service')
   @HttpCode(HttpStatus.OK)
   async getAllService(
@@ -183,7 +186,9 @@ export class PartnerController {
       this.partnerService.send({ cmd: 'getAllService' }, { page, limit }),
     );
   }
-  @UseGuards(JwtAuthGuard)
+
+  @UseGuards(JwtAuthGuard,RoleGuard)
+  @Roles( Role.CLINIC)
   @Patch(':id')
   update(
     @Param('id') id: string,
@@ -196,7 +201,8 @@ export class PartnerController {
     );
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard,RoleGuard)
+  @Roles( Role.CLINIC)
   @Delete(':id')
   remove(@Param('id') id: string, @UserToken() clinic_id: any) {
     return this.partnerService.send(
@@ -204,7 +210,8 @@ export class PartnerController {
       { serviceId: id, clinic_id },
     );
   }
-
+  @UseGuards(JwtAuthGuard,RoleGuard)
+  @Roles( Role.CLINIC)
   @Patch('/service/status/:id')
   @HttpCode(HttpStatus.OK)
   async updateServiceStatus(
@@ -216,6 +223,66 @@ export class PartnerController {
         { cmd: 'updateServiceStatus' },
         { id: idService, is_active },
       ),
+    );
+  }
+  @UseGuards(JwtAuthGuard,RoleGuard)
+  @Roles( Role.CLINIC)
+  @Post('/clinic/shift')
+  @HttpCode(HttpStatus.CREATED)
+  async createClinicShift(@Body() data: any ,@UserToken('id') clinic_id: any) {
+    return await lastValueFrom(
+      this.partnerService.send({ cmd: 'createClinicShift' }, {...data,clinic_id}),
+    );
+  }
+
+  @UseGuards(JwtAuthGuard,RoleGuard)
+  @Roles( Role.CLINIC)
+  @Get('/clinic/shift')
+  @HttpCode(HttpStatus.OK)
+  async getClinicShifts(
+    @Query('page', new ParseIntPipe({ optional: true })) page = 1,
+    @Query('limit', new ParseIntPipe({ optional: true })) limit = 10,
+  ) {
+    return await lastValueFrom(
+      this.partnerService.send({ cmd: 'getClinicShifts' }, { page, limit }),
+    );
+  }
+ 
+  @UseGuards(JwtAuthGuard,RoleGuard)
+  @Roles( Role.CLINIC)
+  @Put('/clinic/shift/:id')
+  @HttpCode(HttpStatus.OK)
+  async updateClinicShift(
+    @Param('id') idShift: string,
+    @Body() updateData: any,
+  ) {
+    const payload = { id: idShift, ...updateData };
+    return await lastValueFrom(
+      this.partnerService.send({ cmd: 'updateClinicShift' }, payload),
+    );
+  }
+
+  @UseGuards(JwtAuthGuard,RoleGuard)
+  @Roles( Role.CLINIC)
+  @Delete('/clinic/shift/:id')
+  @HttpCode(HttpStatus.OK)
+  async deleteClinicShift(@Param('id') idShift: string) {
+    return await lastValueFrom(
+      this.partnerService.send({ cmd: 'deleteClinicShift' }, { id: idShift }),
+    );
+  }
+  
+  @UseGuards(JwtAuthGuard,RoleGuard)
+  @Roles( Role.CLINIC)
+  @Patch('/clinic/shift/:id/status')
+  @HttpCode(HttpStatus.OK)
+  async updateClinicShiftStatus(
+    @Param('id') idShift: string,
+    @Body('is_active') is_active: boolean,
+  ) {
+    const payload = { id: idShift, is_active };
+    return await lastValueFrom(
+      this.partnerService.send({ cmd: 'updateClinicShiftStatus' }, payload),
     );
   }
 }
