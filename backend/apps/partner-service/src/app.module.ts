@@ -22,6 +22,15 @@ import { VetController } from './controllers/vet/vet.controller';
 import { ServiceRepository } from './repositories/clinic/service.repositories';
 import { Service, ServiceSchema } from './schemas/clinic/service.schema';
 import { ClientsModule, Transport } from '@nestjs/microservices';
+import { ShiftController } from './controllers/clinic/shift.controller';
+import { ServiceController } from './controllers/clinic/service.controller';
+import { ShiftRepository } from './repositories/clinic/shift.repositories';
+import { ShiftService } from './services/clinic/shift.service';
+import { ServiceService } from './services/clinic/service.service';
+import {
+  Shift,
+  ShiftSchema,
+} from './schemas/clinic/clinic_shift_setting.schema';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -56,15 +65,24 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
       { name: Vet_Register.name, schema: VetRegisterSchema },
       { name: Service.name, schema: ServiceSchema },
       { name: Vet.name, schema: VetSchema },
+      { name: Shift.name, schema: ShiftSchema },
     ]),
   ],
-  controllers: [ClinicController, VetController],
+  controllers: [
+    ClinicController,
+    VetController,
+    ShiftController,
+    ServiceController,
+  ],
   providers: [
     ClinicService,
     ClinicsRepository,
     VetRepository,
     VetService,
     ServiceRepository,
+    ShiftRepository,
+    ShiftService,
+    ServiceService,
     {
       provide: APP_PIPE,
       useValue: new ValidationPipe({

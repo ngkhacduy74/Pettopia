@@ -1,6 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
-import * as uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
+
 @Schema({ _id: false })
 export class Address {
   @Prop({ type: String, required: true, trim: true }) city: string;
@@ -112,7 +113,7 @@ export class Clinic_Register {
     type: String,
     required: [true, 'Clinic ID is required'],
     unique: true,
-    default: () => uuid.v4(),
+    default: () => uuidv4(),
     trim: true,
   })
   id: string;

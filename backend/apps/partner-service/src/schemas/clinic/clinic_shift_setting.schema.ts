@@ -18,7 +18,6 @@ function transformValue(doc: any, ret: any) {
   timestamps: true,
   toJSON: { transform: transformValue },
   toObject: { transform: transformValue },
-  _id: false,
   versionKey: false,
 })
 export class Shift {
@@ -65,29 +64,29 @@ export class Shift {
       'start_time phải theo định dạng HH:mm (24h)',
     ],
   })
-  start_time: string; 
+  start_time: string;
 
- @Prop({
-  type: String,
-  required: true,
-  trim: true,
-  match: [
-    /^([0-1]\d|2[0-3]):([0-5]\d)$/,
-    'end_time phải theo định dạng HH:mm (24h)',
-  ],
-  validate: {
-    validator: function (this: Shift, value: string) {
-      if (!this.start_time) return true; 
-      const [startHour, startMinute] = this.start_time.split(':').map(Number);
-      const [endHour, endMinute] = value.split(':').map(Number);
-      const startTotal = startHour * 60 + startMinute;
-      const endTotal = endHour * 60 + endMinute;
-      return endTotal > startTotal;
+  @Prop({
+    type: String,
+    required: true,
+    trim: true,
+    match: [
+      /^([0-1]\d|2[0-3]):([0-5]\d)$/,
+      'end_time phải theo định dạng HH:mm (24h)',
+    ],
+    validate: {
+      validator: function (this: Shift, value: string) {
+        if (!this.start_time) return true;
+        const [startHour, startMinute] = this.start_time.split(':').map(Number);
+        const [endHour, endMinute] = value.split(':').map(Number);
+        const startTotal = startHour * 60 + startMinute;
+        const endTotal = endHour * 60 + endMinute;
+        return endTotal > startTotal;
+      },
+      message: 'end_time phải lớn hơn start_time',
     },
-    message: 'end_time phải lớn hơn start_time',
-  },
-})
-end_time: string;
+  })
+  end_time: string;
 
   @Prop({
     type: Boolean,

@@ -11,6 +11,7 @@ import {
   ShiftDocument,
 } from 'src/schemas/clinic/clinic_shift_setting.schema';
 import { CreateClinicShiftDto } from 'src/dto/clinic/create-shift.dto';
+import { UpdateClinicShiftDto } from 'src/dto/clinic/update-shift.dto';
 
 @Injectable()
 export class ShiftRepository {
@@ -41,58 +42,59 @@ export class ShiftRepository {
     }
   }
 
-  //   async getClinicShifts(
-  //     page: number,
-  //     limit: number,
-  //     clinic_id?: string, // Thêm filter theo clinic_id nếu cần
-  //   ): Promise<{ data: ShiftDocument[]; total: number }> {
-  //     const skip = (page - 1) * limit;
-  //     const query: any = {};
+  async getClinicShifts(
+    page: number,
+    limit: number,
+    clinic_id: string,
+  ): Promise<{
+    data: any;
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+    const skip = (page - 1) * limit;
+    const query = { clinic_id };
 
-  //     if (clinic_id) {
-  //       query.clinic_id = clinic_id;
-  //     }
+    try {
+      const [data, total] = await Promise.all([
+        this.shiftModel
+          .find(query)
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(limit)
+          .lean()
+          .exec(),
+        this.shiftModel.countDocuments(query).exec(),
+      ]);
 
-  //     try {
-  //       const [data, total] = await Promise.all([
-  //         this.shiftModel
-  //           .find(query)
-  //           .sort({ createdAt: -1 })
-  //           .skip(skip)
-  //           .limit(limit)
-  //           .lean()
-  //           .exec(),
-  //         this.shiftModel.countDocuments(query).exec(),
-  //       ]);
+      return { data, total, page, limit };
+    } catch (err) {
+      throw new InternalServerErrorException(
+        err.message || 'Lỗi cơ sở dữ liệu khi lấy danh sách ca làm việc',
+      );
+    }
+  }
 
-  //       return { data, total };
-  //     } catch (err) {
-  //       throw new InternalServerErrorException(
-  //         err.message || 'Lỗi cơ sở dữ liệu khi lấy danh sách ca làm việc',
-  //       );
-  //     }
-  //   }
+  async updateClinicShift(
+    id: string,
+    dto: UpdateClinicShiftDto,
+  ): Promise<ShiftDocument> {
+    try {
+      const updatedShift = await this.shiftModel
+        .findOneAndUpdate({ id: id }, dto, { new: true })
+        .exec();
 
-  //   async updateClinicShift(
-  //     id: string,
-  //     dto: UpdateClinicShiftDto,
-  //   ): Promise<ShiftDocument> {
-  //     try {
-  //       const updatedShift = await this.shiftModel
-  //         .findOneAndUpdate({ id: id }, dto, { new: true })
-  //         .exec();
-
-  //       if (!updatedShift) {
-  //         throw new NotFoundException(`Không tìm thấy ca làm việc với ID: ${id}`);
-  //       }
-  //       return updatedShift;
-  //     } catch (err) {
-  //       if (err instanceof NotFoundException) throw err;
-  //       throw new InternalServerErrorException(
-  //         err.message || 'Lỗi cơ sở dữ liệu khi cập nhật ca làm việc',
-  //       );
-  //     }
-  //   }
+      if (!updatedShift) {
+        throw new NotFoundException(`Không tìm thấy ca làm việc với ID: ${id}`);
+      }
+      return updatedShift;
+    } catch (err) {
+      if (err instanceof NotFoundException) throw err;
+      throw new InternalServerErrorException(
+        err.message || 'Lỗi cơ sở dữ liệu khi cập nhật ca làm việc',
+      );
+    }
+  }
 
   async deleteClinicShift(id: string): Promise<any> {
     try {

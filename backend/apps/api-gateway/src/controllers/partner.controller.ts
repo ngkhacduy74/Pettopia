@@ -164,8 +164,8 @@ export class PartnerController {
     );
   }
 
-  @UseGuards(JwtAuthGuard,RoleGuard)
-  @Roles( Role.CLINIC)
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.CLINIC)
   @Post('/service')
   @HttpCode(HttpStatus.CREATED)
   async createService(@Body() data: any) {
@@ -174,8 +174,8 @@ export class PartnerController {
     );
   }
 
-  @UseGuards(JwtAuthGuard,RoleGuard)
-  @Roles( Role.CLINIC)
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.CLINIC)
   @Get('/service')
   @HttpCode(HttpStatus.OK)
   async getAllService(
@@ -187,8 +187,8 @@ export class PartnerController {
     );
   }
 
-  @UseGuards(JwtAuthGuard,RoleGuard)
-  @Roles( Role.CLINIC)
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.CLINIC)
   @Patch(':id')
   update(
     @Param('id') id: string,
@@ -201,8 +201,8 @@ export class PartnerController {
     );
   }
 
-  @UseGuards(JwtAuthGuard,RoleGuard)
-  @Roles( Role.CLINIC)
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.CLINIC)
   @Delete(':id')
   remove(@Param('id') id: string, @UserToken() clinic_id: any) {
     return this.partnerService.send(
@@ -210,8 +210,8 @@ export class PartnerController {
       { serviceId: id, clinic_id },
     );
   }
-  @UseGuards(JwtAuthGuard,RoleGuard)
-  @Roles( Role.CLINIC)
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.CLINIC)
   @Patch('/service/status/:id')
   @HttpCode(HttpStatus.OK)
   async updateServiceStatus(
@@ -225,31 +225,38 @@ export class PartnerController {
       ),
     );
   }
-  @UseGuards(JwtAuthGuard,RoleGuard)
-  @Roles( Role.CLINIC)
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.CLINIC)
   @Post('/clinic/shift')
   @HttpCode(HttpStatus.CREATED)
-  async createClinicShift(@Body() data: any ,@UserToken('id') clinic_id: any) {
+  async createClinicShift(@Body() data: any, @UserToken('id') clinic_id: any) {
     return await lastValueFrom(
-      this.partnerService.send({ cmd: 'createClinicShift' }, {...data,clinic_id}),
+      this.partnerService.send(
+        { cmd: 'createClinicShift' },
+        { ...data, clinic_id },
+      ),
     );
   }
 
-  @UseGuards(JwtAuthGuard,RoleGuard)
-  @Roles( Role.CLINIC)
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.CLINIC)
   @Get('/clinic/shift')
   @HttpCode(HttpStatus.OK)
   async getClinicShifts(
     @Query('page', new ParseIntPipe({ optional: true })) page = 1,
     @Query('limit', new ParseIntPipe({ optional: true })) limit = 10,
+    @UserToken('id') clinic_id: any,
   ) {
     return await lastValueFrom(
-      this.partnerService.send({ cmd: 'getClinicShifts' }, { page, limit }),
+      this.partnerService.send(
+        { cmd: 'getClinicShifts' },
+        { clinic_id, page, limit },
+      ),
     );
   }
- 
-  @UseGuards(JwtAuthGuard,RoleGuard)
-  @Roles( Role.CLINIC)
+
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.CLINIC)
   @Put('/clinic/shift/:id')
   @HttpCode(HttpStatus.OK)
   async updateClinicShift(
@@ -262,8 +269,8 @@ export class PartnerController {
     );
   }
 
-  @UseGuards(JwtAuthGuard,RoleGuard)
-  @Roles( Role.CLINIC)
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.CLINIC)
   @Delete('/clinic/shift/:id')
   @HttpCode(HttpStatus.OK)
   async deleteClinicShift(@Param('id') idShift: string) {
@@ -271,9 +278,9 @@ export class PartnerController {
       this.partnerService.send({ cmd: 'deleteClinicShift' }, { id: idShift }),
     );
   }
-  
-  @UseGuards(JwtAuthGuard,RoleGuard)
-  @Roles( Role.CLINIC)
+
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.CLINIC)
   @Patch('/clinic/shift/:id/status')
   @HttpCode(HttpStatus.OK)
   async updateClinicShiftStatus(
