@@ -65,13 +65,6 @@ import { PartnerController } from './controllers/partner.controller';
           port: 5007,
         },
       },
-      {
-        name: 'PAYMENT_SERVICE',
-        transport: Transport.TCP,
-        options: {
-          port: 5008,
-        },
-      },
     ]),
     JwtModule.registerAsync({
       imports: [ConfigModule],

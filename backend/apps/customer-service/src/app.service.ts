@@ -25,7 +25,7 @@ export class AppService {
   async getUserById(id: string): Promise<User> {
     try {
       const user = await this.userRepositories.findOneById(id);
-      console.log('userReopsasd', user);
+console.log("userReopsasd",user)
       if (!user) {
         throw new RpcException(
           new NotFoundException(`Không tìm thấy người dùng với id: ${id}`),
@@ -83,6 +83,7 @@ export class AppService {
   async checkPhoneExist(phone_number: string): Promise<boolean> {
     try {
       const exist = await this.userRepositories.checkPhoneExist(phone_number);
+
       return !!exist;
     } catch (err) {
       throw new InternalServerErrorException(
