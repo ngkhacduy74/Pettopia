@@ -115,42 +115,20 @@ export class UsersRepository {
     data: GetAllUsersDto,
   ): Promise<PaginatedUsersResponse<User>> {
     try {
-      const { page, limit, search, status, role, sort_field, sort_order } =
-        data;
+      const { page, limit } = data;
 
       const safePage = Math.max(Number(page) || 1, 1);
       const safeLimit = Math.max(Number(limit) || 15, 1);
       const skip = (safePage - 1) * safeLimit;
-      const filter: any = {};
-      if (search) {
-        const regex = new RegExp(search, 'i');
-        filter.$or = [
-          { fullname: regex },
-          { username: regex },
-          { 'email.email_address': regex },
-          { 'phone.phone_number': regex },
-        ];
-      }
-      if (status) {
-        filter.is_active = status === 'active';
-      }
-      if (role) {
-        filter.role = role;
-      }
-      const sort: any = {};
-      if (sort_field) {
-        sort[sort_field] = sort_order === 'asc' ? 1 : -1;
-      } else {
-        sort['createdAt'] = -1;
-      }
+
       const [items, total] = await Promise.all([
         this.userModel
-          .find(filter)
-          .sort(sort)
+          .find()
+          .sort({ createdAt: -1 })
           .skip(skip)
           .limit(safeLimit)
           .exec(),
-        this.userModel.countDocuments(filter).exec(),
+        this.userModel.countDocuments().exec(),
       ]);
 
       return {
@@ -163,6 +141,7 @@ export class UsersRepository {
       throw new Error(err);
     }
   }
+
   async addRoleToUser(id: string, newRole: string): Promise<User> {
     try {
       const validRoles = ['User', 'Admin', 'Vet', 'Staff', 'Clinic'];
