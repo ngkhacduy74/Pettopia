@@ -47,10 +47,14 @@ export class CreateClinicDto {
   @Prop({ type: PhoneSchema, required: true })
   phone: Phone;
 
-  @IsString()
-  @IsNotEmpty({ message: 'Số giấy phép hành nghề không được để trống' })
-  @Matches(/^[A-Z0-9\-]{6,20}$/, {
-    message: 'Số giấy phép hành nghề không hợp lệ (6–20 ký tự, A-Z, 0-9, -)',
+  @Prop({
+    type: String,
+    required: true,
+    trim: true,
+    match: [
+      /^([0-9]{10}|[0-9]{3,6}\/[A-Z]{2,6}(-[A-Z]{2,10})?)$/,
+      'Số giấy phép không hợp lệ (phải là 10 số hoặc dạng 123/HNY-SNNPTNT)',
+    ],
   })
   license_number: string;
 

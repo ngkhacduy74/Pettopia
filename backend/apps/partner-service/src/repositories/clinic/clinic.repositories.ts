@@ -207,4 +207,17 @@ export class ClinicsRepository {
       );
     }
   }
+  async getClinicById(id: string): Promise<any> {
+    try {
+      const clinic = await this.clinicModel.findOne({ id: id }).lean().exec();
+      if (!clinic) {
+        return null;
+      }
+      return clinic;
+    } catch (err) {
+      throw new InternalServerErrorException(
+        err.message || `Lỗi cơ sở dữ liệu khi tìm phòng khám với ID: ${id}`,
+      );
+    }
+  }
 }

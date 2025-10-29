@@ -4,23 +4,20 @@ import {
   Injectable,
   InternalServerErrorException,
 } from '@nestjs/common';
-import { ClientProxy } from '@nestjs/microservices';
-import { lastValueFrom } from 'rxjs';
-import { CreateClinicFormDto } from 'src/dto/clinic/create-clinic-form.dto';
-import { CreateClinicDto } from 'src/dto/clinic/create-clinic.dto';
-import { UpdateStatusClinicDto } from 'src/dto/clinic/update-status.dto';
-import { ClinicsRepository } from 'src/repositories/clinic/clinic.repositories';
+
+import { CreateServiceDto } from 'src/dto/clinic/create-service.dto';
+
 import { ServiceRepository } from 'src/repositories/clinic/service.repositories';
-import { RegisterStatus } from 'src/schemas/clinic/clinic-register.schema';
 
 @Injectable()
 export class ServiceService {
-  constructor(
-    private readonly serviceRepositories: ServiceRepository,
-  ) {}
-  async createService(data: any): Promise<any> {
+  constructor(private readonly serviceRepositories: ServiceRepository) {}
+  async createService(data: CreateServiceDto, clinic_id: string): Promise<any> {
     try {
-      const result = await this.serviceRepositories.createService(data);
+      const result = await this.serviceRepositories.createService(
+        data,
+        clinic_id,
+      );
 
       if (!result) {
         throw new BadRequestException('Không thể tạo mới dịch vụ');
@@ -140,6 +137,35 @@ export class ServiceService {
 
       throw new InternalServerErrorException(
         err.message || 'Lỗi khi cập nhật trạng thái dịch vụ',
+      );
+    }
+  }
+  async getServicesByClinicId(clinic_id: string): Promise<any> {
+    try {
+      const result =
+        await this.serviceRepositories.getServicesByClinicId(clinic_id);
+      return {
+        success: true,
+        message: 'Lấy danh sách dịch vụ theo phòng khám thành công',
+        data: result,
+      };
+    } catch (err) {
+      throw new InternalServerErrorException(
+        err.message || 'Lỗi khi lấy danh sách dịch vụ theo phòng khám',
+      );
+    }
+  }
+  async getServiceById(id: string): Promise<any> {
+    try {
+      const result = await this.serviceRepositories.getServiceById(id);
+      return {
+        success: true,
+        message: 'Lấy thông tin dịch vụ thành công',
+        data: result,
+      };
+    } catch (err) {
+      throw new InternalServerErrorException(
+        err.message || 'Lỗi khi lấy thông tin dịch vụ',
       );
     }
   }

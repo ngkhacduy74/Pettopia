@@ -47,7 +47,14 @@ export class ShiftController {
       handleRpcError('ShiftController.updateClinicShift', err);
     }
   }
-
+  @MessagePattern({ cmd: 'getShiftsByClinicId' })
+  async getShiftsByClinicId(@Payload() data: { clinic_id: string }) {
+    try {
+      return await this.shiftService.getShiftsByClinicId(data.clinic_id);
+    } catch (err) {
+      handleRpcError('ShiftController.getShiftsByClinicId', err);
+    }
+  }
   //   @MessagePattern({ cmd: 'deleteClinicShift' })
   //   async deleteClinicShift(@Payload() payload: { id: string }) {
   //     try {

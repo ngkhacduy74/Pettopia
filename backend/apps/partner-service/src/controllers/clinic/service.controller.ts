@@ -4,6 +4,8 @@ import { ClinicService } from '../../services/clinic/clinic.service';
 
 import { MessagePattern, Payload, RpcException } from '@nestjs/microservices';
 import { handleRpcError } from 'src/common/error.detail';
+import { ServiceService } from 'src/services/clinic/service.service';
+import { CreateServiceDto } from 'src/dto/clinic/create-service.dto';
 @UsePipes(
   new ValidationPipe({
     transform: true,
@@ -13,12 +15,20 @@ import { handleRpcError } from 'src/common/error.detail';
 )
 @Controller()
 export class ServiceController {
-  constructor(private readonly clinicService: ClinicService) {}
+  constructor(
+    private readonly clinicService: ClinicService,
+    private readonly serviceService: ServiceService,
+  ) {}
 
   @MessagePattern({ cmd: 'createService' })
-  async createService(@Payload() data: any): Promise<any> {
+  async createService(
+    @Payload() data: { data: CreateServiceDto; clinic_id: string },
+  ): Promise<any> {
     try {
-      const result = await this.clinicService.createService(data);
+      const result = await this.clinicService.createService(
+        data.data,
+        data.clinic_id,
+      );
       return result;
     } catch (err) {
       handleRpcError('PartnerController.createService', err);
@@ -89,6 +99,28 @@ export class ServiceController {
       return result;
     } catch (err) {
       handleRpcError('PartnerController.updateServiceStatus', err);
+    }
+  }
+  @MessagePattern({ cmd: 'getServicesByClinicId' })
+  async getServicesByClinicId(
+    @Payload() data: { clinic_id: string },
+  ): Promise<any> {
+    try {
+      const result = await this.serviceService.getServicesByClinicId(
+        data.clinic_id,
+      );
+      return result;
+    } catch (err) {
+      handleRpcError('PartnerController.getServicesByClinicId', err);
+    }
+  }
+  @MessagePattern({ cmd: 'getServiceById' })
+  async getServiceById(@Payload() data: { id: string }): Promise<any> {
+    try {
+      const result = await this.serviceService.getServiceById(data.id);
+      return result;
+    } catch (err) {
+      handleRpcError('PartnerController.getServiceById', err);
     }
   }
 }

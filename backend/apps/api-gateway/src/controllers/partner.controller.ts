@@ -53,6 +53,15 @@ export class PartnerController {
     );
   }
 
+  @UseGuards(JwtAuthGuard)
+  @Get('/clinic/:id')
+  @HttpCode(HttpStatus.OK)
+  async getClinicById(@Param('id') idClinic: string) {
+    return await lastValueFrom(
+      this.partnerService.send({ cmd: 'getClinicById' }, { id: idClinic }),
+    );
+  }
+
   @Get('/clinic/form/:id')
   @HttpCode(HttpStatus.OK)
   async getClinicFormById(@Param('id') idForm: string) {
@@ -168,9 +177,9 @@ export class PartnerController {
   @Roles(Role.CLINIC)
   @Post('/service')
   @HttpCode(HttpStatus.CREATED)
-  async createService(@Body() data: any) {
+  async createService(@Body() data: any, @UserToken('id') clinic_id: string) {
     return await lastValueFrom(
-      this.partnerService.send({ cmd: 'createService' }, data),
+      this.partnerService.send({ cmd: 'createService' }, { data, clinic_id }),
     );
   }
 
@@ -290,6 +299,29 @@ export class PartnerController {
     const payload = { id: idShift, is_active };
     return await lastValueFrom(
       this.partnerService.send({ cmd: 'updateClinicShiftStatus' }, payload),
+    );
+  }
+  @UseGuards(JwtAuthGuard)
+  @Get('/clinic/shift/:clinic_id')
+  @HttpCode(HttpStatus.OK)
+  async getShiftsByClinicId(@Param('clinic_id') clinic_id: string) {
+    return await lastValueFrom(
+      this.partnerService.send({ cmd: 'getShiftsByClinicId' }, { clinic_id }),
+    );
+  }
+
+  @Get('/service/:clinic_id')
+  @HttpCode(HttpStatus.OK)
+  async getServicesByClinicId(@Param('clinic_id') clinic_id: string) {
+    return await lastValueFrom(
+      this.partnerService.send({ cmd: 'getServicesByClinicId' }, { clinic_id }),
+    );
+  }
+  @Get('/service/:id')
+  @HttpCode(HttpStatus.OK)
+  async getServiceById(@Param('id') id: string) {
+    return await lastValueFrom(
+      this.partnerService.send({ cmd: 'getServiceById' }, { id }),
     );
   }
 }

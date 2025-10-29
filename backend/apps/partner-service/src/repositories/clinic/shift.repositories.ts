@@ -135,4 +135,16 @@ export class ShiftRepository {
       );
     }
   }
+  async getShiftsByClinicId(clinic_id: string): Promise<ShiftDocument[]> {
+    try {
+      const shifts = await this.shiftModel
+        .find({ clinic_id: clinic_id, is_active: true })
+        .exec();
+      return shifts;
+    } catch (err) {
+      throw new InternalServerErrorException(
+        err.message || 'Lỗi cơ sở dữ liệu khi lấy ca làm việc theo phòng khám',
+      );
+    }
+  }
 }

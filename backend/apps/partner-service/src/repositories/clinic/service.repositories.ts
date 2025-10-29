@@ -2,6 +2,7 @@ import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Service, ServiceDocument } from '../../schemas/clinic/service.schema';
+import { CreateServiceDto } from 'src/dto/clinic/create-service.dto';
 
 @Injectable()
 export class ServiceRepository {
@@ -9,9 +10,12 @@ export class ServiceRepository {
     @InjectModel(Service.name) private serviceModel: Model<ServiceDocument>,
   ) {}
 
-  async createService(data: any): Promise<Service> {
+  async createService(
+    data: CreateServiceDto,
+    clinic_id: string,
+  ): Promise<Service> {
     try {
-      const newService = new this.serviceModel(data);
+      const newService = new this.serviceModel({ ...data, clinic_id });
       const result = await newService.save();
       return result;
     } catch (err) {
@@ -107,6 +111,29 @@ export class ServiceRepository {
     } catch (err) {
       throw new InternalServerErrorException(
         err.message || 'Lỗi cơ sở dữ liệu khi cập nhật trạng thái dịch vụ',
+      );
+    }
+  }
+  async getServicesByClinicId(clinic_id: string): Promise<Service[]> {
+    try {
+      const services = await this.serviceModel
+        .find({ clinic_id: clinic_id })
+        .lean()
+        .exec();
+      return services;
+    } catch (err) {
+      throw new InternalServerErrorException(
+        err.message || 'Lỗi cơ sở dữ liệu khi truy vấn dịch vụ theo phòng khám',
+      );
+    }
+  }
+  async getServiceById(id: string): Promise<Service | null> {
+    try {
+      const service = await this.serviceModel.findById(id).lean().exec();
+      return service;
+    } catch (err) {
+      throw new InternalServerErrorException(
+        err.message || 'Lỗi cơ sở dữ liệu khi truy vấn dịch vụ theo ID',
       );
     }
   }

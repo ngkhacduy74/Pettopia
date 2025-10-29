@@ -3,11 +3,13 @@ import {
   Inject,
   Injectable,
   InternalServerErrorException,
+  NotFoundException,
 } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { lastValueFrom } from 'rxjs';
 import { CreateClinicFormDto } from 'src/dto/clinic/create-clinic-form.dto';
 import { CreateClinicDto } from 'src/dto/clinic/create-clinic.dto';
+import { CreateServiceDto } from 'src/dto/clinic/create-service.dto';
 import { UpdateStatusClinicDto } from 'src/dto/clinic/update-status.dto';
 import { ClinicsRepository } from 'src/repositories/clinic/clinic.repositories';
 import { ServiceRepository } from 'src/repositories/clinic/service.repositories';
@@ -216,9 +218,12 @@ export class ClinicService {
     }
   }
 
-  async createService(data: any): Promise<any> {
+  async createService(data: CreateServiceDto, clinic_id: string): Promise<any> {
     try {
-      const result = await this.serviceRepositories.createService(data);
+      const result = await this.serviceRepositories.createService(
+        data,
+        clinic_id,
+      );
 
       if (!result) {
         throw new BadRequestException('Không thể tạo mới dịch vụ');
@@ -338,6 +343,32 @@ export class ClinicService {
 
       throw new InternalServerErrorException(
         err.message || 'Lỗi khi cập nhật trạng thái dịch vụ',
+      );
+    }
+  }
+  async getClinicById(id: string): Promise<any> {
+    try {
+      const result = await this.clinicRepositories.getClinicById(id);
+
+      if (!result) {
+        throw new NotFoundException(`Không tìm thấy phòng khám với ID: ${id}`);
+      }
+
+      return {
+        success: true,
+        message: 'Lấy thông tin phòng khám thành công',
+        data: result,
+      };
+    } catch (err) {
+      if (
+        err instanceof NotFoundException ||
+        err instanceof BadRequestException
+      ) {
+        throw err;
+      }
+
+      throw new InternalServerErrorException(
+        err.message || 'Lỗi máy chủ khi lấy thông tin phòng khám',
       );
     }
   }

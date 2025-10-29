@@ -16,9 +16,9 @@ export enum AppointmentCreatedBy {
 }
 
 export enum AppointmentShift {
-  MORNING = 'MORNING',
-  AFTERNOON = 'AFTERNOON',
-  EVENING = 'EVENING',
+  MORNING = 'Morning',
+  AFTERNOON = 'Afternoon',
+  EVENING = 'Evening',
 }
 
 function transformValue(doc: any, ret: any) {
@@ -31,7 +31,6 @@ function transformValue(doc: any, ret: any) {
   timestamps: true,
   toJSON: { transform: transformValue },
   toObject: { transform: transformValue },
-  _id: false,
   versionKey: false,
 })
 export class Appointment {
@@ -54,19 +53,22 @@ export class Appointment {
       'customer_id phải là UUIDv4 hợp lệ',
     ],
   })
-  customer_id: string;
+  user_id: string;
 
-  // Thú cưng
   @Prop({
-    type: String,
+    type: [String],
     required: true,
     trim: true,
-    match: [
-      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
-      'pet_id phải là UUIDv4 hợp lệ',
-    ],
+    validate: {
+      validator: function (values: string[]) {
+        const uuidRegex =
+          /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+        return values.every((value) => uuidRegex.test(value));
+      },
+      message: 'Tất cả pet_id phải là UUIDv4 hợp lệ',
+    },
   })
-  pet_id: string;
+  pet_ids: string[];
 
   // Phòng khám
   @Prop({
@@ -92,19 +94,24 @@ export class Appointment {
   })
   vet_id?: string;
 
-  // Dịch vụ được chọn
   @Prop({
-    type: String,
-    required: true,
-    trim: true,
-    match: [
-      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
-      'service_id phải là UUIDv4 hợp lệ',
+    type: [
+      {
+        type: String,
+        trim: true,
+        match: [
+          /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+          'Mỗi service_id trong mảng phải là UUIDv4 hợp lệ',
+        ],
+      },
     ],
+    required: true,
+    validate: {
+      validator: (value: string[]) => value.length > 0,
+      message: 'service_ids không được là mảng rỗng.',
+    },
   })
-  service_id: string;
-
-  // Ngày khám (YYYY-MM-DD)
+  service_ids: string[];
   @Prop({
     type: Date,
     required: true,
@@ -137,21 +144,9 @@ export class Appointment {
   @Prop({
     type: String,
     enum: AppointmentCreatedBy,
-    required: true,
+    required: false,
   })
-  created_by: AppointmentCreatedBy;
-
-  // ID của người tạo (chính là id customer hoặc id đối tác)
-  @Prop({
-    type: String,
-    required: true,
-    trim: true,
-    match: [
-      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
-      'created_by_id phải là UUIDv4 hợp lệ',
-    ],
-  })
-  created_by_id: string;
+  created_by?: AppointmentCreatedBy;
 
   // Lý do hủy nếu có
   @Prop({

@@ -1,14 +1,14 @@
-
 import { Module } from '@nestjs/common';
 import { AuthController } from './controllers/auth.controller';
 import { CustomerController } from './controllers/customer.controller';
-import { AppointmentsController } from './controllers/appointments.controller';
 import { AppService } from './app.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { JwtModule } from '@nestjs/jwt';
 import { PetController } from './controllers/petcare.controller';
 import { PartnerController } from './controllers/partner.controller';
+import { HealthcareController } from './controllers/healthcare.controller';
+import { BiliingController } from './controllers/billing.controller';
 
 @Module({
   imports: [
@@ -79,8 +79,9 @@ import { PartnerController } from './controllers/partner.controller';
     AuthController,
     CustomerController,
     PetController,
-    AppointmentsController,
     PartnerController,
+    HealthcareController,
+    BiliingController,
   ],
   providers: [AppService],
 })
