@@ -23,7 +23,7 @@ services:
     ports:
       - "8001:3001"
     environment:
-      MONGO_URI: mongodb+srv://khacduy0704:khacduy0704@cluster0.5rfakrg.mongodb.net/db_auth
+      AUTH_DB_URI: mongodb+srv://khacduy0704:khacduy0704@cluster0.5rfakrg.mongodb.net/db_auth
       AUTH_PORT: 3001
       NODE_ENV: production
       SHOW_ERROR_DETAILS: "false"
@@ -65,7 +65,7 @@ services:
     ports:
       - "8002:3002"
     environment:
-      MONGO_URI: mongodb+srv://khacduy0704:khacduy0704@cluster0.5rfakrg.mongodb.net/db_customer
+      CUSTOMER_DB_URI: mongodb+srv://khacduy0704:khacduy0704@cluster0.5rfakrg.mongodb.net/db_customer
       CUSTOMER_PORT: 3002
       NODE_ENV: production
       SHOW_ERROR_DETAILS: "false"
@@ -79,7 +79,7 @@ services:
     ports:
       - "8005:3005"
     environment:
-      MONGO_URI: mongodb+srv://khacduy0704:khacduy0704@cluster0.5rfakrg.mongodb.net/db_healthcare
+      HEALTHCARE_DB_URI: mongodb+srv://khacduy0704:khacduy0704@cluster0.5rfakrg.mongodb.net/db_healthcare
       HEALTHCARE_PORT: 3005
       NODE_ENV: production
       SHOW_ERROR_DETAILS: "false"
@@ -93,7 +93,7 @@ services:
     ports:
       - "8004:3004"
     environment:
-      MONGO_URI: mongodb+srv://khacduy0704:khacduy0704@cluster0.5rfakrg.mongodb.net/db_partner
+      PARTNER_DB_URI: mongodb+srv://khacduy0704:khacduy0704@cluster0.5rfakrg.mongodb.net/db_partner
       PARTNER_PORT: 3004
       NODE_ENV: production
       SHOW_ERROR_DETAILS: "false"
@@ -107,7 +107,7 @@ services:
     ports:
       - "8003:3003"
     environment:
-      MONGO_URI: mongodb+srv://khacduy0704:khacduy0704@cluster0.5rfakrg.mongodb.net/db_petcare
+      PET_DB_URI: mongodb+srv://khacduy0704:khacduy0704@cluster0.5rfakrg.mongodb.net/db_petcare
       PETCARE_PORT: 3003
       NODE_ENV: production
       SHOW_ERROR_DETAILS: "false"

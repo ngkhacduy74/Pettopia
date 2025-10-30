@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Get,
   HttpCode,
   HttpStatus,
   Inject,
@@ -17,6 +18,7 @@ import { Role, Roles } from 'src/decorators/roles.decorator';
 import { JwtAuthGuard } from 'src/guard/jwtAuth.guard';
 import { RoleGuard } from 'src/guard/role.guard';
 import { UserToken } from 'src/decorators/user.decorator';
+import { RpcException } from '@nestjs/microservices';
 
 @Controller('api/v1/healthcare')
 export class HealthcareController {
@@ -24,6 +26,8 @@ export class HealthcareController {
     @Inject('HEALTHCARE_SERVICE')
     private readonly healthcareService: ClientProxy,
   ) {}
+
+
   @UseGuards(JwtAuthGuard)
   @Post('/appointment')
   @HttpCode(HttpStatus.OK)

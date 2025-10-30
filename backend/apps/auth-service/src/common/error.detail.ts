@@ -14,13 +14,13 @@ export function handleRpcError(context: string, err: any): never {
 
 
 export function createRpcError(
-  status: number,
+  statusCode: number,
   message: string,
   error: string,
   details?: any,
 ): RpcException {
   return new RpcException({
-    status,
+    statusCode,
     message,
     error,
     ...(details && { details }),

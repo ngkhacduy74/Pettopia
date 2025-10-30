@@ -2,7 +2,7 @@ FROM node:20-alpine3.22 AS builder
 WORKDIR /usr/src/app
 
 COPY package*.json ./
-RUN npm ci
+RUN npm i
 
 COPY . .
 # build app to dist
