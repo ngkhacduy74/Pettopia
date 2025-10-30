@@ -45,6 +45,36 @@ export class Author {
 }
 
 /**
+ * Comment schema (dành cho phần bình luận bài viết)
+ */
+@Schema({ _id: false })
+export class Comment {
+  @Prop({ type: String, unique: true, default: () => uuidv4() })
+  comment_id: string;
+
+  @Prop({ type: Author, required: true })
+  author: Author;
+
+  @Prop({ type: String, required: true })
+  content: string;
+
+  @Prop({ type: [LikeHistory], default: [] })
+  likes: LikeHistory[];
+
+  @Prop({ type: [Report], default: [] })
+  reports: Report[];
+
+  @Prop({ type: Boolean, default: false })
+  isHidden: boolean; // Ẩn (do vi phạm, bị staff xử lý, hoặc do user yêu cầu)
+
+  @Prop({ type: Boolean, default: false })
+  isDeleted: boolean; // Đánh dấu đã xóa
+
+  @Prop({ type: Date, default: Date.now })
+  createdAt: Date;
+}
+
+/**
  * Transform JSON: remove internal fields _id and __v
  */
 function transformValue(doc: any, ret: Record<string, any>) {
@@ -81,7 +111,7 @@ export class Post {
   @Prop({ type: Boolean, default: false })
   isHidden: boolean;
 
-  // Người dùng B có thể thả tim
+  // Người dùng có thể thả tim
   @Prop({ type: [LikeHistory], default: [] })
   likes: LikeHistory[];
 
@@ -93,6 +123,10 @@ export class Post {
   @Prop({ type: [Report], default: [] })
   reports: Report[];
 
+  // Danh sách bình luận
+  @Prop({ type: [Comment], default: [] })
+  comments: Comment[];
+
   // Thống kê
   @Prop({ type: Number, default: 0 })
   likeCount: number;
@@ -102,11 +136,13 @@ export class Post {
 
   @Prop({ type: Number, default: 0 })
   reportCount: number;
+
+  @Prop({ type: Number, default: 0 })
+  commentCount: number;
 }
 
 /**
  * Type dành cho repository / module
  */
 export type PostDocument = Post & Document;
-
 export const PostSchema = SchemaFactory.createForClass(Post);

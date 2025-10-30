@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Get,
   HttpCode,
   HttpStatus,
   Inject,
@@ -16,6 +17,8 @@ import { ClientProxy } from '@nestjs/microservices';
 import { Role, Roles } from 'src/decorators/roles.decorator';
 import { JwtAuthGuard } from 'src/guard/jwtAuth.guard';
 import { RoleGuard } from 'src/guard/role.guard';
+import { UserToken } from 'src/decorators/user.decorator';
+import { RpcException } from '@nestjs/microservices';
 
 @Controller('api/v1/healthcare')
 export class HealthcareController {
@@ -23,4 +26,18 @@ export class HealthcareController {
     @Inject('HEALTHCARE_SERVICE')
     private readonly healthcareService: ClientProxy,
   ) {}
+
+
+  @UseGuards(JwtAuthGuard)
+  @Post('/appointment')
+  @HttpCode(HttpStatus.OK)
+  async createAppointment(@Body() data: any, @UserToken('id') user_id: string) {
+    console.log('data appointment gateway', data, user_id);
+    return await lastValueFrom(
+      this.healthcareService.send(
+        { cmd: 'createAppointment' },
+        { data, user_id },
+      ),
+    );
+  }
 }

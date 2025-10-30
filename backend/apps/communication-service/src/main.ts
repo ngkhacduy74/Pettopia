@@ -1,8 +1,29 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
+import { ValidationPipe } from '@nestjs/common';
+import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  await app.listen(process.env.COMMUNICATION_PORT!);
+  const port = process.env.PETCARE_PORT;
+  const tcp_port = parseInt(process.env.TCP_COMMUNICATION_PORT || '5006', 10);
+  app.useGlobalPipes(
+    new ValidationPipe({
+      transform: true,
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      forbidUnknownValues: true,
+    }),
+  );
+  app.connectMicroservice<MicroserviceOptions>({
+    transport: Transport.TCP,
+    options: {
+      port: tcp_port,
+    },
+  });
+  await app.startAllMicroservices();
+  await app.listen(port!);
+  console.log('Pet-service run successfull');
 }
+
 bootstrap();

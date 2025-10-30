@@ -22,7 +22,6 @@ import { JwtAuthGuard } from 'src/guard/jwtAuth.guard';
 import { RoleGuard } from 'src/guard/role.guard';
 import { UserToken } from 'src/decorators/user.decorator';
 import { FileInterceptor } from '@nestjs/platform-express';
-import * as fs from 'fs';
 
 @Controller('api/v1/pet')
 export class PetController {
