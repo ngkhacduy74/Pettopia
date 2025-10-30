@@ -30,7 +30,7 @@ export class Clinic {
       'creator_id không hợp lệ (phải là UUID v4)',
     ],
   })
-  creator_id: string; //follow user id bên bảng register clinic
+  creator_id: string;
 
   @Prop({
     type: String,
@@ -52,9 +52,10 @@ export class Clinic {
     type: String,
     required: true,
     trim: true,
-    unique: true,
-    uppercase: true,
-    match: [/^[A-Z0-9\-]{6,20}$/, 'Số giấy phép hành nghề không hợp lệ'],
+    match: [
+      /^([0-9]{10}|[0-9]{3,6}\/[A-Z]{2,6}(-[A-Z]{2,10})?)$/,
+      'Số giấy phép không hợp lệ (phải là 10 số hoặc dạng 123/HNY-SNNPTNT)',
+    ],
   })
   license_number: string;
 

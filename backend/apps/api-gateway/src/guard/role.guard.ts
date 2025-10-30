@@ -24,23 +24,31 @@ export class RoleGuard implements CanActivate {
 
     const request = context.switchToHttp().getRequest();
     const user = request.user;
+
     if (!user) {
       throw new UnauthorizedException(
         'Không tìm thấy thông tin người dùng (token có thể hết hạn)',
       );
     }
+
     if (!user.role) {
       throw new ForbiddenException(
         'Tài khoản này chưa được gán quyền truy cập',
       );
     }
-    const hasPermission = requiredRoles.includes(user.role);
+
+    const hasPermission = requiredRoles.some((role) =>
+      Array.isArray(user.role)
+        ? user.role.map((r) => r.toLowerCase()).includes(role.toLowerCase())
+        : user.role.toLowerCase() === role.toLowerCase(),
+    );
 
     if (!hasPermission) {
       throw new ForbiddenException(
         'Bạn không có quyền thực hiện hành động này',
       );
     }
+
     return true;
   }
 }

@@ -164,4 +164,22 @@ export class VetRepository {
       );
     }
   }
+  async findVetFormByLicenseNumber(license_number: string): Promise<any> {
+    if (!license_number || typeof license_number !== 'string') {
+      throw new BadRequestException('Số giấy phép hành nghề không hợp lệ.');
+    }
+
+    try {
+      const existingForm = await this.vetFormModel
+        .findOne({ license_number })
+        .lean()
+        .exec();
+
+      return existingForm || null;
+    } catch {
+      throw new InternalServerErrorException(
+        'Không thể kiểm tra số giấy phép hành nghề.',
+      );
+    }
+  }
 }

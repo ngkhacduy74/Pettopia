@@ -2,7 +2,6 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 import * as uuid from 'uuid';
 
-// 🧩 Hàm transform để loại bỏ _id, __v khi serialize
 function transformValue(doc: any, ret: any) {
   delete ret._id;
   delete ret.__v;

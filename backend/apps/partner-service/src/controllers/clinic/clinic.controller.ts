@@ -91,4 +91,13 @@ export class ClinicController {
       handleRpcError('ClinicController.findAllClinic', err);
     }
   }
+  @MessagePattern({ cmd: 'getClinicById' })
+  async getClinicById(@Payload() data: { id: string }): Promise<any> {
+    try {
+      const result = await this.clinicService.getClinicById(data.id);
+      return result;
+    } catch (err) {
+      handleRpcError('ClinicController.getClinicById', err);
+    }
+  }
 }

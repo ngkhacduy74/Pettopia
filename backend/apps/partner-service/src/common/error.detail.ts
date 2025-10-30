@@ -11,3 +11,19 @@ export function handleRpcError(context: string, err: any): never {
     timestamp: new Date().toISOString(),
   });
 }
+
+
+export function createRpcError(
+  status: number,
+  message: string,
+  error: string,
+  details?: any,
+): RpcException {
+  return new RpcException({
+    status,
+    message,
+    error,
+    ...(details && { details }),
+    timestamp: new Date().toISOString(),
+  });
+}

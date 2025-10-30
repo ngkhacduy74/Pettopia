@@ -12,7 +12,8 @@ import {
   Post,
   Query,
   UseGuards,
-   UploadedFile, UseInterceptors
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
 import { lastValueFrom } from 'rxjs';
 import { ClientProxy } from '@nestjs/microservices';
@@ -27,16 +28,18 @@ export class PetController {
   constructor(
     @Inject('PETCARE_SERVICE') private readonly petService: ClientProxy,
   ) {}
- @Post('/create')
-  @UseInterceptors(FileInterceptor('avatar', {
-    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
-    fileFilter: (req, file, cb) => {
-      if (!file.mimetype.match(/image\/(jpg|jpeg|png|gif)$/)) {
-        return cb(new Error('Only image files are allowed!'), false);
-      }
-      cb(null, true);
-    },
-  }))
+  @Post('/create')
+  @UseInterceptors(
+    FileInterceptor('avatar', {
+      limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+      fileFilter: (req, file, cb) => {
+        if (!file.mimetype.match(/image\/(jpg|jpeg|png|gif)$/)) {
+          return cb(new Error('Only image files are allowed!'), false);
+        }
+        cb(null, true);
+      },
+    }),
+  )
   @HttpCode(HttpStatus.CREATED)
   async createPet(
     @UploadedFile() file: Express.Multer.File,
@@ -70,22 +73,24 @@ export class PetController {
     );
   }
   @Get('/owner/:user_id')
-async getPetsByOwner(@Param('user_id') user_id: string) {
-  return await lastValueFrom(
-    this.petService.send({ cmd: 'getPetsByOwner' }, { user_id }),
-  );
-}
-  
-@Patch('/:id')
-@UseInterceptors(FileInterceptor('avatar', {
-    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
-    fileFilter: (req, file, cb) => {
-      if (!file.mimetype.match(/image\/(jpg|jpeg|png|gif)$/)) {
-        return cb(new Error('Only image files are allowed!'), false);
-      }
-      cb(null, true);
-    },
-  }))
+  async getPetsByOwner(@Param('user_id') user_id: string) {
+    return await lastValueFrom(
+      this.petService.send({ cmd: 'getPetsByOwner' }, { user_id }),
+    );
+  }
+
+  @Patch('/:id')
+  @UseInterceptors(
+    FileInterceptor('avatar', {
+      limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+      fileFilter: (req, file, cb) => {
+        if (!file.mimetype.match(/image\/(jpg|jpeg|png|gif)$/)) {
+          return cb(new Error('Only image files are allowed!'), false);
+        }
+        cb(null, true);
+      },
+    }),
+  )
   @HttpCode(HttpStatus.OK)
   async updatePet(
     @UploadedFile() file: Express.Multer.File,
@@ -94,7 +99,10 @@ async getPetsByOwner(@Param('user_id') user_id: string) {
   ) {
     const fileBufferString = file ? file.buffer.toString('base64') : undefined;
     return await lastValueFrom(
-      this.petService.send({ cmd: 'updatePet' }, { pet_id, updateData, fileBuffer: fileBufferString }),
+      this.petService.send(
+        { cmd: 'updatePet' },
+        { pet_id, updateData, fileBuffer: fileBufferString },
+      ),
     );
   }
 

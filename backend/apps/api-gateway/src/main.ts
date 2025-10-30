@@ -3,6 +3,7 @@ import { AppModule } from './app.module';
 import { BadRequestException, ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
+import { RpcToHttpExceptionFilter } from './filters/rpc-exception.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -27,7 +28,7 @@ async function bootstrap() {
   });
 
   app.enableShutdownHooks();
-
+  app.useGlobalFilters(new RpcToHttpExceptionFilter());
   const config = new DocumentBuilder()
     .setTitle('API Gateway')
     .setDescription('Tài liệu API tổng hợp cho hệ thống')
