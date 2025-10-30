@@ -8,6 +8,7 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
 import { JwtModule } from '@nestjs/jwt';
 import { PetController } from './controllers/petcare.controller';
 import { PartnerController } from './controllers/partner.controller';
+import { CommunicationController } from './controllers/communication.controller';
 
 @Module({
   imports: [
@@ -80,6 +81,7 @@ import { PartnerController } from './controllers/partner.controller';
     PetController,
     AppointmentsController,
     PartnerController,
+    CommunicationController
   ],
   providers: [AppService],
 })
