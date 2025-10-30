@@ -64,7 +64,6 @@ export function IsEndTimeGreaterThan(validationOptions?: ValidationOptions) {
   };
 }
 
-
 export class CreateClinicShiftDto {
   @IsUUID('4', { message: 'clinic_id phải là UUIDv4 hợp lệ' })
   @IsString()
@@ -93,8 +92,7 @@ export class CreateClinicShiftDto {
   @Matches(/^([0-1]\d|2[0-3]):([0-5]\d)$/, {
     message: 'end_time phải theo định dạng HH:mm (24h)',
   })
-  @IsEndTimeGreaterThan() 
+  @IsEndTimeGreaterThan()
   @IsNotEmpty()
   end_time: string;
-
 }

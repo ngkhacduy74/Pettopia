@@ -7,6 +7,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { RpcException } from '@nestjs/microservices';
+import { createRpcError } from 'src/common/error.detail';
 
 import { CreateClinicShiftDto } from 'src/dto/clinic/create-shift.dto';
 import { UpdateClinicShiftDto } from 'src/dto/clinic/update-shift.dto';
@@ -23,29 +24,30 @@ export class ShiftService {
         end_time: new_end,
         shift,
         clinic_id,
-        max_slot
+        max_slot,
       } = data;
-      
+
       let normalizedShift: string = '';
       if (shift) {
-        normalizedShift = shift.charAt(0).toUpperCase() + shift.slice(1).toLowerCase();
+        normalizedShift =
+          shift.charAt(0).toUpperCase() + shift.slice(1).toLowerCase();
       }
 
       if (!shift || !clinic_id || !max_slot || !new_start || !new_end) {
-        throw new RpcException({
-          statusCode: HttpStatus.BAD_REQUEST,
-          message: 'Vui lòng điền đầy đủ thông tin bắt buộc (shift, clinic_id, max_slot, start_time, end_time)',
-          error: 'Bad Request'
-        });
+        throw createRpcError(
+          HttpStatus.BAD_REQUEST,
+          'Vui lòng điền đầy đủ thông tin bắt buộc (shift, clinic_id, max_slot, start_time, end_time)',
+          'Bad Request',
+        );
       }
 
       const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
       if (!timeRegex.test(new_start) || !timeRegex.test(new_end)) {
-        throw new RpcException({
-          statusCode: HttpStatus.BAD_REQUEST,
-          message: 'Định dạng thời gian không hợp lệ. Vui lòng sử dụng định dạng HH:mm (ví dụ: 09:00)',
-          error: 'Bad Request'
-        });
+        throw createRpcError(
+          HttpStatus.BAD_REQUEST,
+          'Định dạng thời gian không hợp lệ. Vui lòng sử dụng định dạng HH:mm (ví dụ: 09:00)',
+          'Bad Request',
+        );
       }
       const [startHours, startMinutes] = new_start.split(':').map(Number);
       const [endHours, endMinutes] = new_end.split(':').map(Number);
@@ -53,142 +55,158 @@ export class ShiftService {
       const endInMinutes = endHours * 60 + endMinutes;
 
       if (endInMinutes <= startInMinutes) {
-        throw new RpcException({
-          statusCode: HttpStatus.BAD_REQUEST,
-          message: 'Giờ kết thúc phải lớn hơn giờ bắt đầu',
-          error: 'Bad Request'
-        });
+        throw createRpcError(
+          HttpStatus.BAD_REQUEST,
+          'Giờ kết thúc phải lớn hơn giờ bắt đầu',
+          'Bad Request',
+        );
       }
       const boundaries = {
         [ClinicShiftType.MORNING]: { start: '05:00', end: '12:00' },
         [ClinicShiftType.AFTERNOON]: { start: '12:01', end: '18:00' },
         [ClinicShiftType.EVENING]: { start: '18:00', end: '23:59' },
       };
-      if (!shift || !Object.values(ClinicShiftType).includes(normalizedShift as ClinicShiftType)) {
+      if (
+        !shift ||
+        !Object.values(ClinicShiftType).includes(
+          normalizedShift as ClinicShiftType,
+        )
+      ) {
         const validShifts = Object.values(ClinicShiftType).join(', ');
-        throw new RpcException({
-          statusCode: HttpStatus.BAD_REQUEST,
-          message: `Loại ca làm việc không hợp lệ. Các giá trị hợp lệ là: ${validShifts}`,
-          error: 'Bad Request'
-        });
+        throw createRpcError(
+          HttpStatus.BAD_REQUEST,
+          `Loại ca làm việc không hợp lệ. Các giá trị hợp lệ là: ${validShifts}`,
+          'Bad Request',
+        );
       }
       const shiftValue = normalizedShift as ClinicShiftType;
 
       const boundary = boundaries[shiftValue];
       if (!boundary) {
-        throw new RpcException({
-          statusCode: HttpStatus.BAD_REQUEST,
-          message: 'Không tìm thấy thông tin giới hạn thời gian cho ca làm việc này',
-          error: 'Bad Request'
-        });
+        throw createRpcError(
+          HttpStatus.BAD_REQUEST,
+          'Không tìm thấy thông tin giới hạn thời gian cho ca làm việc này',
+          'Bad Request',
+        );
       }
-      const [boundaryStartHours, boundaryStartMinutes] = boundary.start.split(':').map(Number);
-      const [boundaryEndHours, boundaryEndMinutes] = boundary.end.split(':').map(Number);
-      const boundaryStartInMinutes = boundaryStartHours * 60 + boundaryStartMinutes;
+      const [boundaryStartHours, boundaryStartMinutes] = boundary.start
+        .split(':')
+        .map(Number);
+      const [boundaryEndHours, boundaryEndMinutes] = boundary.end
+        .split(':')
+        .map(Number);
+      const boundaryStartInMinutes =
+        boundaryStartHours * 60 + boundaryStartMinutes;
       const boundaryEndInMinutes = boundaryEndHours * 60 + boundaryEndMinutes;
-      if (startInMinutes < boundaryStartInMinutes || endInMinutes > boundaryEndInMinutes) {
-        throw new RpcException({
-          statusCode: HttpStatus.BAD_REQUEST,
-          message: `Thời gian làm việc phải nằm trong khoảng ${boundary.start} - ${boundary.end} cho ca ${shiftValue}`,
-          error: 'Bad Request'
-        });
+      if (
+        startInMinutes < boundaryStartInMinutes ||
+        endInMinutes > boundaryEndInMinutes
+      ) {
+        throw createRpcError(
+          HttpStatus.BAD_REQUEST,
+          `Thời gian làm việc phải nằm trong khoảng ${boundary.start} - ${boundary.end} cho ca ${shiftValue}`,
+          'Bad Request',
+        );
       }
-      if (max_slot <= 0 || max_slot > 1000) {
-        throw new RpcException({
-          statusCode: HttpStatus.BAD_REQUEST,
-          message: 'Số lượng slot phải lớn hơn 0 và nhỏ hơn hoặc bằng 1000',
-          error: 'Bad Request'
-        });
+      if (max_slot <= 0) {
+        throw createRpcError(
+          HttpStatus.BAD_REQUEST,
+          'Số lượng slot phải lớn hơn 0 ',
+          'Bad Request',
+        );
       }
-      const allShifts = await this.shiftRepositories.getShiftsByClinicId(clinic_id);
+      const allShifts =
+        await this.shiftRepositories.getShiftsByClinicId(clinic_id);
       for (const existingShift of allShifts) {
-        const [existStartHours, existStartMinutes] = existingShift.start_time.split(':').map(Number);
-        const [existEndHours, existEndMinutes] = existingShift.end_time.split(':').map(Number);
+        const [existStartHours, existStartMinutes] = existingShift.start_time
+          .split(':')
+          .map(Number);
+        const [existEndHours, existEndMinutes] = existingShift.end_time
+          .split(':')
+          .map(Number);
         const existStartInMinutes = existStartHours * 60 + existStartMinutes;
         const existEndInMinutes = existEndHours * 60 + existEndMinutes;
 
-        const isOverlapping = startInMinutes < existEndInMinutes && endInMinutes > existStartInMinutes;
+        const isOverlapping =
+          startInMinutes < existEndInMinutes &&
+          endInMinutes > existStartInMinutes;
 
         if (isOverlapping) {
-          throw new RpcException({
-            statusCode: HttpStatus.CONFLICT,
-            message: `Ca mới (${new_start} - ${new_end}) bị trùng với ca đã tồn tại (${existingShift.shift}: ${existingShift.start_time} - ${existingShift.end_time})`,
-            error: 'Conflict'
-          });
+          throw createRpcError(
+            HttpStatus.CONFLICT,
+            `Ca mới (${new_start} - ${new_end}) bị trùng với ca đã tồn tại (${existingShift.shift}: ${existingShift.start_time} - ${existingShift.end_time})`,
+            'Conflict',
+          );
         }
       }
-      const result = await this.shiftRepositories.createClinicShift({
-        ...data,
-        shift: shiftValue 
-      }).catch(error => {
-        if (error.code === 11000) {
-          throw new RpcException({
-            statusCode: HttpStatus.CONFLICT,
-            message: 'Ca làm việc đã tồn tại cho phòng khám này',
-            error: 'Conflict'
-          });
-        }
-        throw new RpcException({
-          statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-          message: 'Lỗi khi tạo ca làm việc',
-          error: 'Internal Server Error',
-          details: error.message
+      const result = await this.shiftRepositories
+        .createClinicShift({
+          ...data,
+          shift: shiftValue,
+        })
+        .catch((error) => {
+          if (error.code === 11000) {
+            throw createRpcError(
+              HttpStatus.CONFLICT,
+              'Ca làm việc đã tồn tại cho phòng khám này',
+              'Conflict',
+            );
+          }
+          throw createRpcError(
+            HttpStatus.INTERNAL_SERVER_ERROR,
+            'Lỗi khi tạo ca làm việc',
+            'Internal Server Error',
+            error.message,
+          );
         });
-      });
 
       return {
         status: 'success',
         message: 'Tạo ca làm việc thành công',
-        data: result
+        data: result,
       };
-
     } catch (error) {
-
       if (error instanceof RpcException) {
         throw error;
       }
-      
+
       if (error.status || error.statusCode) {
-        throw new RpcException({
-          statusCode: error.statusCode || error.status,
-          message: error.message,
-          error: error.error || 'Bad Request',
-          ...(error.details && { details: error.details })
-        });
+        throw createRpcError(
+          error.statusCode || error.status,
+          error.message,
+          error.error || 'Bad Request',
+          error.details,
+        );
       }
 
-      if (error.name === 'MongoError' || error.name === 'MongoServerError') {
-        throw new RpcException({
-          statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-          message: 'Lỗi cơ sở dữ liệu khi tạo ca làm việc',
-          error: 'Database Error',
-          details: error.message
-        });
-      }
-
-      throw new RpcException({
-        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-        message: 'Đã xảy ra lỗi khi tạo ca làm việc',
-        error: 'Internal Server Error',
-        details: error.message
-      });
+      throw createRpcError(
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        'Đã xảy ra lỗi khi tạo ca làm việc',
+        'Internal Server Error',
+        error.message,
+      );
     }
   }
   async getClinicShifts(
     page: number = 1,
     limit: number = 10,
     clinic_id: string,
-  ): Promise<{ status: string; message: string; data: any[]; pagination: any }> {
+  ): Promise<{
+    status: string;
+    message: string;
+    data: any[];
+    pagination: any;
+  }> {
     try {
       if (isNaN(page) || page < 1) page = 1;
       if (isNaN(limit) || limit < 1 || limit > 100) limit = 10;
 
       if (!clinic_id || typeof clinic_id !== 'string') {
-        throw {
-          status: HttpStatus.BAD_REQUEST,
-          message: 'ID phòng khám không hợp lệ',
-          error: 'Bad Request'
-        };
+        throw createRpcError(
+          HttpStatus.BAD_REQUEST,
+          'ID phòng khám không hợp lệ',
+          'Bad Request',
+        );
       }
 
       const result = await this.shiftRepositories.getClinicShifts(
@@ -205,85 +223,78 @@ export class ShiftService {
           total: result.total,
           page: result.page,
           limit: result.limit,
-          totalPages: Math.ceil(result.total / result.limit)
-        }
+          totalPages: Math.ceil(result.total / result.limit),
+        },
       };
     } catch (error) {
       if (error instanceof RpcException || (error.status && error.message)) {
-        throw new RpcException({
-          status: error.status || HttpStatus.INTERNAL_SERVER_ERROR,
-          message: error.message,
-          error: error.error || 'Internal Server Error',
-          ...(error.details && { details: error.details })
-        });
+        throw createRpcError(
+          error.status || HttpStatus.INTERNAL_SERVER_ERROR,
+          error.message,
+          error.error || 'Internal Server Error',
+          error.details,
+        );
       }
-      
-      if (error.name === 'MongoError' || error.name === 'MongoServerError') {
-        throw new RpcException({
-          status: HttpStatus.INTERNAL_SERVER_ERROR,
-          message: 'Lỗi kết nối cơ sở dữ liệu',
-          error: 'Database Error',
-          details: error.message
-        });
-      }
-      
-      throw new RpcException({
-        status: HttpStatus.INTERNAL_SERVER_ERROR,
-        message: 'Đã xảy ra lỗi khi lấy danh sách ca làm việc',
-        error: 'Internal Server Error',
-        details: error.message
-      });
+
+      throw createRpcError(
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        'Đã xảy ra lỗi khi lấy danh sách ca làm việc',
+        'Internal Server Error',
+        error.message,
+      );
     }
   }
-  async updateClinicShift(id: string, dto: UpdateClinicShiftDto): Promise<{ status: string; message: string; data: any }> {
+  async updateClinicShift(
+    id: string,
+    dto: UpdateClinicShiftDto,
+  ): Promise<{ status: string; message: string; data: any }> {
     try {
-      // Validate ID
       if (!id || typeof id !== 'string') {
-        throw {
-          status: HttpStatus.BAD_REQUEST,
-          message: 'ID ca làm việc không hợp lệ',
-          error: 'Bad Request'
-        };
+        throw createRpcError(
+          HttpStatus.BAD_REQUEST,
+          'ID ca làm việc không hợp lệ',
+          'Bad Request',
+        );
       }
 
       if (!dto || Object.keys(dto).length === 0) {
-        throw {
-          status: HttpStatus.BAD_REQUEST,
-          message: 'Dữ liệu cập nhật không được để trống',
-          error: 'Bad Request'
-        };
+        throw createRpcError(
+          HttpStatus.BAD_REQUEST,
+          'Dữ liệu cập nhật không được để trống',
+          'Bad Request',
+        );
       }
 
       if (dto.start_time || dto.end_time) {
         const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
-        
+
         if (dto.start_time && !timeRegex.test(dto.start_time)) {
-          throw {
-            status: HttpStatus.BAD_REQUEST,
-            message: 'Định dạng thời gian bắt đầu không hợp lệ. Vui lòng sử dụng định dạng HH:mm (ví dụ: 09:00)',
-            error: 'Bad Request'
-          };
+          throw createRpcError(
+            HttpStatus.BAD_REQUEST,
+            'Định dạng thời gian bắt đầu không hợp lệ. Vui lòng sử dụng định dạng HH:mm (ví dụ: 09:00)',
+            'Bad Request',
+          );
         }
-        
+
         if (dto.end_time && !timeRegex.test(dto.end_time)) {
-          throw {
-            status: HttpStatus.BAD_REQUEST,
-            message: 'Định dạng thời gian kết thúc không hợp lệ. Vui lòng sử dụng định dạng HH:mm (ví dụ: 17:00)',
-            error: 'Bad Request'
-          };
+          throw createRpcError(
+            HttpStatus.BAD_REQUEST,
+            'Định dạng thời gian kết thúc không hợp lệ. Vui lòng sử dụng định dạng HH:mm (ví dụ: 17:00)',
+            'Bad Request',
+          );
         }
       }
 
       const result = await this.shiftRepositories.updateClinicShift(id, dto);
-      
+
       if (!result) {
-        throw {
-          status: HttpStatus.NOT_FOUND,
-          message: `Không tìm thấy ca làm việc với ID: ${id}`,
-          error: 'Not Found'
-        };
+        throw createRpcError(
+          HttpStatus.NOT_FOUND,
+          `Không tìm thấy ca làm việc với ID: ${id}`,
+          'Not Found',
+        );
       }
-      
+
       return {
         status: 'success',
         message: 'Cập nhật ca làm việc thành công',
@@ -291,87 +302,73 @@ export class ShiftService {
       };
     } catch (error) {
       if (error instanceof RpcException || (error.status && error.message)) {
-        throw new RpcException({
-          status: error.status || HttpStatus.INTERNAL_SERVER_ERROR,
-          message: error.message,
-          error: error.error || 'Internal Server Error',
-          ...(error.details && { details: error.details })
-        });
+        throw createRpcError(
+          error.status || HttpStatus.INTERNAL_SERVER_ERROR,
+          error.message,
+          error.error || 'Internal Server Error',
+          error.details,
+        );
       }
-      
+
       if (error.name === 'MongoError' || error.name === 'MongoServerError') {
-        // Handle duplicate key error
         if (error.code === 11000) {
-          throw new RpcException({
-            status: HttpStatus.CONFLICT,
-            message: 'Ca làm việc đã tồn tại',
-            error: 'Conflict',
-            details: 'Không thể tạo ca làm việc trùng lặp'
-          });
+          throw createRpcError(
+            HttpStatus.CONFLICT,
+            'Ca làm việc đã tồn tại',
+            'Conflict',
+            'Không thể tạo ca làm việc trùng lặp',
+          );
         }
-        
-        throw new RpcException({
-          status: HttpStatus.INTERNAL_SERVER_ERROR,
-          message: 'Lỗi cơ sở dữ liệu khi cập nhật ca làm việc',
-          error: 'Database Error',
-          details: error.message
-        });
       }
-      
-      throw new RpcException({
-        status: HttpStatus.INTERNAL_SERVER_ERROR,
-        message: 'Đã xảy ra lỗi khi cập nhật ca làm việc',
-        error: 'Internal Server Error',
-        details: error.message
-      });
+
+      throw createRpcError(
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        'Đã xảy ra lỗi khi cập nhật ca làm việc',
+        'Internal Server Error',
+        error.message,
+      );
     }
   }
-  async getShiftsByClinicId(clinic_id: string): Promise<{ status: string; message: string; data: any[] }> {
+  async getShiftsByClinicId(
+    clinic_id: string,
+  ): Promise<{ status: string; message: string; data: any[] }> {
     try {
       // Validate clinic_id
       if (!clinic_id || typeof clinic_id !== 'string') {
-        throw new RpcException({
-          statusCode: HttpStatus.BAD_REQUEST,
-          message: 'ID phòng khám không hợp lệ',
-          error: 'Bad Request'
-        });
+        throw createRpcError(
+          HttpStatus.BAD_REQUEST,
+          'ID phòng khám không hợp lệ',
+          'Bad Request',
+        );
       }
 
-      const result = await this.shiftRepositories.getShiftsByClinicId(clinic_id);
-      
+      const result =
+        await this.shiftRepositories.getShiftsByClinicId(clinic_id);
+
       return {
         status: 'success',
         message: 'Lấy danh sách ca làm việc thành công',
-        data: result
+        data: result,
       };
     } catch (error) {
       if (error.name === 'CastError' || error.message?.includes('not found')) {
-        throw new RpcException({
-          statusCode: HttpStatus.NOT_FOUND,
-          message: `Không tìm thấy thông tin phòng khám với ID: ${clinic_id}`,
-          error: 'Not Found'
-        });
-      }
-
-      if (error.name === 'MongoError' || error.name === 'MongoServerError') {
-        throw new RpcException({
-          statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-          message: 'Lỗi kết nối cơ sở dữ liệu',
-          error: 'Database Error',
-          details: error.message
-        });
+        throw createRpcError(
+          HttpStatus.NOT_FOUND,
+          `Không tìm thấy thông tin phòng khám với ID: ${clinic_id}`,
+          'Not Found',
+        );
       }
 
       if (error instanceof RpcException) {
         throw error;
       }
 
-      throw new RpcException({
-        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-        message: 'Đã xảy ra lỗi khi xử lý yêu cầu',
-        error: 'Internal Server Error',
-        details: error.message || 'Không có thông tin lỗi chi tiết'
-      });
+      throw createRpcError(
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        'Đã xảy ra lỗi khi xử lý yêu cầu',
+        'Internal Server Error',
+        error.message || 'Không có thông tin lỗi chi tiết',
+      );
     }
   }
 }
