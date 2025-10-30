@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AuthController } from './controllers/auth.controller';
 import { CustomerController } from './controllers/customer.controller';
-import { AppointmentsController } from './controllers/appointments.controller';
 import { AppService } from './app.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ClientsModule, Transport } from '@nestjs/microservices';
@@ -79,7 +78,6 @@ import { CommunicationController } from './controllers/communication.controller'
     AuthController,
     CustomerController,
     PetController,
-    AppointmentsController,
     PartnerController,
     CommunicationController
   ],

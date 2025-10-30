@@ -64,7 +64,7 @@ export class InviteService {
     }
 
     return {
-      message: '✅ Đã gửi mail mời Vet thành công!',
+      message: 'Đã gửi mail mời Vet thành công!',
       token,
       expiresAt,
     };
