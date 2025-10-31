@@ -9,7 +9,6 @@ services:
     ports:
       - "8000:3000"
     environment:
-      # MONGO_URI: mongodb://auth-db:27017/auth_db
       API_GATEWAY_PORT: 3000
       NODE_ENV: production
       SHOW_ERROR_DETAILS: "false"
