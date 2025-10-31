@@ -14,6 +14,8 @@ export function mapToResponseDto(post: Post): PostResponseDto {
     tags: post.tags,
     images: post.images,
     isHidden: post.isHidden,
+    comments: post.comments || [],
+    commentCount: post.commentCount || 0,
     likeCount: post.likeCount,
     viewCount: post.viewCount,
     reportCount: post.reportCount,

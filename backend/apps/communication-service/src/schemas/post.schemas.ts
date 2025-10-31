@@ -49,7 +49,7 @@ export class Author {
  */
 @Schema({ _id: false })
 export class Comment {
-  @Prop({ type: String, unique: true, default: () => uuidv4() })
+  @Prop({ type: String, default: () => uuidv4() })
   comment_id: string;
 
   @Prop({ type: Author, required: true })
