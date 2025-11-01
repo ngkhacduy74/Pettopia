@@ -2,7 +2,7 @@ import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Service, ServiceDocument } from '../../schemas/clinic/service.schema';
-import { CreateServiceDto } from 'src/dto/clinic/create-service.dto';
+import { CreateServiceDto } from 'src/dto/clinic/services/create-service.dto';
 
 @Injectable()
 export class ServiceRepository {

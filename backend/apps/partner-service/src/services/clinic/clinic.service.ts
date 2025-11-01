@@ -7,14 +7,15 @@ import {
 } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { lastValueFrom } from 'rxjs';
-import { CreateClinicFormDto } from 'src/dto/clinic/create-clinic-form.dto';
-import { CreateClinicDto } from 'src/dto/clinic/create-clinic.dto';
-import { CreateServiceDto } from 'src/dto/clinic/create-service.dto';
-import { UpdateStatusClinicDto } from 'src/dto/clinic/update-status.dto';
+import { CreateClinicFormDto } from 'src/dto/clinic/clinic/create-clinic-form.dto';
+import { CreateClinicDto } from 'src/dto/clinic/clinic/create-clinic.dto';
+import { CreateServiceDto } from 'src/dto/clinic/services/create-service.dto';
+import { UpdateStatusClinicDto } from 'src/dto/clinic/clinic/update-status.dto';
 import { ClinicsRepository } from 'src/repositories/clinic/clinic.repositories';
 import { ServiceRepository } from 'src/repositories/clinic/service.repositories';
 import { RegisterStatus } from 'src/schemas/clinic/clinic-register.schema';
 import { createRpcError } from 'src/common/error.detail';
+import { UpdateClinicDto } from 'src/dto/clinic/clinic/update-clinic-form.dto';
 
 @Injectable()
 export class ClinicService {
@@ -632,5 +633,79 @@ export class ClinicService {
         error.message,
       );
     }
+  }
+
+  async updateClinicFormByMail(updateData: any): Promise<any> {
+    try {
+      const result =
+        await this.clinicRepositories.updateClinicFormByMail(updateData);
+
+      if (!result) {
+        throw createRpcError(
+          HttpStatus.NOT_FOUND,
+          'Không thể cập nhật form đăng ký phòng khám',
+          'Not Found',
+        );
+      }
+
+      return {
+        status: 'success',
+        message: 'Cập nhật form đăng ký phòng khám thành công',
+        data: result,
+      };
+    } catch (error) {
+      if (error instanceof RpcException) throw error;
+
+      throw createRpcError(
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        'Đã xảy ra lỗi khi cập nhật form đăng ký phòng khám',
+        'Internal Server Error',
+        error.message,
+      );
+    }
+  }
+  async getClinicByVerificationToken(token: string): Promise<any> {
+    try {
+      const clinic =
+        await this.clinicRepositories.findByVerificationToken(token);
+
+      if (!clinic) {
+        throw createRpcError(
+          HttpStatus.NOT_FOUND,
+          'Không tìm thấy phòng khám với token xác minh này.',
+          'Not Found',
+        );
+      }
+
+      return clinic;
+    } catch (error) {
+      if (error instanceof RpcException) {
+        throw error;
+      }
+      throw createRpcError(
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        'Lỗi khi tìm phòng khám theo token xác minh.',
+        'Internal Server Error',
+        error.message,
+      );
+    }
+  }
+  async updateClinicForm(id: string, dto: UpdateClinicDto) {
+    const clinic = await this.clinicRepositories.findOneClinicForm(id);
+
+    if (!clinic) {
+      throw createRpcError(
+        HttpStatus.NOT_FOUND,
+        'Phòng khám không tồn tại',
+        'Not Found',
+      );
+    }
+    console.log('updateClinicForm clinic123123123:', dto);
+    const updatedClinic = await this.clinicRepositories.updateClinicForm(
+      id,
+      dto,
+    );
+
+    return updatedClinic;
   }
 }

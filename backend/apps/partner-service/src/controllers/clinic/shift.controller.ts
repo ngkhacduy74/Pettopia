@@ -1,8 +1,8 @@
 import { Controller, Get, UsePipes, ValidationPipe } from '@nestjs/common';
 import { MessagePattern, Payload, RpcException } from '@nestjs/microservices';
 import { handleRpcError } from 'src/common/error.detail';
-import { CreateClinicShiftDto } from 'src/dto/clinic/create-shift.dto';
-import { UpdateClinicShiftDto } from 'src/dto/clinic/update-shift.dto';
+import { CreateClinicShiftDto } from 'src/dto/clinic/shift/create-shift.dto';
+import { UpdateClinicShiftDto } from 'src/dto/clinic/shift/update-shift.dto';
 import { ShiftService } from 'src/services/clinic/shift.service';
 @UsePipes(
   new ValidationPipe({

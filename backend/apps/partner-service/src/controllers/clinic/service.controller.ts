@@ -5,7 +5,7 @@ import { ClinicService } from '../../services/clinic/clinic.service';
 import { MessagePattern, Payload, RpcException } from '@nestjs/microservices';
 import { handleRpcError } from 'src/common/error.detail';
 import { ServiceService } from 'src/services/clinic/service.service';
-import { CreateServiceDto } from 'src/dto/clinic/create-service.dto';
+import { CreateServiceDto } from 'src/dto/clinic/services/create-service.dto';
 @UsePipes(
   new ValidationPipe({
     transform: true,

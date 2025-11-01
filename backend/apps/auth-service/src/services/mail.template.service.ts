@@ -1,4 +1,9 @@
-import { Injectable, BadRequestException, Inject } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  Inject,
+  HttpStatus,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import {
@@ -12,6 +17,7 @@ import { MailType } from 'src/schemas/mail.schema';
 import { VetInviteRepository } from 'src/repositories/invite.repositories';
 import { ClientProxy } from '@nestjs/microservices';
 import { lastValueFrom } from 'rxjs';
+import { createRpcError } from 'src/common/error.detail';
 
 @Injectable()
 export class MailTemplateService {
@@ -32,12 +38,16 @@ export class MailTemplateService {
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
     const inviteLink = `${process.env.APP_URL}/auth/accept-invite?token=${token}`;
 
-    await this.vetInviteRepositories.createInvite(
-      email,
-      clinic_id,
-      token,
-      expiresAt,
-    );
+    await this.vetInviteRepositories
+      .createInvite(email, clinic_id, token, expiresAt)
+      .catch((err) => {
+        throw createRpcError(
+          HttpStatus.INTERNAL_SERVER_ERROR,
+          'Lỗi tạo lời mời Vet.',
+          'Internal Server Error',
+          err.message,
+        );
+      });
     const html = `
       <div style="font-family:Arial,sans-serif;line-height:1.6;color:#333">
         <h2 style="color:#1a73e8;">📩 Lời mời trở thành bác sĩ thú y</h2>
@@ -55,15 +65,27 @@ export class MailTemplateService {
       </div>
     `;
     try {
-      await this.mailService.sendMail(
-        email,
-        'Lời mời trở thành Bác sĩ thú y',
-        html,
-        MailType.INVITE_VET,
-      );
+      await this.mailService
+        .sendMail(
+          email,
+          'Lời mời trở thành Bác sĩ thú y',
+          html,
+          MailType.INVITE_VET,
+        )
+        .catch((err) => {
+          throw createRpcError(
+            HttpStatus.INTERNAL_SERVER_ERROR,
+            'Lỗi gửi mail mời Vet.',
+            'Internal Server Error',
+            err.message,
+          );
+        });
     } catch (error) {
-      console.error('Lỗi gửi mail mời Vet:', error.message);
-      throw new BadRequestException('Không thể gửi mail mời Vet.');
+      throw createRpcError(
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        'Không thể gửi mail mời Vet.',
+        'Internal Server Error',
+      );
     }
 
     return {
@@ -124,19 +146,37 @@ export class MailTemplateService {
     const clinic = await lastValueFrom(
       this.partnerService.send({ cmd: 'getClinicFormById' }, { id: clinic_id }),
     );
-    console.log('oljhaksdjhas', clinic);
-    console.log('emaialsda', clinic.data.representative.email.email_address);
     if (!clinic)
-      throw new BadRequestException('Không tìm thấy thông tin phòng khám.');
+      throw createRpcError(
+        HttpStatus.NOT_FOUND,
+        'Phòng khám không tồn tại.',
+        'Not Found',
+      );
 
     // Tạo token xác minh
     const token = uuidv4();
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
-    clinic.verification_token = token;
-    clinic.token_expires_at = expiresAt;
-
-    const verifyLink = `${process.env.APP_URL}/verify-clinic?token=${token}`;
+    clinic.data.verification_token = token;
+    clinic.data.token_expires_at = expiresAt;
+    const updatedClinic = await lastValueFrom(
+      this.partnerService.send(
+        { cmd: 'updateClinicFormByMail' },
+        {
+          id: clinic_id,
+          verification_token: token,
+          token_expires_at: expiresAt,
+        },
+      ),
+    );
+    if (!updatedClinic) {
+      throw createRpcError(
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        'Cập nhật token xác minh thất bại.',
+        'Internal Server Error',
+      );
+    }
+    const verifyLink = `${process.env.APP_URL}/api/v1/auth/verify/clinic?token=${token}`;
 
     const html = `
       <div style="font-family:'Segoe UI',Arial,sans-serif;line-height:1.8;color:#333;background-color:#f9fafb;padding:20px;border-radius:10px;">
@@ -178,12 +218,21 @@ export class MailTemplateService {
     `;
 
     try {
-      await this.mailService.sendMail(
-        clinic.data.representative.email.email_address,
-        `Xác minh thông tin phòng khám ${clinic.clinic_name}`,
-        html,
-        MailType.REMIND,
-      );
+      const send = await this.mailService
+        .sendMail(
+          clinic.data.representative.email.email_address,
+          `Xác minh thông tin phòng khám ${clinic.data.clinic_name}`,
+          html,
+          MailType.REMIND,
+        )
+        .catch((err) => {
+          throw createRpcError(
+            HttpStatus.INTERNAL_SERVER_ERROR,
+            'Lỗi gửi mail xác minh phòng khám.',
+            'Internal Server Error',
+            err.message,
+          );
+        });
 
       return {
         message: `Đã gửi email xác minh tới ${clinic.data.representative.email.email_address}`,

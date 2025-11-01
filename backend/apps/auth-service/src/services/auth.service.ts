@@ -1,4 +1,9 @@
-import { HttpStatus, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  HttpStatus,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { LoginDto } from '../dtos/login.dto';
 import { ClientProxy, RpcException } from '@nestjs/microservices';
 import { RegisterDto } from '../dtos/register.dto';
@@ -11,10 +16,11 @@ import { createRpcError } from 'src/common/error.detail';
 export class AuthService {
   constructor(
     @Inject('CUSTOMER_SERVICE') private customerClient: ClientProxy,
+    @Inject('PARTNER_SERVICE') private partnerService: ClientProxy,
     private readonly jwtService: JwtService,
   ) {}
 
- async login(data: LoginDto): Promise<any> {
+  async login(data: LoginDto): Promise<any> {
     console.log('data customer service', data);
     try {
       const exist_user = await lastValueFrom(
@@ -23,8 +29,10 @@ export class AuthService {
           { username: data.username },
         ),
       ).catch((error) => {
-
-        console.error('Error from customerClient[getUserByUsername]:', error.message);
+        console.error(
+          'Error from customerClient[getUserByUsername]:',
+          error.message,
+        );
         throw createRpcError(
           HttpStatus.NOT_FOUND,
           'Tài khoản không tồn tại',
@@ -35,7 +43,7 @@ export class AuthService {
 
       if (!exist_user) {
         throw createRpcError(
-          HttpStatus.NOT_FOUND, 
+          HttpStatus.NOT_FOUND,
           'Tài khoản không tồn tại',
           'Not Found',
         );
@@ -43,7 +51,7 @@ export class AuthService {
       const isMatch = await bcrypt.compare(data.password, exist_user.password);
       if (!isMatch) {
         throw createRpcError(
-          HttpStatus.UNAUTHORIZED, 
+          HttpStatus.UNAUTHORIZED,
           'Mật khẩu không đúng',
           'Unauthorized',
         );
@@ -53,14 +61,12 @@ export class AuthService {
       const token = this.jwtService.sign(result);
       return { status: 'success', token };
     } catch (error) {
-
       if (error instanceof RpcException) {
-
         throw error;
       }
 
       throw createRpcError(
-        HttpStatus.INTERNAL_SERVER_ERROR, 
+        HttpStatus.INTERNAL_SERVER_ERROR,
         'Đã xảy ra lỗi khi đăng nhập',
         'Internal Server Error',
         error.message,
@@ -78,7 +84,7 @@ export class AuthService {
       ).catch((error) => {
         console.error('Error checking phone:', error);
         throw createRpcError(
-          HttpStatus.INTERNAL_SERVER_ERROR, 
+          HttpStatus.INTERNAL_SERVER_ERROR,
           'Lỗi khi kiểm tra số điện thoại',
           'Internal Server Error',
           error.message,
@@ -93,7 +99,7 @@ export class AuthService {
       ).catch((error) => {
         console.error('Error checking email:', error);
         throw createRpcError(
-          HttpStatus.INTERNAL_SERVER_ERROR, 
+          HttpStatus.INTERNAL_SERVER_ERROR,
           'Lỗi khi kiểm tra email',
           'Internal Server Error',
           error.message,
@@ -102,7 +108,7 @@ export class AuthService {
 
       if (exist_email?.status === false) {
         throw createRpcError(
-          HttpStatus.BAD_REQUEST, 
+          HttpStatus.BAD_REQUEST,
           'Email đã được đăng ký bằng tài khoản khác',
           'Bad Request',
           'Vui lòng sử dụng email khác',
@@ -111,7 +117,7 @@ export class AuthService {
 
       if (exist_phone?.status === false) {
         throw createRpcError(
-          HttpStatus.BAD_REQUEST, 
+          HttpStatus.BAD_REQUEST,
           'Số điện thoại đã được đăng ký',
           'Bad Request',
           'Vui lòng sử dụng số điện thoại khác',
@@ -149,14 +155,14 @@ export class AuthService {
           error.message?.includes('username_1')
         ) {
           throw createRpcError(
-            HttpStatus.BAD_REQUEST, 
+            HttpStatus.BAD_REQUEST,
             'Tên đăng nhập đã được sử dụng',
             'Bad Request',
             'Vui lòng chọn tên đăng nhập khác',
           );
         }
         throw createRpcError(
-          HttpStatus.INTERNAL_SERVER_ERROR, 
+          HttpStatus.INTERNAL_SERVER_ERROR,
           'Lỗi khi tạo tài khoản',
           'Internal Server Error',
           error.message,
@@ -183,6 +189,46 @@ export class AuthService {
         'Đã xảy ra lỗi khi đăng ký tài khoản',
         'Internal Server Error',
         error.message,
+      );
+    }
+  }
+  async verifyClinicToken(token: string): Promise<any> {
+    try {
+      const clinic = await lastValueFrom(
+        this.partnerService.send(
+          { cmd: 'getClinicByVerificationToken' },
+          { token },
+        ),
+      );
+      console.log('clinic verify token service123123: ', clinic);
+      if (!clinic) {
+        throw createRpcError(
+          HttpStatus.NOT_FOUND,
+          'Token xác minh không hợp lệ hoặc phòng khám không tồn tại.',
+          'Not Found',
+        );
+      }
+      const now = new Date();
+      if (clinic.data.token_expires_at < now) {
+        throw createRpcError(
+          HttpStatus.BAD_REQUEST,
+          'Token xác minh đã hết hạn.',
+          'Bad Request',
+        );
+      }
+      return {
+        message: 'Token xác minh hợp lệ.',
+        clinic_id: clinic.data.id,
+      };
+    } catch (err) {
+      if (err instanceof RpcException) {
+        throw err;
+      }
+      throw createRpcError(
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        'Lỗi khi xác minh token phòng khám.',
+        'Internal Server Error',
+        err.message,
       );
     }
   }

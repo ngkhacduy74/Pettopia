@@ -11,7 +11,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { lastValueFrom } from 'rxjs';
-import { ClientProxy } from '@nestjs/microservices';
+import { ClientProxy, RpcException } from '@nestjs/microservices';
 import { UserToken } from 'src/decorators/user.decorator';
 import { JwtAuthGuard } from 'src/guard/jwtAuth.guard';
 import { RoleGuard } from 'src/guard/role.guard';
@@ -83,5 +83,16 @@ export class AuthController {
         { clinic_id },
       ),
     );
+  }
+
+  @Get('verify/clinic')
+  async verifyClinic(@Query('token') token: string) {
+    try {
+      return await lastValueFrom(
+        this.authService.send({ cmd: 'verifyClinicToken' }, { token }),
+      );
+    } catch (error) {
+      throw new RpcException(error);
+    }
   }
 }

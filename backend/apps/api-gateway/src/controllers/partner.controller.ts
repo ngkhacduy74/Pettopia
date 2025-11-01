@@ -15,7 +15,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { lastValueFrom } from 'rxjs';
-import { ClientProxy } from '@nestjs/microservices';
+import { ClientProxy, RpcException } from '@nestjs/microservices';
 import { Role, Roles } from 'src/decorators/roles.decorator';
 import { JwtAuthGuard } from 'src/guard/jwtAuth.guard';
 import { RoleGuard } from 'src/guard/role.guard';
@@ -322,6 +322,18 @@ export class PartnerController {
   async getServiceById(@Param('id') id: string) {
     return await lastValueFrom(
       this.partnerService.send({ cmd: 'getServiceById' }, { id }),
+    );
+  }
+  @Put('/verify-clinic/update-form/:id')
+  @HttpCode(HttpStatus.OK)
+  async updateClinicForm(@Param('id') id: string, @Body() dto: any) {
+    if (!id) {
+      throw new RpcException('Thiếu ID phòng khám trong URL');
+    }
+    const payload = { id, dto };
+
+    return await lastValueFrom(
+      this.partnerService.send({ cmd: 'updateClinicForm' }, payload),
     );
   }
 }

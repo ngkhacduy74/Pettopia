@@ -7,9 +7,10 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { CreateClinicFormDto } from 'src/dto/clinic/create-clinic-form.dto';
-import { CreateClinicDto } from 'src/dto/clinic/create-clinic.dto';
-import { UpdateStatusClinicDto } from 'src/dto/clinic/update-status.dto';
+import { CreateClinicFormDto } from 'src/dto/clinic/clinic/create-clinic-form.dto';
+import { CreateClinicDto } from 'src/dto/clinic/clinic/create-clinic.dto';
+import { UpdateClinicDto } from 'src/dto/clinic/clinic/update-clinic-form.dto';
+import { UpdateStatusClinicDto } from 'src/dto/clinic/clinic/update-status.dto';
 import {
   Clinic_Register,
   ClinicRegisterDocument,
@@ -219,5 +220,39 @@ export class ClinicsRepository {
         err.message || `Lỗi cơ sở dữ liệu khi tìm phòng khám với ID: ${id}`,
       );
     }
+  }
+  async updateClinicFormByMail(updateData: any) {
+    const { id, ...data } = updateData;
+
+    const clinic = await this.clinicFormModel.findOneAndUpdate(
+      { id },
+      { $set: data },
+      { new: true },
+    );
+
+    if (!clinic) {
+      throw new NotFoundException(`Không tìm thấy form đăng ký với id: ${id}`);
+    }
+
+    return clinic;
+  }
+  async findByVerificationToken(token: string) {
+    return this.clinicFormModel.findOne({ verification_token: token });
+  }
+  async updateClinicForm(id: string, dto: UpdateClinicDto) {
+    return this.clinicFormModel.findOneAndUpdate({ id: id }, dto, {
+      new: true,
+      runValidators: true,
+    });
+  }
+  async findClinicByVerificationToken(token: string) {
+    return this.clinicFormModel.findOne({ verification_token: token });
+  }
+
+  async clearClinicVerificationToken(id: string) {
+    return this.clinicModel.updateOne(
+      { _id: id },
+      { $unset: { verification_token: '', token_expires_at: '' } },
+    );
   }
 }
