@@ -25,17 +25,6 @@ export class Clinic {
     type: String,
     required: true,
     trim: true,
-    match: [
-      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
-      'creator_id không hợp lệ (phải là UUID v4)',
-    ],
-  })
-  creator_id: string;
-
-  @Prop({
-    type: String,
-    required: true,
-    trim: true,
     minlength: [3, 'Tên phòng khám phải có ít nhất 3 ký tự'],
     maxlength: [100, 'Tên phòng khám không được vượt quá 100 ký tự'],
     match: [/^[A-Za-zÀ-ỹ0-9\s'’().,-]+$/, 'Tên phòng khám không hợp lệ'],
@@ -91,6 +80,9 @@ export class Clinic {
 
   @Prop({ type: Boolean, default: true })
   is_active: boolean;
+
+  @Prop({ type: [String], default: [] })
+  member_ids: string[];
 }
 
 export type ClinicDocument = Clinic & Document;

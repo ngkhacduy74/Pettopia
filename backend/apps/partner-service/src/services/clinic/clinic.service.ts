@@ -150,7 +150,7 @@ export class ClinicService {
         try {
           const createDto: CreateClinicDto = {
             id: clinicForm.id,
-            creator_id: clinicForm.user_id,
+            // creator_id: clinicForm.user_id,
             clinic_name: clinicForm.clinic_name,
             email: clinicForm.email,
             phone: clinicForm.phone,
@@ -174,18 +174,18 @@ export class ClinicService {
               );
             });
 
-          if (createdClinic) {
-            try {
-              await lastValueFrom(
-                this.customerService.send(
-                  { cmd: 'auto_add_user_role' },
-                  { userId: clinicForm.user_id, role: 'Clinic' },
-                ),
-              );
-            } catch (error) {
-              console.error('Error adding clinic role to user:', error);
-            }
-          }
+          // if (createdClinic) {
+          //   try {
+          //     await lastValueFrom(
+          //       this.customerService.send(
+          //         { cmd: 'auto_add_user_role' },
+          //         { userId: clinicForm.user_id, role: 'Clinic' },
+          //       ),
+          //     );
+          //   } catch (error) {
+          //     console.error('Error adding clinic role to user:', error);
+          //   }
+          // }
 
           return {
             status: 'success',

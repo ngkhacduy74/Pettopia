@@ -5,12 +5,17 @@ import {
   HttpCode,
   HttpStatus,
   Inject,
+  Param,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { lastValueFrom } from 'rxjs';
 import { ClientProxy } from '@nestjs/microservices';
 import { UserToken } from 'src/decorators/user.decorator';
+import { JwtAuthGuard } from 'src/guard/jwtAuth.guard';
+import { RoleGuard } from 'src/guard/role.guard';
+import { Role, Roles } from 'src/decorators/roles.decorator';
 
 @Controller('api/v1/auth')
 export class AuthController {
@@ -64,6 +69,19 @@ export class AuthController {
   async sendOtpEmail(@Body('email') email: string) {
     return await lastValueFrom(
       this.authService.send({ cmd: 'send-otp-email' }, { email }),
+    );
+  }
+
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.ADMIN, Role.STAFF)
+  @Post('send-clinic-verification')
+  @HttpCode(HttpStatus.OK)
+  async sendClinicVerification(@Body('clinic_id_form') clinic_id: string) {
+    return await lastValueFrom(
+      this.authService.send(
+        { cmd: 'sendClinicVerificationMail' },
+        { clinic_id },
+      ),
     );
   }
 }
