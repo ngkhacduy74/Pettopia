@@ -27,7 +27,6 @@ export class HealthcareController {
     private readonly healthcareService: ClientProxy,
   ) {}
 
-
   @UseGuards(JwtAuthGuard)
   @Post('/appointment')
   @HttpCode(HttpStatus.OK)
