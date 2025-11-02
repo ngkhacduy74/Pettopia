@@ -53,7 +53,22 @@ export class PartnerController {
       this.partnerService.send({ cmd: 'registerClinic' }, { ...data, user_id }),
     );
   }
-
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.CLINIC)
+  @Get('/clinic/shift')
+  @HttpCode(HttpStatus.OK)
+  async getClinicShifts(
+    @Query('page', new ParseIntPipe({ optional: true })) page = 1,
+    @Query('limit', new ParseIntPipe({ optional: true })) limit = 10,
+    @UserToken('id') clinic_id: any,
+  ) {
+    return await lastValueFrom(
+      this.partnerService.send(
+        { cmd: 'getClinicShifts' },
+        { clinic_id, page, limit },
+      ),
+    );
+  }
   @UseGuards(JwtAuthGuard)
   @Get('/clinic/:id')
   @HttpCode(HttpStatus.OK)
@@ -188,12 +203,16 @@ export class PartnerController {
   @Roles(Role.CLINIC)
   @Get('/service')
   @HttpCode(HttpStatus.OK)
-  async getAllService(
+  async getMyServices(
     @Query('page', new ParseIntPipe({ optional: true })) page = 1,
     @Query('limit', new ParseIntPipe({ optional: true })) limit = 10,
+    @UserToken('id') clinic_id: string,
   ) {
     return await lastValueFrom(
-      this.partnerService.send({ cmd: 'getAllService' }, { page, limit }),
+      this.partnerService.send(
+        { cmd: 'getServicesByClinicId' },
+        { clinic_id, page, limit },
+      ),
     );
   }
 
@@ -244,23 +263,6 @@ export class PartnerController {
       this.partnerService.send(
         { cmd: 'createClinicShift' },
         { ...data, clinic_id },
-      ),
-    );
-  }
-
-  @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles(Role.CLINIC)
-  @Get('/clinic/shift')
-  @HttpCode(HttpStatus.OK)
-  async getClinicShifts(
-    @Query('page', new ParseIntPipe({ optional: true })) page = 1,
-    @Query('limit', new ParseIntPipe({ optional: true })) limit = 10,
-    @UserToken('id') clinic_id: any,
-  ) {
-    return await lastValueFrom(
-      this.partnerService.send(
-        { cmd: 'getClinicShifts' },
-        { clinic_id, page, limit },
       ),
     );
   }

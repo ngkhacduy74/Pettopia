@@ -397,9 +397,29 @@ export class ClinicService {
 
   async createService(data: CreateServiceDto, clinic_id: string): Promise<any> {
     try {
+      const user = await lastValueFrom(
+        this.customerService.send({ cmd: 'getUserById' }, { id: clinic_id }),
+      ).catch((error) => {
+        throw createRpcError(
+          HttpStatus.INTERNAL_SERVER_ERROR,
+          'Không lấy được thông tin người dùng',
+          'Internal Server Error',
+          error.message,
+        );
+      });
+      if (!user) {
+        throw createRpcError(
+          HttpStatus.NOT_FOUND,
+          'Không tìm thấy người dùng',
+          'NOT_FOUND',
+        );
+      }
+      const clinic = await this.clinicRepositories.getClinicByEmail(
+        user.email.email_address,
+      );
       const result = await this.serviceRepositories.createService(
         data,
-        clinic_id,
+        clinic.id,
       );
 
       if (!result) {
@@ -422,7 +442,11 @@ export class ClinicService {
     }
   }
 
-  async getAllService(page: number = 1, limit: number = 10): Promise<any> {
+  async getAllService(
+    page: number = 1,
+    limit: number = 10,
+    clinic_id: string,
+  ): Promise<any> {
     try {
       const result = await this.serviceRepositories
         .getAllService(page, limit)

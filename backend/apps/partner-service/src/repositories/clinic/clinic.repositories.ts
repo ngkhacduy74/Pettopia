@@ -294,4 +294,22 @@ export class ClinicsRepository {
       );
     }
   }
+  async getClinicByEmail(email: string): Promise<any> {
+    try {
+      const clinic = await this.clinicModel
+        .findOne({ 'email.email_address': email })
+        .lean()
+        .exec();
+
+      if (!clinic) {
+        return null;
+      }
+      return clinic;
+    } catch (err) {
+      throw new InternalServerErrorException(
+        err.message ||
+          `Lỗi cơ sở dữ liệu khi tìm phòng khám với email: ${email}`,
+      );
+    }
+  }
 }

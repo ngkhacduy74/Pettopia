@@ -114,13 +114,32 @@ export class ServiceRepository {
       );
     }
   }
-  async getServicesByClinicId(clinic_id: string): Promise<Service[]> {
+  async getServicesByClinicId(
+    clinic_id: string,
+    page: number,
+    limit: number,
+  ): Promise<{
+    data: Service[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
     try {
-      const services = await this.serviceModel
-        .find({ clinic_id: clinic_id })
-        .lean()
-        .exec();
-      return services;
+      const skip = (page - 1) * limit;
+      const filter = { clinic_id: clinic_id };
+
+      const [data, total] = await Promise.all([
+        this.serviceModel
+          .find(filter)
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(limit)
+          .lean()
+          .exec(),
+        this.serviceModel.countDocuments(filter),
+      ]);
+
+      return { data, total, page, limit };
     } catch (err) {
       throw new InternalServerErrorException(
         err.message || 'Lỗi cơ sở dữ liệu khi truy vấn dịch vụ theo phòng khám',

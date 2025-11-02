@@ -6,18 +6,26 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { RpcException } from '@nestjs/microservices';
+import { ClientProxy, RpcException } from '@nestjs/microservices';
+import { lastValueFrom } from 'rxjs';
 import { createRpcError } from 'src/common/error.detail';
 
 import { CreateClinicShiftDto } from 'src/dto/clinic/shift/create-shift.dto';
 import { UpdateClinicShiftDto } from 'src/dto/clinic/shift/update-shift.dto';
+import { ClinicsRepository } from 'src/repositories/clinic/clinic.repositories';
 import { ShiftRepository } from 'src/repositories/clinic/shift.repositories';
 import { ClinicShiftType } from 'src/schemas/clinic/clinic_shift_setting.schema';
 
 @Injectable()
 export class ShiftService {
-  constructor(private readonly shiftRepositories: ShiftRepository) {}
+  constructor(
+    private readonly shiftRepositories: ShiftRepository,
+    private readonly clinicRepositories: ClinicsRepository,
+    @Inject('CUSTOMER_SERVICE') private readonly customerService: ClientProxy,
+  ) {}
   async createClinicShift(data: CreateClinicShiftDto): Promise<any> {
+    // Lưu ý hàm tạo shift sẽ đều phải mapping từ user sang clinic id
+    // Sẽ có hàm so sánh phía dưới
     try {
       const {
         start_time: new_start,
@@ -139,9 +147,45 @@ export class ShiftService {
           );
         }
       }
+      const user = await lastValueFrom(
+        this.customerService.send(
+          { cmd: 'getUserById' },
+          { id: data.clinic_id },
+        ),
+      ).catch((error) => {
+        throw createRpcError(
+          HttpStatus.INTERNAL_SERVER_ERROR,
+          'Không lấy được thông tin người dùng',
+          'Internal Server Error',
+          error.message,
+        );
+      });
+      if (!user) {
+        throw createRpcError(
+          HttpStatus.NOT_FOUND,
+          'Không tìm thấy người dùng',
+          'NOT_FOUND',
+        );
+      }
+      console.log('lakjslkjasd', user);
+      const clinic = await this.clinicRepositories.getClinicByEmail(
+        user.email.email_address,
+      );
+      console.log('oiqyhwejha', clinic);
+      // const clinic = await this.clinicRepositories.getClinicByEmail(
+      //   data,
+      // ); //clinic_id lúc này đang là user_id
+      // if (!clinic) {
+      //   throw createRpcError(
+      //     HttpStatus.INTERNAL_SERVER_ERROR,
+      //     'Lỗi khi tìm phòng khám theo email',
+      //     'Internal Server Error',
+      //   );
+      // }
       const result = await this.shiftRepositories
         .createClinicShift({
           ...data,
+          clinic_id: clinic.id,
           shift: shiftValue,
         })
         .catch((error) => {
@@ -201,18 +245,34 @@ export class ShiftService {
       if (isNaN(page) || page < 1) page = 1;
       if (isNaN(limit) || limit < 1 || limit > 100) limit = 10;
 
-      if (!clinic_id || typeof clinic_id !== 'string') {
+      // chuyển đổi từ user_id thành clinic_id
+
+      const user = await lastValueFrom(
+        this.customerService.send({ cmd: 'getUserById' }, { id: clinic_id }),
+      ).catch((error) => {
         throw createRpcError(
-          HttpStatus.BAD_REQUEST,
-          'ID phòng khám không hợp lệ',
-          'Bad Request',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+          'Không lấy được thông tin người dùng',
+          'Internal Server Error',
+          error.message,
+        );
+      });
+      console.log('klajhsdkjasd', user);
+      if (!user) {
+        throw createRpcError(
+          HttpStatus.NOT_FOUND,
+          'Không tìm thấy người dùng',
+          'NOT_FOUND',
         );
       }
-
+      const clinic = await this.clinicRepositories.getClinicByEmail(
+        user.email.email_address,
+      );
+      console.log('ljasldkjasdlkj', clinic);
       const result = await this.shiftRepositories.getClinicShifts(
         page,
         limit,
-        clinic_id,
+        clinic.id,
       );
 
       return {
