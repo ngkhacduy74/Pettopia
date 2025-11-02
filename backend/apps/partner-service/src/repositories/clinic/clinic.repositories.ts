@@ -9,7 +9,8 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { CreateClinicFormDto } from 'src/dto/clinic/clinic/create-clinic-form.dto';
 import { CreateClinicDto } from 'src/dto/clinic/clinic/create-clinic.dto';
-import { UpdateClinicDto } from 'src/dto/clinic/clinic/update-clinic-form.dto';
+import { UpdateClinicFormDto } from 'src/dto/clinic/clinic/update-clinic-form.dto';
+
 import { UpdateStatusClinicDto } from 'src/dto/clinic/clinic/update-status.dto';
 import {
   Clinic_Register,
@@ -221,7 +222,7 @@ export class ClinicsRepository {
       );
     }
   }
-  async updateClinicFormByMail(updateData: any) {
+  async updateClinicFormByMail(updateData: any): Promise<any> {
     const { id, ...data } = updateData;
 
     const clinic = await this.clinicFormModel.findOneAndUpdate(
@@ -239,13 +240,13 @@ export class ClinicsRepository {
   async findByVerificationToken(token: string) {
     return this.clinicFormModel.findOne({ verification_token: token });
   }
-  async updateClinicForm(id: string, dto: UpdateClinicDto) {
+  async updateClinicForm(id: string, dto: UpdateClinicFormDto): Promise<any> {
     return this.clinicFormModel.findOneAndUpdate({ id: id }, dto, {
       new: true,
       runValidators: true,
     });
   }
-  async findClinicByVerificationToken(token: string) {
+  async findClinicByVerificationToken(token: string): Promise<any> {
     return this.clinicFormModel.findOne({ verification_token: token });
   }
 

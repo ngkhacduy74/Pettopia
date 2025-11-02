@@ -48,7 +48,7 @@ class EmailDto {
   verified?: boolean;
 }
 
-export class UpdateClinicDto {
+export class UpdateClinicFormDto {
   @IsOptional()
   @IsString()
   clinic_name?: string;
@@ -79,4 +79,12 @@ export class UpdateClinicDto {
   @IsOptional()
   @IsString()
   website?: string;
+
+  @IsOptional()
+  @IsString()
+  verification_token?: string;
+
+  @IsOptional()
+  @IsString()
+  token_expires_at?: Date;
 }

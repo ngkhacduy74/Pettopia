@@ -216,9 +216,40 @@ export class AuthService {
           'Bad Request',
         );
       }
+      //Vô hiệu hóa token cũ
+      const disableOldToken = await lastValueFrom(
+        this.partnerService.send(
+          { cmd: 'updateClinicForm' },
+          {
+            id: clinic.data.id,
+            dto: {
+              verification_token: null,
+              token_expires_at: null,
+            },
+          },
+        ),
+      );
+      if (!disableOldToken) {
+        throw createRpcError(
+          HttpStatus.INTERNAL_SERVER_ERROR,
+          'Lỗi khi vô hiệu hóa token cũ.',
+          'Internal Server Error',
+        );
+      }
+
+      //update token mới
+      const payload = {
+        sub: clinic.data.id,
+        type: 'clinic-update',
+      };
+
+      const updateToken = this.jwtService.sign(payload, {
+        expiresIn: '15m',
+      });
+
       return {
         message: 'Token xác minh hợp lệ.',
-        clinic_id: clinic.data.id,
+        token: updateToken,
       };
     } catch (err) {
       if (err instanceof RpcException) {
