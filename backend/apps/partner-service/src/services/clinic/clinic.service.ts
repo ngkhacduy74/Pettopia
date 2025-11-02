@@ -16,6 +16,8 @@ import { ServiceRepository } from 'src/repositories/clinic/service.repositories'
 import { RegisterStatus } from 'src/schemas/clinic/clinic-register.schema';
 import { createRpcError } from 'src/common/error.detail';
 import { UpdateClinicFormDto } from 'src/dto/clinic/clinic/update-clinic-form.dto';
+import { generateRandomPassword } from 'src/common/generate.common';
+import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class ClinicService {
@@ -163,7 +165,7 @@ export class ClinicService {
             representative: clinicForm.representative,
             is_active: true,
           };
-
+          console.log('ljkasldjasd', createDto);
           const createdClinic = await this.clinicRepositories
             .createClinic(createDto)
             .catch((error) => {
@@ -174,20 +176,56 @@ export class ClinicService {
                 error.message,
               );
             });
+          if (!createdClinic) {
+            throw createRpcError(
+              HttpStatus.BAD_REQUEST,
+              'Không thể tạo phòng khám',
+              'Bad Request',
+            );
+          }
+          // Tạo user account với vai trò "Clinic"
+          const userAccountData = {
+            id: uuidv4(),
+            email: clinicForm.email,
+            phone: clinicForm.phone,
+            fullname: clinicForm.clinic_name,
+            username: clinicForm.email.email_address,
+            password: generateRandomPassword(),
+            role: ['Clinic'],
+            is_active: true,
+          };
+          console.log('ljkalskdjalsd', userAccountData);
+          const newUser = await lastValueFrom(
+            this.customerService.send({ cmd: 'createUser' }, userAccountData),
+          ).catch((error) => {
+            console.error('Error creating user account for clinic:', error);
+            throw createRpcError(
+              HttpStatus.INTERNAL_SERVER_ERROR,
+              'Lỗi khi tạo tài khoản người dùng cho phòng khám',
+              'Internal Server Error',
+              error.message,
+            );
+          });
+          if (!newUser) {
+            throw createRpcError(
+              HttpStatus.INTERNAL_SERVER_ERROR,
+              'Không thể tạo tài khoản người dùng cho phòng khám',
+              'Internal Server Error',
+            );
+          }
 
-          // if (createdClinic) {
-          //   try {
-          //     await lastValueFrom(
-          //       this.customerService.send(
-          //         { cmd: 'auto_add_user_role' },
-          //         { userId: clinicForm.user_id, role: 'Clinic' },
-          //       ),
-          //     );
-          //   } catch (error) {
-          //     console.error('Error adding clinic role to user:', error);
-          //   }
-          // }
-
+          //Sau khi tạo tài khoản clinic xong thì cần update lại để mapping clinic đến bảng user
+          const update_clinic = await this.clinicRepositories.updateClinic(
+            clinicForm.id,
+            { user_account_id: userAccountData.id },
+          );
+          if (!update_clinic) {
+            throw createRpcError(
+              HttpStatus.INTERNAL_SERVER_ERROR,
+              'chỉnh sửa thông tin user_account_id thất bại',
+              'Internal Server Error',
+            );
+          }
           return {
             status: 'success',
             message: 'Duyệt đơn thành công và đã tạo phòng khám',

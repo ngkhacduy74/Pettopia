@@ -58,7 +58,7 @@ export class User {
   })
   id: string;
 
-  @Prop({ type: String, required: [true, 'Fullname is required'], trim: true })
+  @Prop({ type: String, required: false, trim: true })
   fullname: string;
 
   @Prop({ type: EmailSchema })
@@ -112,9 +112,9 @@ export class User {
 
   @Prop({
     type: Date,
-    required: [true, 'dob is required'],
+    required: false,
   })
-  dob: Date;
+  dob?: Date;
 
   @Prop({ default: true })
   is_active: boolean;

@@ -83,6 +83,16 @@ export class Clinic {
 
   @Prop({ type: [String], default: [] })
   member_ids: string[];
+
+  @Prop({
+    type: String,
+    required: false,
+    unique: true,
+    trim: true,
+
+    match: [/^[a-f0-9\-]{36}$/, 'ID người dùng không hợp lệ (phải là UUID v4)'],
+  })
+  user_account_id?: string;
 }
 
 export type ClinicDocument = Clinic & Document;

@@ -256,4 +256,42 @@ export class ClinicsRepository {
       { $unset: { verification_token: '', token_expires_at: '' } },
     );
   }
+  async updateClinic(id: string, dto: any): Promise<ClinicDocument> {
+    try {
+      const updatedClinic = await this.clinicModel
+        .findOneAndUpdate(
+          { id: id },
+          { $set: dto },
+          {
+            new: true,
+            runValidators: true,
+          },
+        )
+        .exec();
+
+      if (!updatedClinic) {
+        throw new NotFoundException(
+          `Không tìm thấy phòng khám với id: ${id} để cập nhật`,
+        );
+      }
+
+      return updatedClinic;
+    } catch (err) {
+      if (
+        err instanceof NotFoundException ||
+        err instanceof BadRequestException
+      ) {
+        throw err;
+      }
+
+      if (err.code === 11000) {
+        throw new BadRequestException(
+          'Cập nhật thất bại: Dữ liệu bị trùng lặp (ví dụ: số giấy phép).',
+        );
+      }
+      throw new InternalServerErrorException(
+        err.message || `Lỗi cơ sở dữ liệu khi cập nhật phòng khám ${id}`,
+      );
+    }
+  }
 }
