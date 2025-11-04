@@ -7,5 +7,3 @@ import { SgStableDiffusionService } from './sg-stable-diffusion.service';
   providers: [SgStableDiffusionService]
 })
 export class SgStableDiffusionModule {}
-
-

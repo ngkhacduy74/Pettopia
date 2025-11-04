@@ -16,6 +16,7 @@ const payment_module_1 = require("./payment/payment.module");
 const sg_stable_diffusion_module_1 = require("./AI_img/sg-stable-diffusion/sg-stable-diffusion.module");
 const stable_difusion_integration_module_1 = require("./AI_img/stable-difusion-integration/stable-difusion-integration.module");
 const openai_module_1 = require("./AI_req_res/openai/openai.module");
+const gemini_module_1 = require("./AI_req_res/gemini/gemini.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -36,6 +37,7 @@ exports.AppModule = AppModule = __decorate([
             sg_stable_diffusion_module_1.SgStableDiffusionModule,
             stable_difusion_integration_module_1.StableDifusionIntegrationModule,
             openai_module_1.OpenaiModule,
+            gemini_module_1.GeminiModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [app_service_1.AppService],

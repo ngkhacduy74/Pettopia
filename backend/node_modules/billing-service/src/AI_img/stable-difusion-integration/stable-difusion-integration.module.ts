@@ -9,5 +9,3 @@ import { HttpModule } from '@nestjs/axios';
   controllers: [StableDifusionIntegrationController]
 })
 export class StableDifusionIntegrationModule {}
-
-

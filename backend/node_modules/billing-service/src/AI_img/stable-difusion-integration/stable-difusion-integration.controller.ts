@@ -1,14 +1,17 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, Post, Res } from '@nestjs/common';
+import { createReadStream } from 'fs';
+import { GenerateImageDto } from './generate-image.dto';
 import { StableDifusionIntegrationService } from './stable-difusion-integration.service';
 
-@Controller('ai-img/stable-diffusion')
+@Controller('stable-difusion-integration')
 export class StableDifusionIntegrationController {
-  constructor(private readonly service: StableDifusionIntegrationService) {}
+    constructor(private readonly service:StableDifusionIntegrationService){}
 
-  @Post('generate')
-  async generate(@Body() payload: { prompt: string }) {
-    return this.service.generate(payload.prompt);
-  }
+    @Post()
+    async generateImage(@Body() data:GenerateImageDto, @Res() res: any){
+        const filePath = await this.service.generateImage(data)
+        res.set({ 'Content-Type': 'image/png' })
+        const file = createReadStream(filePath)
+        file.pipe(res)
+    }
 }
-
-
