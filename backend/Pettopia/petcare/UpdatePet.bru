@@ -1,0 +1,19 @@
+meta {
+  name: UpdatePet
+  type: http
+  seq: 4
+}
+
+patch {
+  url: http://localhost:3000/api/v1/pet/6f5f0a57-bf23-4850-84e5-90f0263871d2
+  body: multipartForm
+  auth: inherit
+}
+
+body:multipart-form {
+  avatar: @file(postman-cloud:///1f0ac0cc-0151-4ec0-aa87-1fae95d6cd77)
+}
+
+settings {
+  encodeUrl: true
+}
