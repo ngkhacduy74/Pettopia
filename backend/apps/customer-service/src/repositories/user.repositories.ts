@@ -197,4 +197,35 @@ export class UsersRepository {
     await user.save();
     return user;
   }
+  async totalDetailAccount(): Promise<any> {
+    const result = await this.userModel.aggregate([
+      { $unwind: '$role' }, // Nếu role là array
+      {
+        $group: {
+          _id: '$role',
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+
+    const data = {
+      user: 0,
+      staff: 0,
+      clinic: 0,
+      vet: 0,
+    };
+
+    result.forEach((item) => {
+      const role = item._id.toLowerCase();
+      if (data.hasOwnProperty(role)) {
+        data[role] = item.count;
+      }
+    });
+
+    return {
+      status: true,
+      message: 'Đã lấy thành công tổng các account theo role',
+      data,
+    };
+  }
 }

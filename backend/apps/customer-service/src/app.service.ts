@@ -232,6 +232,18 @@ export class AppService {
       });
     }
   }
+  async totalDetailAccount(): Promise<any> {
+    try {
+      const total_user = await this.userRepositories.totalDetailAccount();
+      if (!total_user) {
+        throw new RpcException({
+          status: HttpStatus.NOT_FOUND,
+          message: 'Không lấy được danh sách người dùng',
+        });
+      }
+      return total_user;
+    } catch (err) {}
+  }
 
   async addRoleAutomatically(userId: string, role: string): Promise<any> {
     try {

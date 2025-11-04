@@ -335,7 +335,6 @@ export class PartnerController {
       throw new RpcException('Thiếu ID phòng khám trong URL');
     }
     const payload = { id, dto };
-
     return await lastValueFrom(
       this.partnerService.send({ cmd: 'updateClinicForm' }, payload),
     );

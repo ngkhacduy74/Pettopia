@@ -36,4 +36,12 @@ export class AuthController {
       handleRpcError('ClinicController.verifyClinicToken', err);
     }
   }
+  @MessagePattern({ cmd: 'convert-location' })
+  async convertLocation(@Payload() address: string) {
+    try {
+      return await this.authService.convertAddressToLocation(address);
+    } catch (err) {
+      handleRpcError('ClinicController.convertLocation', err);
+    }
+  }
 }

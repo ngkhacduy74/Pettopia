@@ -12,6 +12,7 @@ import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { v4 as uuidv4 } from 'uuid';
 import { createRpcError } from 'src/common/error.detail';
+import axios from 'axios';
 @Injectable()
 export class AuthService {
   constructor(
@@ -261,6 +262,33 @@ export class AuthService {
         'Internal Server Error',
         err.message,
       );
+    }
+  }
+  async convertAddressToLocation(address: string) {
+    if (!address) return null;
+
+    try {
+      const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(
+        address,
+      )}&format=json&addressdetails=1&limit=1&countrycodes=vn`;
+
+      const response = await axios.get(url, {
+        headers: { 'User-Agent': 'NestJS App' },
+      });
+
+      if (!response.data || response.data.length === 0) {
+        return null;
+      }
+
+      const { lat, lon } = response.data[0];
+
+      return {
+        type: 'Point',
+        coordinates: [parseFloat(lon), parseFloat(lat)],
+      };
+    } catch (error) {
+      console.error('Error converting address to location:', error?.message);
+      return null;
     }
   }
 }

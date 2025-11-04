@@ -105,4 +105,17 @@ export class CustomerController {
       data: result,
     };
   }
+
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.ADMIN)
+  @Get('total/detail')
+  async totalDetailAccount() {
+    const result = await lastValueFrom(
+      this.customerService.send({ cmd: 'total-detail-account' }, {}),
+    );
+    return {
+      message: `Lấy tổng chi tiết user thành công`,
+      data: result,
+    };
+  }
 }

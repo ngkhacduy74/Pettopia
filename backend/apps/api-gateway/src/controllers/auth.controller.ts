@@ -95,4 +95,14 @@ export class AuthController {
       throw new RpcException(error);
     }
   }
+  @Post('convert/location')
+  async convertLocation(@Body() address: string) {
+    try {
+      return await lastValueFrom(
+        this.authService.send({ cmd: 'convert-location' }, { address }),
+      );
+    } catch (err) {
+      throw new RpcException(err);
+    }
+  }
 }

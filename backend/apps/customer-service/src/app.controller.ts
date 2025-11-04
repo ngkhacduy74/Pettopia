@@ -126,7 +126,6 @@ export class AppController {
     @Payload() payload: { userId: string; role: string },
   ): Promise<any> {
     try {
-      console.log('đã chạy vào add role tự động');
       const { userId, role } = payload;
       const result = await this.appService.addRoleAutomatically(userId, role);
       return result;
@@ -145,6 +144,15 @@ export class AppController {
       return result;
     } catch (err) {
       handleRpcError('UserController.removeRoleFromUser', err);
+    }
+  }
+  @MessagePattern({ cmd: 'total-detail-account' })
+  async totalDetailAccount(): Promise<any> {
+    try {
+      const result = await this.appService.totalDetailAccount();
+      return result;
+    } catch (err) {
+      handleRpcError('UserController.totalDetailAccount', err);
     }
   }
 }
