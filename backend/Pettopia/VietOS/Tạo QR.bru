@@ -1,0 +1,24 @@
+meta {
+  name: Tạo QR
+  type: http
+  seq: 2
+}
+
+post {
+  url: http://localhost:3000/api/v1/payments
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "orderId": "12345467",
+    "amount": 2000,
+    "description": "Thanh toán"
+  }
+  
+}
+
+settings {
+  encodeUrl: true
+}

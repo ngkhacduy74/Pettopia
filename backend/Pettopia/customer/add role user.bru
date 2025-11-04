@@ -1,0 +1,26 @@
+meta {
+  name: add role user
+  type: http
+  seq: 2
+}
+
+patch {
+  url: http://localhost:3000/api/v1/customer/9645944f-5eb9-48d4-8604-98d0aeeb5c67/add-role
+  body: json
+  auth: inherit
+}
+
+headers {
+  token: {{token}}
+}
+
+body:json {
+  
+  {
+    "role": "staff"
+  }
+}
+
+settings {
+  encodeUrl: true
+}

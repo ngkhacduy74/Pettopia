@@ -1,0 +1,19 @@
+meta {
+  name: get clinic by id
+  type: http
+  seq: 9
+}
+
+get {
+  url: http://localhost:3000/api/v1/partner/clinic/1db5b90b-7021-4f04-ba7d-32a8d55f2b78
+  body: none
+  auth: inherit
+}
+
+headers {
+  token: {{token}}
+}
+
+settings {
+  encodeUrl: true
+}

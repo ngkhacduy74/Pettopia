@@ -1,0 +1,51 @@
+meta {
+  name: createClinicForm
+  type: http
+  seq: 3
+}
+
+post {
+  url: http://localhost:3000/api/v1/partner/clinic/register
+  body: json
+  auth: inherit
+}
+
+headers {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "clinic_name": "Phòng khám Thú y PetCare",
+    "email": {
+      "email_address": "info.petcare@gmail.com"
+    },
+    "phone": {
+      "phone_number": "+84905112233"
+    },
+    "license_number": "145/HCM-SNNPTNT",
+    "address": {
+      "city": "Ho Chi Minh",
+      "district": "District 1",
+      "ward": "Ben Nghe",
+      "detail": "789 Nguyen Hue"
+    },
+    "representative": {
+      "name": "Lê Văn Hùng",
+      "email": {
+        "email_address": "duynkhe170075@gmail.com"
+      },
+      "phone": {
+        "phone_number": "0905123456"
+      },
+      "identify_number": "079090005678",
+      "responsible_licenses": ["CCHN-TY-00123/SNN-HCM"],
+      "license_issued_date": "2023-01-20"
+    }
+  }
+  
+}
+
+settings {
+  encodeUrl: true
+}
