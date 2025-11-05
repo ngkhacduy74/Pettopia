@@ -6,7 +6,7 @@ import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 
 async function bootstrap() {
   const PORT = process.env.PORT ?? 3020;
-  const TCP_PORT = parseInt(process.env.TCP_PAYMENT_PORT || '5007', 10);
+  const TCP_PORT = parseInt(process.env.TCP_BILLING_PORT || '5007', 10);
   
   const app = await NestFactory.create(AppModule, {
     rawBody: true,

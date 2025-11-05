@@ -1,14 +1,26 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { MongooseModule } from '@nestjs/mongoose';
 import { GoogleGenerativeAI, GenerativeModel } from '@google/generative-ai';
 import { GeminiService } from './gemini.service';
 import { GeminiController } from './gemini.controller';
+import { ConversationService } from './conversation.service';
+import {
+  Conversation,
+  ConversationSchema,
+} from './schemas/conversation.schema';
 
 @Module({
-  imports: [ConfigModule],
+  imports: [
+    ConfigModule,
+    MongooseModule.forFeature([
+      { name: Conversation.name, schema: ConversationSchema },
+    ]),
+  ],
   controllers: [GeminiController],
   providers: [
     GeminiService,
+    ConversationService,
     {
       provide: GoogleGenerativeAI,
       useFactory: (configService: ConfigService) => {
@@ -19,10 +31,19 @@ import { GeminiController } from './gemini.controller';
     },
     {
       provide: 'GEMINI_MODEL',
-      useFactory: (genAI: GoogleGenerativeAI, configService: ConfigService): GenerativeModel => {
-  
-        const modelName = configService.get<string>('GEMINI_MODEL') ?? 'gemini-2.0-flash';
-        return genAI.getGenerativeModel({ model: modelName });  
+      useFactory: (
+        genAI: GoogleGenerativeAI,
+        configService: ConfigService,
+      ): GenerativeModel => {
+        const modelName =
+          configService.get<string>('GEMINI_MODEL') ?? 'gemini-2.0-flash';
+        const systemInstruction =
+          configService.get<string>('GEMINI_SYSTEM_PROMPT') ||
+          'You are a helpful assistant. Always continue the conversation based on prior messages and keep context across turns. Answer in the language of the user.';
+        return genAI.getGenerativeModel({
+          model: modelName,
+          systemInstruction,
+        });
       },
       inject: [GoogleGenerativeAI, ConfigService],
     },

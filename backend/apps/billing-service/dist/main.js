@@ -7,7 +7,7 @@ const common_1 = require("@nestjs/common");
 const microservices_1 = require("@nestjs/microservices");
 async function bootstrap() {
     const PORT = process.env.PORT ?? 3020;
-    const TCP_PORT = parseInt(process.env.TCP_PAYMENT_PORT || '5007', 10);
+    const TCP_PORT = parseInt(process.env.TCP_BILLING_PORT || '5007', 10);
     const app = await core_1.NestFactory.create(app_module_1.AppModule, {
         rawBody: true,
     });
