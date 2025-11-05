@@ -75,7 +75,8 @@ export class User {
     trim: true,
   })
   id: string;
-
+  @Prop({type:String, required:false})
+  clinic_id?:string;
   @Prop({ type: String, required: false, trim: true })
   fullname: string;
 

@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   HttpCode,
+  HttpException,
   HttpStatus,
   Inject,
   Param,
@@ -44,7 +45,23 @@ export class PartnerController {
       ),
     );
   }
-
+@UseGuards(JwtAuthGuard,RoleGuard)
+@Roles(Role.CLINIC)
+@Get('/service/all')
+@HttpCode(HttpStatus.OK)
+async getAllServices(
+  @UserToken('clinic_id') clinic_id: string,
+  @Query('page', new ParseIntPipe({ optional: true })) page = 1,
+  @Query('limit', new ParseIntPipe({ optional: true })) limit = 10,
+) {
+  console.log("ládlakjsd",clinic_id)
+  return await lastValueFrom(
+    this.partnerService.send(
+      { cmd: 'getAllServicesFollowClinicId' },
+      { clinic_id, page, limit },
+    ),
+  );
+}
   @UseGuards(JwtAuthGuard)
   @Post('/clinic/register')
   @HttpCode(HttpStatus.CREATED)
@@ -313,6 +330,9 @@ export class PartnerController {
     );
   }
 
+
+
+
   @Get('/service/:clinic_id')
   @HttpCode(HttpStatus.OK)
   async getServicesByClinicId(@Param('clinic_id') clinic_id: string) {
@@ -320,6 +340,8 @@ export class PartnerController {
       this.partnerService.send({ cmd: 'getServicesByClinicId' }, { clinic_id }),
     );
   }
+    @UseGuards(JwtAuthGuard, RoleGuard)
+
   @Get('/service/:id')
   @HttpCode(HttpStatus.OK)
   async getServiceById(@Param('id') id: string) {
@@ -327,6 +349,8 @@ export class PartnerController {
       this.partnerService.send({ cmd: 'getServiceById' }, { id }),
     );
   }
+
+  
   @UseGuards(ClinicUpdateGuard)
   @Put('/verify-clinic/update-form/:id')
   @HttpCode(HttpStatus.OK)

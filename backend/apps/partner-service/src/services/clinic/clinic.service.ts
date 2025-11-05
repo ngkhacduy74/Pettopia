@@ -183,11 +183,13 @@ export class ClinicService {
               'Bad Request',
             );
           }
+          console.log("lálkjalsjdasd",createdClinic);
           // Tạo user account với vai trò "Clinic"
           const userAccountData = {
             id: uuidv4(),
             email: clinicForm.email,
             phone: clinicForm.phone,
+            clinic_id:createdClinic.id,
             fullname: clinicForm.clinic_name,
             username: clinicForm.email.email_address,
             password: generateRandomPassword(),

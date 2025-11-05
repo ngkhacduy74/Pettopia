@@ -20,6 +20,51 @@ const createRpcError = (
 @Injectable()
 export class ServiceService {
   constructor(private readonly serviceRepositories: ServiceRepository) {}
+
+  async getAllServicesByClinicId(
+    clinic_id: string,
+    page: number = 1,
+    limit: number = 10,
+  ) {
+    try {
+      console.log(";akd;kads;ad",clinic_id)
+      if (!clinic_id) {
+        throw createRpcError(
+          HttpStatus.BAD_REQUEST,
+          'Thiếu thông tin phòng khám',
+          'Bad Request',
+        );
+      }
+
+      const skip = (page - 1) * limit;
+      
+      const [services, total] = await Promise.all([
+        this.serviceRepositories.findServicesByClinicId(clinic_id, skip, limit),
+        this.serviceRepositories.countServicesByClinicId(clinic_id),
+      ]);
+
+      return {
+        status: 'success',
+        data: {
+          items: services,
+          total,
+          page,
+          limit,
+          totalPages: Math.ceil(total / limit),
+        },
+      };
+    } catch (error) {
+      if (error instanceof RpcException) {
+        throw error;
+      }
+      throw createRpcError(
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        'Lỗi khi lấy danh sách dịch vụ',
+        'Internal Server Error',
+        error.message,
+      );
+    }
+  }
   async createService(data: CreateServiceDto, clinic_id: string): Promise<any> {
     try {
       const result = await this.serviceRepositories

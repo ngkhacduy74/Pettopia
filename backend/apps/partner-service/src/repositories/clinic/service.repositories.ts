@@ -48,6 +48,39 @@ export class ServiceRepository {
     }
   }
 
+  async findServicesByClinicId(
+    clinicId: string,
+    skip: number,
+    limit: number,
+  ): Promise<Service[]> {
+    try {
+      return await this.serviceModel
+        .find({ clinic_id: clinicId, is_active: true })
+        .sort({ created_at: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean()
+        .exec();
+    } catch (err) {
+      throw new InternalServerErrorException(
+        err.message || 'Lỗi khi lấy danh sách dịch vụ theo phòng khám',
+      );
+    }
+  }
+
+  async countServicesByClinicId(clinicId: string): Promise<number> {
+    try {
+      return await this.serviceModel.countDocuments({ 
+        clinic_id: clinicId, 
+        is_active: true 
+      });
+    } catch (err) {
+      throw new InternalServerErrorException(
+        err.message || 'Lỗi khi đếm số lượng dịch vụ theo phòng khám',
+      );
+    }
+  }
+
   async updateService(
     serviceId: string,
     updateServiceDto: any,

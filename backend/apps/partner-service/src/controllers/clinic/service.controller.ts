@@ -86,6 +86,22 @@ export class ServiceController {
     }
   }
 
+  @MessagePattern({ cmd: 'getAllServicesFollowClinicId' })
+  async getAllServicesFollowClinicId(
+    @Payload() payload: { clinic_id: string; page: number; limit: number },
+  ) {
+    try {
+      const { clinic_id, page, limit } = payload;
+      return await this.serviceService.getAllServicesByClinicId(
+        clinic_id,
+        page,
+        limit,
+      );
+    } catch (err) {
+      handleRpcError('ServiceController.getAllServicesFollowClinicId', err);
+    }
+  }
+
   @MessagePattern({ cmd: 'updateServiceStatus' })
   async updateServiceStatus(
     @Payload() payload: { id: string; is_active: boolean },
