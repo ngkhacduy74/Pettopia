@@ -101,15 +101,17 @@ export class UsersRepository {
     }
   }
   async updateUserStatus(id: string, status: UserStatus): Promise<any> {
-    try {
-      const result = await this.userModel
-        .findOneAndUpdate({ id }, { is_active: status })
-        .exec();
-      return result;
-    } catch (err) {
-      throw new Error(err);
-    }
+  try {
+    const isActive = status === UserStatus.ACTIVE;
+    const result = await this.userModel
+      .findOneAndUpdate({ id: id }, { is_active: isActive }, { new: true })
+      .exec();
+    return result;
+  } catch (err) {
+    throw new Error(err.message);
   }
+}
+
 
   async getAllUsers(
     data: GetAllUsersDto,
