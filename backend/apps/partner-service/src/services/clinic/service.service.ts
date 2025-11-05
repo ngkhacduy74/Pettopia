@@ -261,36 +261,6 @@ export class ServiceService {
       );
     }
   }
-  // async getServicesByClinicId(clinic_id: string): Promise<any> {
-  //   try {
-  //     const result = await this.serviceRepositories
-  //       .getServicesByClinicId(clinic_id)
-  //       .catch((error) => {
-  //         throw createRpcError(
-  //           HttpStatus.BAD_REQUEST,
-  //           'Lỗi khi lấy danh sách dịch vụ theo phòng khám',
-  //           'Bad Request',
-  //           error.message,
-  //         );
-  //       });
-
-  //     return {
-  //       status: 'success',
-  //       message: 'Lấy danh sách dịch vụ theo phòng khám thành công',
-  //       data: result,
-  //     };
-  //   } catch (error) {
-  //     if (error instanceof RpcException) {
-  //       throw error;
-  //     }
-  //     throw createRpcError(
-  //       HttpStatus.INTERNAL_SERVER_ERROR,
-  //       'Đã xảy ra lỗi khi lấy danh sách dịch vụ theo phòng khám',
-  //       'Internal Server Error',
-  //       error.message,
-  //     );
-  //   }
-  // }
   async getServiceById(id: string): Promise<any> {
     try {
       const result = await this.serviceRepositories
@@ -325,6 +295,48 @@ export class ServiceService {
       throw createRpcError(
         HttpStatus.INTERNAL_SERVER_ERROR,
         'Đã xảy ra lỗi khi lấy thông tin dịch vụ',
+        'Internal Server Error',
+        error.message,
+      );
+    }
+  }
+
+  async getServicesByClinicId(clinic_id: string, page: number = 1, limit: number = 10): Promise<any> {
+    try {
+      if (!clinic_id) {
+        throw createRpcError(
+          HttpStatus.BAD_REQUEST,
+          'Thiếu thông tin phòng khám',
+          'Bad Request'
+        );
+      }
+
+      const result = await this.serviceRepositories.getServicesByClinicId(
+        clinic_id,
+        page,
+        limit
+      );
+
+      return {
+        status: 'success',
+        message: 'Lấy danh sách dịch vụ theo phòng khám thành công',
+        data: {
+          items: result.data,
+          pagination: {
+            total: result.total,
+            page: result.page,
+            limit: result.limit,
+            totalPages: Math.ceil(result.total / result.limit)
+          }
+        }
+      };
+    } catch (error) {
+      if (error instanceof RpcException) {
+        throw error;
+      }
+      throw createRpcError(
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        'Đã xảy ra lỗi khi lấy danh sách dịch vụ theo phòng khám',
         'Internal Server Error',
         error.message,
       );
