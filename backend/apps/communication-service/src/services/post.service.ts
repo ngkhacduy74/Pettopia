@@ -78,7 +78,8 @@ export class PostService {
 
       // 4. Lưu DB
       const post = await this.postRepository.create(postData);
-      if (!post) throw new InternalServerErrorException('Failed to create post');
+      if (!post)
+        throw new InternalServerErrorException('Failed to create post');
 
       // 5. Trả về với DTO
       return {
@@ -122,9 +123,11 @@ async findByUserId(user_id: string): Promise<PostResponseDto[]> {
   /**
    * UPDATE
    */
-  async update(
-    payload: { post_id: string; updateData: UpdatePostDto; files?: string[] },
-  ): Promise<any> {
+  async update(payload: {
+    post_id: string;
+    updateData: UpdatePostDto;
+    files?: string[];
+  }): Promise<any> {
     try {
       const { post_id, updateData, files } = payload;
 
@@ -146,7 +149,8 @@ async findByUserId(user_id: string): Promise<PostResponseDto[]> {
       }
 
       const post = await this.postRepository.findById(post_id);
-      if (!post) throw new NotFoundException(`Post with ID ${post_id} not found`);
+      if (!post)
+        throw new NotFoundException(`Post with ID ${post_id} not found`);
 
       const updatedPost = await this.postRepository.update(post_id, {
         ...updateData,
@@ -169,92 +173,94 @@ async findByUserId(user_id: string): Promise<PostResponseDto[]> {
    */
   async delete(post_id: string): Promise<{ message: string }> {
     const deleted = await this.postRepository.delete(post_id);
-    if (!deleted) throw new NotFoundException(`Post with ID ${post_id} not found`);
+    if (!deleted)
+      throw new NotFoundException(`Post with ID ${post_id} not found`);
     return { message: 'Xóa bài viết thành công!' };
   }
   // LIKE / UNLIKE
-async likePost(post_id: string, user_id: string) {
-  const post = await this.postRepository.findById(post_id);
-  if (!post) throw new NotFoundException('Post not found');
+  async likePost(post_id: string, user_id: string) {
+    const post = await this.postRepository.findById(post_id);
+    if (!post) throw new NotFoundException('Post not found');
 
-  const likedIndex = post.likes.findIndex(l => l.user_id === user_id);
-  if (likedIndex > -1) {
-    // Unlike
-    post.likes.splice(likedIndex, 1);
-    post.likeCount = Math.max(0, post.likeCount - 1);
-  } else {
-    // Like
-    post.likes.push({ user_id, likedAt: new Date() });
-    post.likeCount += 1;
+    const likedIndex = post.likes.findIndex((l) => l.user_id === user_id);
+    if (likedIndex > -1) {
+      // Unlike
+      post.likes.splice(likedIndex, 1);
+      post.likeCount = Math.max(0, post.likeCount - 1);
+    } else {
+      // Like
+      post.likes.push({ user_id, likedAt: new Date() });
+      post.likeCount += 1;
+    }
+
+    const updated = await this.postRepository.update(post_id, {
+      likes: post.likes,
+      likeCount: post.likeCount,
+    });
+
+    return {
+      message: likedIndex > -1 ? 'Đã bỏ thích' : 'Đã thích',
+      post: mapToResponseDto(updated),
+    };
   }
 
-  const updated = await this.postRepository.update(post_id, {
-    likes: post.likes,
-    likeCount: post.likeCount,
-  });
+  // ADD COMMENT
+  async addComment(post_id: string, user_id: string, content: string) {
+    const post = await this.postRepository.findById(post_id);
+    if (!post) throw new NotFoundException('Post not found');
 
-  return {
-    message: likedIndex > -1 ? 'Đã bỏ thích' : 'Đã thích',
-    post: mapToResponseDto(updated),
-  };
-}
+    const user = await lastValueFrom(
+      this.userClient.send({ cmd: 'getUserById' }, { id: user_id }),
+    );
 
-// ADD COMMENT
-async addComment(post_id: string, user_id: string, content: string) {
-  const post = await this.postRepository.findById(post_id);
-  if (!post) throw new NotFoundException('Post not found');
+    const newComment = {
+      comment_id: uuidv4(),
+      author: {
+        user_id: user.id,
+        fullname: user.fullname,
+        avatar: user.avatar_url || null,
+      },
+      content,
+      likes: [],
+      reports: [],
+      isHidden: false,
+      isDeleted: false,
+      createdAt: new Date(),
+    };
 
-  const user = await lastValueFrom(
-    this.userClient.send({ cmd: 'getUserById' }, { id: user_id }),
-  );
+    post.comments.push(newComment);
+    post.commentCount += 1;
 
-  const newComment = {
-    comment_id: uuidv4(),
-    author: {
-      user_id: user.id,
-      fullname: user.fullname,
-      avatar: user.avatar_url || null,
-    },
-    content,
-    likes: [],
-    reports: [],
-    isHidden: false,
-    isDeleted: false,
-    createdAt: new Date(),
-  };
+    const updated = await this.postRepository.update(post_id, {
+      comments: post.comments,
+      commentCount: post.commentCount,
+    });
 
-  post.comments.push(newComment);
-  post.commentCount += 1;
+    return {
+      message: 'Bình luận thành công!',
+      comment: newComment,
+      post: mapToResponseDto(updated),
+    };
+  }
 
-  const updated = await this.postRepository.update(post_id, {
-    comments: post.comments,
-    commentCount: post.commentCount,
-  });
+  // DELETE COMMENT
+  async deleteComment(post_id: string, comment_id: string, user_id: string) {
+    const post = await this.postRepository.findById(post_id);
+    if (!post) throw new NotFoundException('Post not found');
 
-  return {
-    message: 'Bình luận thành công!',
-    comment: newComment,
-    post: mapToResponseDto(updated),
-  };
-}
+    const comment = post.comments.find((c) => c.comment_id === comment_id);
+    if (!comment) throw new NotFoundException('Comment not found');
+    if (comment.author.user_id !== user_id)
+      throw new BadRequestException('Không có quyền');
 
-// DELETE COMMENT
-async deleteComment(post_id: string, comment_id: string, user_id: string) {
-  const post = await this.postRepository.findById(post_id);
-  if (!post) throw new NotFoundException('Post not found');
+    comment.isDeleted = true;
+    post.commentCount = Math.max(0, post.commentCount - 1);
 
-  const comment = post.comments.find(c => c.comment_id === comment_id);
-  if (!comment) throw new NotFoundException('Comment not found');
-  if (comment.author.user_id !== user_id) throw new BadRequestException('Không có quyền');
+    const updated = await this.postRepository.update(post_id, {
+      comments: post.comments,
+      commentCount: post.commentCount,
+    });
 
-  comment.isDeleted = true;
-  post.commentCount = Math.max(0, post.commentCount - 1);
-
-  const updated = await this.postRepository.update(post_id, {
-    comments: post.comments,
-    commentCount: post.commentCount,
-  });
-
-  return { message: 'Đã xóa bình luận', post: mapToResponseDto(updated) };
-}
+    return { message: 'Đã xóa bình luận', post: mapToResponseDto(updated) };
+  }
 }

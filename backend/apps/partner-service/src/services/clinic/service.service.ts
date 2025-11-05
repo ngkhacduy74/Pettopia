@@ -1,37 +1,96 @@
 import { RpcException } from '@nestjs/microservices';
 import { HttpStatus, Inject, Injectable } from '@nestjs/common';
-import { CreateServiceDto } from 'src/dto/clinic/create-service.dto';
+import { CreateServiceDto } from 'src/dto/clinic/services/create-service.dto';
 import { ServiceRepository } from 'src/repositories/clinic/service.repositories';
 
-const createRpcError = (statusCode: number, message: string, error: string, details?: any) => {
+const createRpcError = (
+  statusCode: number,
+  message: string,
+  error: string,
+  details?: any,
+) => {
   return new RpcException({
     statusCode,
     message,
     error,
-    ...(details && { details })
+    ...(details && { details }),
   });
 };
 
 @Injectable()
 export class ServiceService {
   constructor(private readonly serviceRepositories: ServiceRepository) {}
+
+  async getAllServicesByClinicId(
+    clinic_id: string,
+    page: number = 1,
+    limit: number = 10,
+  ) {
+    try {
+      console.log(";akd;kads;ad",clinic_id)
+      if (!clinic_id) {
+        throw createRpcError(
+          HttpStatus.BAD_REQUEST,
+          'Thiếu thông tin phòng khám',
+          'Bad Request',
+        );
+      }
+
+      const skip = (page - 1) * limit;
+      
+      const [services, total] = await Promise.all([
+        this.serviceRepositories.findServicesByClinicId(clinic_id, skip, limit),
+        this.serviceRepositories.countServicesByClinicId(clinic_id),
+      ]);
+
+      return {
+        status: 'success',
+        data: {
+          items: services,
+          total,
+          page,
+          limit,
+          totalPages: Math.ceil(total / limit),
+        },
+      };
+    } catch (error) {
+      if (error instanceof RpcException) {
+        throw error;
+      }
+      throw createRpcError(
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        'Lỗi khi lấy danh sách dịch vụ',
+        'Internal Server Error',
+        error.message,
+      );
+    }
+  }
   async createService(data: CreateServiceDto, clinic_id: string): Promise<any> {
     try {
-      const result = await this.serviceRepositories.createService(data, clinic_id)
-        .catch(error => {
-          throw createRpcError(HttpStatus.BAD_REQUEST, 'Lỗi khi tạo dịch vụ', 'Bad Request', error.message);
+      const result = await this.serviceRepositories
+        .createService(data, clinic_id)
+        .catch((error) => {
+          throw createRpcError(
+            HttpStatus.BAD_REQUEST,
+            'Lỗi khi tạo dịch vụ',
+            'Bad Request',
+            error.message,
+          );
         });
 
       if (!result) {
-        throw createRpcError(HttpStatus.BAD_REQUEST, 'Không thể tạo mới dịch vụ', 'Bad Request');
+        throw createRpcError(
+          HttpStatus.BAD_REQUEST,
+          'Không thể tạo mới dịch vụ',
+          'Bad Request',
+        );
       }
 
       return {
         status: 'success',
         message: 'Tạo dịch vụ thành công',
-        data: result
+        data: result,
       };
-      
     } catch (error) {
       if (error instanceof RpcException) {
         throw error;
@@ -40,16 +99,22 @@ export class ServiceService {
         HttpStatus.INTERNAL_SERVER_ERROR,
         'Đã xảy ra lỗi khi tạo dịch vụ',
         'Internal Server Error',
-        error.message
+        error.message,
       );
     }
   }
 
   async getAllService(page: number = 1, limit: number = 10): Promise<any> {
     try {
-      const result = await this.serviceRepositories.getAllService(page, limit)
-        .catch(error => {
-          throw createRpcError(HttpStatus.BAD_REQUEST, 'Lỗi khi lấy danh sách dịch vụ', 'Bad Request', error.message);
+      const result = await this.serviceRepositories
+        .getAllService(page, limit)
+        .catch((error) => {
+          throw createRpcError(
+            HttpStatus.BAD_REQUEST,
+            'Lỗi khi lấy danh sách dịch vụ',
+            'Bad Request',
+            error.message,
+          );
         });
 
       return {
@@ -61,17 +126,17 @@ export class ServiceService {
           page: result.page,
           limit: result.limit,
           totalPages: Math.ceil(result.total / result.limit),
-        }
+        },
       };
     } catch (error) {
       if (error instanceof RpcException) {
         throw error;
       }
-            throw createRpcError(
+      throw createRpcError(
         HttpStatus.INTERNAL_SERVER_ERROR,
         'Đã xảy ra lỗi khi lấy danh sách dịch vụ',
         'Internal Server Error',
-        error.message
+        error.message,
       );
     }
   }
@@ -82,16 +147,23 @@ export class ServiceService {
     clinic_id: string,
   ): Promise<any> {
     try {
-      const result = await this.serviceRepositories.updateService(
-        serviceId,
-        updateServiceDto,
-        clinic_id,
-      ).catch(error => {
-        throw createRpcError(HttpStatus.BAD_REQUEST, 'Lỗi khi cập nhật dịch vụ', 'Bad Request', error.message);
-      });
+      const result = await this.serviceRepositories
+        .updateService(serviceId, updateServiceDto, clinic_id)
+        .catch((error) => {
+          throw createRpcError(
+            HttpStatus.BAD_REQUEST,
+            'Lỗi khi cập nhật dịch vụ',
+            'Bad Request',
+            error.message,
+          );
+        });
 
       if (!result) {
-        throw createRpcError(HttpStatus.NOT_FOUND, 'Không tìm thấy dịch vụ để cập nhật', 'Not Found');
+        throw createRpcError(
+          HttpStatus.NOT_FOUND,
+          'Không tìm thấy dịch vụ để cập nhật',
+          'Not Found',
+        );
       }
 
       return {
@@ -103,26 +175,34 @@ export class ServiceService {
       if (error instanceof RpcException) {
         throw error;
       }
-            throw createRpcError(
+      throw createRpcError(
         500,
         'Đã xảy ra lỗi khi cập nhật dịch vụ',
         'Internal Server Error',
-        error.message
+        error.message,
       );
     }
   }
 
   async removeService(serviceId: string, clinic_id: string): Promise<any> {
     try {
-      const result = await this.serviceRepositories.removeService(
-        serviceId,
-        clinic_id,
-      ).catch(error => {
-        throw createRpcError(HttpStatus.BAD_REQUEST, 'Lỗi khi xóa dịch vụ', 'Bad Request', error.message);
-      });
+      const result = await this.serviceRepositories
+        .removeService(serviceId, clinic_id)
+        .catch((error) => {
+          throw createRpcError(
+            HttpStatus.BAD_REQUEST,
+            'Lỗi khi xóa dịch vụ',
+            'Bad Request',
+            error.message,
+          );
+        });
 
       if (!result || result.deletedCount === 0) {
-        throw createRpcError(HttpStatus.NOT_FOUND, 'Không tìm thấy dịch vụ để xóa', 'Not Found');
+        throw createRpcError(
+          HttpStatus.NOT_FOUND,
+          'Không tìm thấy dịch vụ để xóa',
+          'Not Found',
+        );
       }
 
       return {
@@ -134,26 +214,34 @@ export class ServiceService {
       if (error instanceof RpcException) {
         throw error;
       }
-            throw createRpcError(
+      throw createRpcError(
         HttpStatus.INTERNAL_SERVER_ERROR,
         'Đã xảy ra lỗi khi xóa dịch vụ',
         'Internal Server Error',
-        error.message
+        error.message,
       );
     }
   }
 
   async updateServiceStatus(id: string, is_active: boolean): Promise<any> {
     try {
-      const result = await this.serviceRepositories.updateServiceStatus(
-        id,
-        is_active,
-      ).catch(error => {
-        throw createRpcError(HttpStatus.BAD_REQUEST, 'Lỗi khi cập nhật trạng thái dịch vụ', 'Bad Request', error.message);
-      });
+      const result = await this.serviceRepositories
+        .updateServiceStatus(id, is_active)
+        .catch((error) => {
+          throw createRpcError(
+            HttpStatus.BAD_REQUEST,
+            'Lỗi khi cập nhật trạng thái dịch vụ',
+            'Bad Request',
+            error.message,
+          );
+        });
 
       if (!result) {
-        throw createRpcError(HttpStatus.NOT_FOUND, 'Không tìm thấy dịch vụ cần cập nhật trạng thái', 'Not Found');
+        throw createRpcError(
+          HttpStatus.NOT_FOUND,
+          'Không tìm thấy dịch vụ cần cập nhật trạng thái',
+          'Not Found',
+        );
       }
 
       return {
@@ -165,48 +253,34 @@ export class ServiceService {
       if (error instanceof RpcException) {
         throw error;
       }
-            throw createRpcError(
+      throw createRpcError(
         HttpStatus.INTERNAL_SERVER_ERROR,
         'Đã xảy ra lỗi khi cập nhật trạng thái dịch vụ',
         'Internal Server Error',
-        error.message
-      );
-    }
-  }
-  async getServicesByClinicId(clinic_id: string): Promise<any> {
-    try {
-      const result = await this.serviceRepositories.getServicesByClinicId(clinic_id)
-        .catch(error => {
-          throw createRpcError(HttpStatus.BAD_REQUEST, 'Lỗi khi lấy danh sách dịch vụ theo phòng khám', 'Bad Request', error.message);
-        });
-
-      return {
-        status: 'success',
-        message: 'Lấy danh sách dịch vụ theo phòng khám thành công',
-        data: result,
-      };
-    } catch (error) {
-      if (error instanceof RpcException) {
-        throw error;
-      }
-            throw createRpcError(
-        HttpStatus.INTERNAL_SERVER_ERROR,
-        'Đã xảy ra lỗi khi lấy danh sách dịch vụ theo phòng khám',
-        'Internal Server Error',
-        error.message
+        error.message,
       );
     }
   }
   async getServiceById(id: string): Promise<any> {
     try {
-      const result = await this.serviceRepositories.getServiceById(id)
-        .catch(error => {
+      const result = await this.serviceRepositories
+        .getServiceById(id)
+        .catch((error) => {
           console.error('Error getting service by ID:', error);
-          throw createRpcError(HttpStatus.BAD_REQUEST, 'Lỗi khi lấy thông tin dịch vụ', 'Bad Request', error.message);
+          throw createRpcError(
+            HttpStatus.BAD_REQUEST,
+            'Lỗi khi lấy thông tin dịch vụ',
+            'Bad Request',
+            error.message,
+          );
         });
 
       if (!result) {
-        throw createRpcError(HttpStatus.NOT_FOUND, 'Không tìm thấy dịch vụ', 'Not Found');
+        throw createRpcError(
+          HttpStatus.NOT_FOUND,
+          'Không tìm thấy dịch vụ',
+          'Not Found',
+        );
       }
 
       return {
@@ -218,11 +292,53 @@ export class ServiceService {
       if (error instanceof RpcException) {
         throw error;
       }
-            throw createRpcError(
+      throw createRpcError(
         HttpStatus.INTERNAL_SERVER_ERROR,
         'Đã xảy ra lỗi khi lấy thông tin dịch vụ',
         'Internal Server Error',
-        error.message
+        error.message,
+      );
+    }
+  }
+
+  async getServicesByClinicId(clinic_id: string, page: number = 1, limit: number = 10): Promise<any> {
+    try {
+      if (!clinic_id) {
+        throw createRpcError(
+          HttpStatus.BAD_REQUEST,
+          'Thiếu thông tin phòng khám',
+          'Bad Request'
+        );
+      }
+
+      const result = await this.serviceRepositories.getServicesByClinicId(
+        clinic_id,
+        page,
+        limit
+      );
+
+      return {
+        status: 'success',
+        message: 'Lấy danh sách dịch vụ theo phòng khám thành công',
+        data: {
+          items: result.data,
+          pagination: {
+            total: result.total,
+            page: result.page,
+            limit: result.limit,
+            totalPages: Math.ceil(result.total / result.limit)
+          }
+        }
+      };
+    } catch (error) {
+      if (error instanceof RpcException) {
+        throw error;
+      }
+      throw createRpcError(
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        'Đã xảy ra lỗi khi lấy danh sách dịch vụ theo phòng khám',
+        'Internal Server Error',
+        error.message,
       );
     }
   }

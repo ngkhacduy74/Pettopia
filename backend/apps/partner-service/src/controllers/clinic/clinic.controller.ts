@@ -4,8 +4,8 @@ import { ClinicService } from '../../services/clinic/clinic.service';
 
 import { MessagePattern, Payload, RpcException } from '@nestjs/microservices';
 import { handleRpcError } from 'src/common/error.detail';
-import { CreateClinicFormDto } from 'src/dto/clinic/create-clinic-form.dto';
-import { UpdateStatusClinicDto } from 'src/dto/clinic/update-status.dto';
+import { CreateClinicFormDto } from 'src/dto/clinic/clinic/create-clinic-form.dto';
+import { UpdateStatusClinicDto } from 'src/dto/clinic/clinic/update-status.dto';
 @UsePipes(
   new ValidationPipe({
     transform: true,
@@ -17,7 +17,7 @@ import { UpdateStatusClinicDto } from 'src/dto/clinic/update-status.dto';
 export class ClinicController {
   constructor(private readonly clinicService: ClinicService) {}
 
-  @MessagePattern({ cmd: 'getAllClinicForm' })
+  @MessagePattern({ cmd: 'getAllClinic' })
   async getAllClinicForm(): Promise<any> {
     try {
       const result = await this.clinicService.findAllClinicForm();
@@ -98,6 +98,46 @@ export class ClinicController {
       return result;
     } catch (err) {
       handleRpcError('ClinicController.getClinicById', err);
+    }
+  }
+  @MessagePattern({ cmd: 'updateClinicFormByMail' })
+  async updateClinicFormByMail(@Payload() data: any): Promise<any> {
+    try {
+      return await this.clinicService.updateClinicFormByMail(data);
+    } catch (err) {
+      handleRpcError('ClinicController.updateClinicFormByMail', err);
+    }
+  }
+  @MessagePattern({ cmd: 'getClinicByVerificationToken' })
+  async getClinicByVerificationToken(@Payload() data: any): Promise<any> {
+    try {
+      const { token } = data;
+      const clinic =
+        await this.clinicService.getClinicByVerificationToken(token);
+
+      return {
+        status: 'success',
+        message: 'Lấy thông tin phòng khám theo token thành công.',
+        data: clinic,
+      };
+    } catch (error) {
+      handleRpcError('PartnerController.getClinicByVerificationToken', error);
+    }
+  }
+  @MessagePattern({ cmd: 'updateClinicForm' })
+  async updateClinicForm(@Payload() data: any) {
+    try {
+      const { id, dto } = data;
+      console.log('updateClinicForm data:', data);
+      const result = await this.clinicService.updateClinicForm(id, dto);
+
+      return {
+        status: 'success',
+        message: 'Cập nhật thông tin phòng khám thành công',
+        data: result,
+      };
+    } catch (err) {
+      handleRpcError('ClinicController.updateClinicForm', err);
     }
   }
 }

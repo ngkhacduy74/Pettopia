@@ -7,9 +7,9 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { CreateClinicFormDto } from 'src/dto/clinic/create-clinic-form.dto';
-import { CreateClinicDto } from 'src/dto/clinic/create-clinic.dto';
-import { UpdateStatusClinicDto } from 'src/dto/clinic/update-status.dto';
+import { CreateClinicFormDto } from 'src/dto/clinic/clinic/create-clinic-form.dto';
+import { CreateClinicDto } from 'src/dto/clinic/clinic/create-clinic.dto';
+import { UpdateStatusClinicDto } from 'src/dto/clinic/clinic/update-status.dto';
 import { CreateVetDto } from 'src/dto/vet/create-vet.dto';
 import { UpdateStatusVetDto } from 'src/dto/vet/update-vet-form';
 import { VetRegisterDto } from 'src/dto/vet/vet-register-form';

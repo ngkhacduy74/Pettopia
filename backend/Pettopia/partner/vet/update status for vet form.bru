@@ -1,0 +1,26 @@
+meta {
+  name: update status for vet form
+  type: http
+  seq: 2
+}
+
+patch {
+  url: http://localhost:3000/api/v1/partner/vet/status/form/4572e78b-b8a7-48b0-ba28-34f91cb61759
+  body: json
+  auth: inherit
+}
+
+headers {
+  token: {{token}}
+}
+
+body:json {
+  {
+      "status":"approved",
+      "note":"Đơn tạo bác sĩ đã được duyệt"
+  }
+}
+
+settings {
+  encodeUrl: true
+}

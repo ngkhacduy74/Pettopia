@@ -10,8 +10,8 @@ import {
   Shift,
   ShiftDocument,
 } from 'src/schemas/clinic/clinic_shift_setting.schema';
-import { CreateClinicShiftDto } from 'src/dto/clinic/create-shift.dto';
-import { UpdateClinicShiftDto } from 'src/dto/clinic/update-shift.dto';
+import { CreateClinicShiftDto } from 'src/dto/clinic/shift/create-shift.dto';
+import { UpdateClinicShiftDto } from 'src/dto/clinic/shift/update-shift.dto';
 
 @Injectable()
 export class ShiftRepository {

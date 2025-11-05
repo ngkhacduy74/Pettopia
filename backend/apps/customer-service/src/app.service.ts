@@ -4,6 +4,7 @@ import {
   HttpStatus, // Thêm HttpStatus
 } from '@nestjs/common';
 import { User } from './schemas/user.schema';
+import * as bcrypt from 'bcrypt';
 import { RpcException } from '@nestjs/microservices'; // Chỉ cần RpcException
 import { UsersRepository } from './repositories/user.repositories';
 import { CreateUserDto } from './dto/user/create-user.dto';
@@ -91,7 +92,11 @@ export class AppService {
 
   async createUser(user: CreateUserDto): Promise<User> {
     try {
-      const save_user = await this.userRepositories.createUser(user);
+      const salt = await bcrypt.genSalt(10);
+      const hashPass = await bcrypt.hash(user.password, salt);
+      const new_user = { ...user, password: hashPass };
+
+      const save_user = await this.userRepositories.createUser(new_user);
 
       if (!save_user) {
         throw new RpcException({
@@ -226,6 +231,18 @@ export class AppService {
         message: err.message || 'Lỗi khi xóa role khỏi người dùng',
       });
     }
+  }
+  async totalDetailAccount(): Promise<any> {
+    try {
+      const total_user = await this.userRepositories.totalDetailAccount();
+      if (!total_user) {
+        throw new RpcException({
+          status: HttpStatus.NOT_FOUND,
+          message: 'Không lấy được danh sách người dùng',
+        });
+      }
+      return total_user;
+    } catch (err) {}
   }
 
   async addRoleAutomatically(userId: string, role: string): Promise<any> {

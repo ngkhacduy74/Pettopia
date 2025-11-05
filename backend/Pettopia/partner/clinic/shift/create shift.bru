@@ -1,0 +1,40 @@
+meta {
+  name: create shift
+  type: http
+  seq: 1
+}
+
+post {
+  url: http://localhost:3000/api/v1/partner/clinic/shift
+  body: json
+  auth: inherit
+}
+
+headers {
+  token: {{token}}
+}
+
+body:json {
+  // {
+  //   "shift": "Morning",
+  //   "max_slot": 100,
+  //   "start_time": "08:00",
+  //   "end_time": "12:00"
+  // }
+  {
+    "shift": "Afternoon",
+    "max_slot": 100,
+    "start_time": "12:01",
+    "end_time": "17:00"
+  }
+  // {
+  //   "shift": "Evening",
+  //   "max_slot": 100,
+  //   "start_time": "18:00",
+  //   "end_time": "21:30"
+  // }
+}
+
+settings {
+  encodeUrl: true
+}

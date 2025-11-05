@@ -7,14 +7,17 @@ import {
 } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { lastValueFrom } from 'rxjs';
-import { CreateClinicFormDto } from 'src/dto/clinic/create-clinic-form.dto';
-import { CreateClinicDto } from 'src/dto/clinic/create-clinic.dto';
-import { CreateServiceDto } from 'src/dto/clinic/create-service.dto';
-import { UpdateStatusClinicDto } from 'src/dto/clinic/update-status.dto';
+import { CreateClinicFormDto } from 'src/dto/clinic/clinic/create-clinic-form.dto';
+import { CreateClinicDto } from 'src/dto/clinic/clinic/create-clinic.dto';
+import { CreateServiceDto } from 'src/dto/clinic/services/create-service.dto';
+import { UpdateStatusClinicDto } from 'src/dto/clinic/clinic/update-status.dto';
 import { ClinicsRepository } from 'src/repositories/clinic/clinic.repositories';
 import { ServiceRepository } from 'src/repositories/clinic/service.repositories';
 import { RegisterStatus } from 'src/schemas/clinic/clinic-register.schema';
 import { createRpcError } from 'src/common/error.detail';
+import { UpdateClinicFormDto } from 'src/dto/clinic/clinic/update-clinic-form.dto';
+import { generateRandomPassword } from 'src/common/generate.common';
+import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class ClinicService {
@@ -150,7 +153,7 @@ export class ClinicService {
         try {
           const createDto: CreateClinicDto = {
             id: clinicForm.id,
-            creator_id: clinicForm.user_id,
+            // creator_id: clinicForm.user_id,
             clinic_name: clinicForm.clinic_name,
             email: clinicForm.email,
             phone: clinicForm.phone,
@@ -162,7 +165,7 @@ export class ClinicService {
             representative: clinicForm.representative,
             is_active: true,
           };
-
+          console.log('ljkasldjasd', createDto);
           const createdClinic = await this.clinicRepositories
             .createClinic(createDto)
             .catch((error) => {
@@ -173,20 +176,58 @@ export class ClinicService {
                 error.message,
               );
             });
-
-          if (createdClinic) {
-            try {
-              await lastValueFrom(
-                this.customerService.send(
-                  { cmd: 'auto_add_user_role' },
-                  { userId: clinicForm.user_id, role: 'Clinic' },
-                ),
-              );
-            } catch (error) {
-              console.error('Error adding clinic role to user:', error);
-            }
+          if (!createdClinic) {
+            throw createRpcError(
+              HttpStatus.BAD_REQUEST,
+              'Không thể tạo phòng khám',
+              'Bad Request',
+            );
+          }
+          console.log("lálkjalsjdasd",createdClinic);
+          // Tạo user account với vai trò "Clinic"
+          const userAccountData = {
+            id: uuidv4(),
+            email: clinicForm.email,
+            phone: clinicForm.phone,
+            clinic_id:createdClinic.id,
+            fullname: clinicForm.clinic_name,
+            username: clinicForm.email.email_address,
+            password: generateRandomPassword(),
+            role: ['Clinic'],
+            is_active: true,
+          };
+          console.log('ljkalskdjalsd', userAccountData);
+          const newUser = await lastValueFrom(
+            this.customerService.send({ cmd: 'createUser' }, userAccountData),
+          ).catch((error) => {
+            console.error('Error creating user account for clinic:', error);
+            throw createRpcError(
+              HttpStatus.INTERNAL_SERVER_ERROR,
+              'Lỗi khi tạo tài khoản người dùng cho phòng khám',
+              'Internal Server Error',
+              error.message,
+            );
+          });
+          if (!newUser) {
+            throw createRpcError(
+              HttpStatus.INTERNAL_SERVER_ERROR,
+              'Không thể tạo tài khoản người dùng cho phòng khám',
+              'Internal Server Error',
+            );
           }
 
+          //Sau khi tạo tài khoản clinic xong thì cần update lại để mapping clinic đến bảng user
+          const update_clinic = await this.clinicRepositories.updateClinic(
+            clinicForm.id,
+            { user_account_id: userAccountData.id },
+          );
+          if (!update_clinic) {
+            throw createRpcError(
+              HttpStatus.INTERNAL_SERVER_ERROR,
+              'chỉnh sửa thông tin user_account_id thất bại',
+              'Internal Server Error',
+            );
+          }
           return {
             status: 'success',
             message: 'Duyệt đơn thành công và đã tạo phòng khám',
@@ -358,9 +399,29 @@ export class ClinicService {
 
   async createService(data: CreateServiceDto, clinic_id: string): Promise<any> {
     try {
+      const user = await lastValueFrom(
+        this.customerService.send({ cmd: 'getUserById' }, { id: clinic_id }),
+      ).catch((error) => {
+        throw createRpcError(
+          HttpStatus.INTERNAL_SERVER_ERROR,
+          'Không lấy được thông tin người dùng',
+          'Internal Server Error',
+          error.message,
+        );
+      });
+      if (!user) {
+        throw createRpcError(
+          HttpStatus.NOT_FOUND,
+          'Không tìm thấy người dùng',
+          'NOT_FOUND',
+        );
+      }
+      const clinic = await this.clinicRepositories.getClinicByEmail(
+        user.email.email_address,
+      );
       const result = await this.serviceRepositories.createService(
         data,
-        clinic_id,
+        clinic.id,
       );
 
       if (!result) {
@@ -383,7 +444,11 @@ export class ClinicService {
     }
   }
 
-  async getAllService(page: number = 1, limit: number = 10): Promise<any> {
+  async getAllService(
+    page: number = 1,
+    limit: number = 10,
+    clinic_id: string,
+  ): Promise<any> {
     try {
       const result = await this.serviceRepositories
         .getAllService(page, limit)
@@ -632,5 +697,79 @@ export class ClinicService {
         error.message,
       );
     }
+  }
+
+  async updateClinicFormByMail(updateData: any): Promise<any> {
+    try {
+      const result =
+        await this.clinicRepositories.updateClinicFormByMail(updateData);
+
+      if (!result) {
+        throw createRpcError(
+          HttpStatus.NOT_FOUND,
+          'Không thể cập nhật form đăng ký phòng khám',
+          'Not Found',
+        );
+      }
+
+      return {
+        status: 'success',
+        message: 'Cập nhật form đăng ký phòng khám thành công',
+        data: result,
+      };
+    } catch (error) {
+      if (error instanceof RpcException) throw error;
+
+      throw createRpcError(
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        'Đã xảy ra lỗi khi cập nhật form đăng ký phòng khám',
+        'Internal Server Error',
+        error.message,
+      );
+    }
+  }
+  async getClinicByVerificationToken(token: string): Promise<any> {
+    try {
+      const clinic =
+        await this.clinicRepositories.findByVerificationToken(token);
+
+      if (!clinic) {
+        throw createRpcError(
+          HttpStatus.NOT_FOUND,
+          'Không tìm thấy phòng khám với token xác minh này.',
+          'Not Found',
+        );
+      }
+
+      return clinic;
+    } catch (error) {
+      if (error instanceof RpcException) {
+        throw error;
+      }
+      throw createRpcError(
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        'Lỗi khi tìm phòng khám theo token xác minh.',
+        'Internal Server Error',
+        error.message,
+      );
+    }
+  }
+  async updateClinicForm(id: string, dto: UpdateClinicFormDto): Promise<any> {
+    const clinic = await this.clinicRepositories.findOneClinicForm(id);
+
+    if (!clinic) {
+      throw createRpcError(
+        HttpStatus.NOT_FOUND,
+        'Phòng khám không tồn tại',
+        'Not Found',
+      );
+    }
+    console.log('updateClinicForm clinic123123123:', dto);
+    const updatedClinic = await this.clinicRepositories.updateClinicForm(
+      id,
+      dto,
+    );
+
+    return updatedClinic;
   }
 }

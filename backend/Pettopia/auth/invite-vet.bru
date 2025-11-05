@@ -1,0 +1,21 @@
+meta {
+  name: invite-vet
+  type: http
+  seq: 4
+}
+
+post {
+  url: http://localhost:3000/api/v1/auth/invite-vet
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+      "email": "duynkhe170075@fpt.edu.vn"
+  }
+}
+
+settings {
+  encodeUrl: true
+}

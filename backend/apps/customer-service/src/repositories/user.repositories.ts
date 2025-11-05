@@ -101,34 +101,101 @@ export class UsersRepository {
     }
   }
   async updateUserStatus(id: string, status: UserStatus): Promise<any> {
-    try {
-      const result = await this.userModel
-        .findOneAndUpdate({ id }, { is_active: status })
-        .exec();
-      return result;
-    } catch (err) {
-      throw new Error(err);
-    }
+  try {
+    const isActive = status === UserStatus.ACTIVE;
+    const result = await this.userModel
+      .findOneAndUpdate({ id: id }, { is_active: isActive }, { new: true })
+      .exec();
+    return result;
+  } catch (err) {
+    throw new Error(err.message);
   }
+}
+
 
   async getAllUsers(
     data: GetAllUsersDto,
   ): Promise<PaginatedUsersResponse<User>> {
     try {
-      const { page, limit } = data;
+      const { 
+        page, 
+        limit, 
+        search,
+        status,
+        role,
+        sort_field = 'createdAt',
+        sort_order = 'desc',
+        fullname,
+        username,
+        email_address,
+        reward_point,
+        phone_number
+      } = data;
 
       const safePage = Math.max(Number(page) || 1, 1);
       const safeLimit = Math.max(Number(limit) || 15, 1);
       const skip = (safePage - 1) * safeLimit;
 
+      // Build the query
+      const query: any = {};
+
+      // Apply search filter if provided
+      if (search) {
+        query.$or = [
+          { 'fullname': { $regex: search, $options: 'i' } },
+          { 'username': { $regex: search, $options: 'i' } },
+          { 'email.email_address': { $regex: search, $options: 'i' } },
+          { 'phone.phone_number': { $regex: search, $options: 'i' } }
+        ];
+      }
+
+      // Apply status filter if provided
+      if (status) {
+        query.is_active = status === 'active';
+      }
+
+      // Apply role filter if provided
+      if (role) {
+        query.role = role;
+      }
+
+      // Apply individual field filters if provided
+      if (fullname) {
+        query.fullname = { $regex: fullname, $options: 'i' };
+      }
+
+      if (username) {
+        query.username = { $regex: username, $options: 'i' };
+      }
+
+      if (email_address) {
+        query['email.email_address'] = { $regex: email_address, $options: 'i' };
+      }
+
+      if (reward_point !== undefined) {
+        query.reward_point = reward_point;
+      }
+
+      if (phone_number) {
+        query['phone.phone_number'] = { $regex: phone_number, $options: 'i' };
+      }
+
+      // Build sort object
+      const sort: any = {};
+      if (sort_field) {
+        sort[sort_field] = sort_order === 'asc' ? 1 : -1;
+      } else {
+        sort['createdAt'] = -1; // Default sort by createdAt desc
+      }
+
       const [items, total] = await Promise.all([
         this.userModel
-          .find()
-          .sort({ createdAt: -1 })
+          .find(query)
+          .sort(sort)
           .skip(skip)
           .limit(safeLimit)
           .exec(),
-        this.userModel.countDocuments().exec(),
+        this.userModel.countDocuments(query).exec(),
       ]);
 
       return {
@@ -196,5 +263,36 @@ export class UsersRepository {
     user.role = user.role.filter((r) => r !== role);
     await user.save();
     return user;
+  }
+  async totalDetailAccount(): Promise<any> {
+    const result = await this.userModel.aggregate([
+      { $unwind: '$role' }, // Nếu role là array
+      {
+        $group: {
+          _id: '$role',
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+
+    const data = {
+      user: 0,
+      staff: 0,
+      clinic: 0,
+      vet: 0,
+    };
+
+    result.forEach((item) => {
+      const role = item._id.toLowerCase();
+      if (data.hasOwnProperty(role)) {
+        data[role] = item.count;
+      }
+    });
+
+    return {
+      status: true,
+      message: 'Đã lấy thành công tổng các account theo role',
+      data,
+    };
   }
 }

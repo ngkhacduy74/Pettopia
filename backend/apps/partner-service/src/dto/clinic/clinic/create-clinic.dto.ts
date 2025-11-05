@@ -27,9 +27,9 @@ export class CreateClinicDto {
   @IsNotEmpty({ message: 'ID không được để trống' })
   id: string;
 
-  @IsMongoId({ message: 'creator_id không hợp lệ (phải là ObjectId)' })
-  @IsNotEmpty({ message: 'creator_id không được để trống' })
-  creator_id: string;
+  // @IsMongoId({ message: 'creator_id không hợp lệ (phải là ObjectId)' })
+  // @IsNotEmpty({ message: 'creator_id không được để trống' })
+  // creator_id: string;
 
   @IsString()
   @MinLength(3, { message: 'Tên phòng khám phải có ít nhất 3 ký tự' })

@@ -1,0 +1,25 @@
+meta {
+  name: get all shift
+  type: http
+  seq: 2
+}
+
+get {
+  url: http://localhost:3000/api/v1/partner/clinic/shift?page=1&limit=10
+  body: none
+  auth: inherit
+}
+
+params:query {
+  page: 1
+  limit: 10
+}
+
+headers {
+  token: {{token}}
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

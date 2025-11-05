@@ -4,8 +4,8 @@ import { ClinicService } from '../../services/clinic/clinic.service';
 
 import { MessagePattern, Payload, RpcException } from '@nestjs/microservices';
 import { handleRpcError } from 'src/common/error.detail';
-import { CreateClinicFormDto } from 'src/dto/clinic/create-clinic-form.dto';
-import { UpdateStatusClinicDto } from 'src/dto/clinic/update-status.dto';
+import { CreateClinicFormDto } from 'src/dto/clinic/clinic/create-clinic-form.dto';
+import { UpdateStatusClinicDto } from 'src/dto/clinic/clinic/update-status.dto';
 import { VetService } from 'src/services/vet/vet.service';
 import { VetRegisterDto } from 'src/dto/vet/vet-register-form';
 import { UpdateStatusVetDto } from 'src/dto/vet/update-vet-form';
@@ -51,5 +51,4 @@ export class VetController {
       handleRpcError('VetController.getAllVetForm', err);
     }
   }
- 
 }

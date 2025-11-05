@@ -1,0 +1,19 @@
+meta {
+  name: get all service
+  type: http
+  seq: 1
+}
+
+get {
+  url: http://localhost:3000/api/v1/partner/service
+  body: json
+  auth: inherit
+}
+
+headers {
+  token: {{token}}
+}
+
+settings {
+  encodeUrl: true
+}
