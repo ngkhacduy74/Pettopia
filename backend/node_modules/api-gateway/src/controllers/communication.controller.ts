@@ -67,6 +67,17 @@ export class CommunicationController {
       this.communicationService.send({ cmd: 'getPostById' }, { post_id }),
     );
   }
+  @Get('user/:user_id')
+async getPostsByUserId(
+  @Param('user_id') user_id: string,
+) {
+  return await lastValueFrom(
+    this.communicationService.send(
+      { cmd: 'getPostsByUserId' },
+      { user_id },
+    ),
+  );
+}
 
   // UPDATE POST
   @Patch('/:id')
@@ -159,5 +170,5 @@ export class CommunicationController {
         { post_id, comment_id, user_id },
       ),
     );
-  }
+  } 
 }

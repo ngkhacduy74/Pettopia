@@ -41,7 +41,15 @@ export class PostRepository {
     return await this.postModel.countDocuments();
   }
 
-  async findByAuthorId(user_id: string): Promise<Post[]> {
-    return await this.postModel.find({ 'author.user_id': user_id }).exec();
-  }
+ async findByAuthorId(user_id: string): Promise<Post[]> {
+  return this.postModel
+    .find({ "author.user_id": user_id })
+    // 1. Sửa .select() để bao gồm 'author'
+    .select('post_id title content comments likeCount author') // <-- THÊM 'author' VÀO ĐÂY
+
+    // 2. HOẶC, XÓA HOÀN TOÀN DÒNG .select() ĐI
+    // .select(...) // <-- Xóa dòng này đi
+
+    .exec();
+}
 }

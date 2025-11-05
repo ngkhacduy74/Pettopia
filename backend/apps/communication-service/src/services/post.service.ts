@@ -12,7 +12,7 @@ import { UpdatePostDto } from '../dto/update-post.dto';
 import { PostResponseDto } from '../dto/post-response.dto';
 import { v4 as uuidv4 } from 'uuid';
 import { ClientProxy, RpcException } from '@nestjs/microservices';
-import { lastValueFrom } from 'rxjs';
+import { lastValueFrom, map } from 'rxjs';
 import { mapToResponseDto } from '../response/post.response'; // ĐÚNG RỒI!
 import { Post } from '../schemas/post.schemas';
 
@@ -108,7 +108,17 @@ export class PostService {
     if (!post) throw new NotFoundException(`Post with ID ${post_id} not found`);
     return mapToResponseDto(post); // DÙNG HÀM CỦA BẠN
   }
+/**
+ * LẤY TẤT CẢ BÀI VIẾT CỦA 1 USER
+ */
+async findByUserId(user_id: string): Promise<PostResponseDto[]> {
+  // DÙNG HÀM TRONG REPOSITORY
+  const posts = await this.postRepository.findByAuthorId(user_id);
 
+  // Lọc: chỉ lấy bài chưa bị ẩn + lọc comment hợp lệ
+  
+   return posts.map(mapToResponseDto)
+}
   /**
    * UPDATE
    */

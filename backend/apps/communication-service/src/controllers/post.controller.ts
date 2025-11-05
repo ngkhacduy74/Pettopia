@@ -34,6 +34,16 @@ export class PostController {
       return [{ message: 'Failed to fetch posts', error: error.message }] as any;
     }
   }
+  @MessagePattern({ cmd: 'getPostsByUserId' })
+async getPostsByUserId(@Payload() data: { user_id: string }) {
+  try {
+    this.logger.log(`Fetching posts for user: ${data.user_id}`);
+    return await this.postService.findByUserId(data.user_id);
+  } catch (error) {
+    this.logger.error('Error fetching user posts:', error);
+    return { message: 'Failed to fetch user posts', error: error.message } as any;
+  }
+}
 
   @MessagePattern({ cmd: 'getPostById' })
   async getPostById(@Payload() data: { post_id: string }) {
@@ -70,16 +80,16 @@ export class PostController {
     }
   }
   // === MỚI: LIKE / UNLIKE ===
-  @MessagePattern({ cmd: 'likePost' })
-  async likePost(@Payload() data: { post_id: string; user_id: string }) {
-    try {
-      this.logger.log(`Received likePost: ${data.post_id} by ${data.user_id}`);
-      return await this.postService.likePost(data.post_id, data.user_id);
-    } catch (error) {
-      this.logger.error('Error liking post:', error);
-      return { message: 'Failed to like post', error: error.message } as any;
+    @MessagePattern({ cmd: 'likePost' })
+    async likePost(@Payload() data: { post_id: string; user_id: string }) {
+      try {
+        this.logger.log(`Received likePost: ${data.post_id} by ${data.user_id}`);
+        return await this.postService.likePost(data.post_id, data.user_id);
+      } catch (error) {
+        this.logger.error('Error liking post:', error);
+        return { message: 'Failed to like post', error: error.message } as any;
+      }
     }
-  }
 
   // === MỚI: THÊM BÌNH LUẬN ===
   @MessagePattern({ cmd: 'addComment' })
