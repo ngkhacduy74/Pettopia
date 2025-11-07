@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -302,9 +303,18 @@ export class PartnerController {
   @Roles(Role.CLINIC)
   @Delete('/clinic/shift/:id')
   @HttpCode(HttpStatus.OK)
-  async deleteClinicShift(@Param('id') idShift: string) {
+  async deleteClinicShift(
+    @Param('id') idShift: string,
+    @UserToken('clinic_id') clinic_id: string
+  ) {
+    if (!idShift || !clinic_id) {
+      throw new BadRequestException('Thiếu thông tin bắt buộc');
+    }
     return await lastValueFrom(
-      this.partnerService.send({ cmd: 'deleteClinicShift' }, { id: idShift }),
+      this.partnerService.send(
+        { cmd: 'deleteClinicShift' },
+        { id: idShift, clinic_id }
+      ),
     );
   }
 
@@ -344,6 +354,22 @@ export class PartnerController {
   async getServiceById(@Param('id') id: string) {
     return await lastValueFrom(
       this.partnerService.send({ cmd: 'getServiceById' }, { id }),
+    );
+  }
+
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.CLINIC)
+  @Delete('/service/:id')
+  @HttpCode(HttpStatus.OK)
+  async deleteService(
+    @Param('id') serviceId: string,
+    @UserToken('clinic_id') clinic_id: string,
+  ) {
+    return await lastValueFrom(
+      this.partnerService.send(
+        { cmd: 'remove_service' },
+        { serviceId, clinic_id },
+      ),
     );
   }
 

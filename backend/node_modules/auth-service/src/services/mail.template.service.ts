@@ -245,4 +245,132 @@ export class MailTemplateService {
       throw new BadRequestException('Không thể gửi mail xác minh.');
     }
   }
+
+  async sendAppointmentConfirmation(
+    email: string,
+    appointmentDetails: {
+      userName: string;
+      appointmentDate: string;
+      appointmentTime: string;
+      clinicName: string;
+      clinicAddress: {
+        description: string;
+        ward: string;
+        district: string;
+        city: string;
+      };
+      services: string[];
+      appointmentId: string;
+    },
+  ) {
+    const template = this.getAppointmentConfirmationTemplate(appointmentDetails);
+    return this.mailService.sendMail(
+      email,
+      `Xác nhận đặt lịch hẹn thành công - ${appointmentDetails.appointmentId}`,
+      template,
+      MailType.APPOINTMENT_CONFIRMATION,
+    );
+  }
+
+  private getAppointmentConfirmationTemplate(data: {
+    userName: string;
+    appointmentDate: string;
+    appointmentTime: string;
+    clinicName: string;
+    clinicAddress: {
+      description: string;
+      ward: string;
+      district: string;
+      city: string;
+    };
+    services: string[];
+    appointmentId: string;
+  }): string {
+    const servicesList = data.services
+      .map((service) => `<li>${service}</li>`)
+      .join('');
+
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>Xác nhận đặt lịch hẹn thành công</title>
+        <style>
+          body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+          }
+          .header {
+            background-color: #4CAF50;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 5px 5px 0 0;
+          }
+          .content {
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-top: none;
+            border-radius: 0 0 5px 5px;
+          }
+          .appointment-details {
+            background-color: #f9f9f9;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+          }
+          .footer {
+            margin-top: 20px;
+            font-size: 12px;
+            color: #777;
+            text-align: center;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>ĐẶT LỊCH HẸN THÀNH CÔNG</h1>
+        </div>
+        
+        <div class="content">
+          <p>Xin chào <strong>${data.userName}</strong>,</p>
+          
+          <p>Cảm ơn bạn đã đặt lịch hẹn tại <strong>${data.clinicName}</strong>.</p>
+          
+          <div class="appointment-details">
+            <h3>THÔNG TIN ĐẶT LỊCH</h3>
+            <p><strong>Mã đặt lịch:</strong> ${data.appointmentId}</p>
+            <p><strong>Ngày hẹn:</strong> ${data.appointmentDate}</p>
+            <p><strong>Ca khám:</strong> ${data.appointmentTime}</p>
+            
+            <h4>Địa điểm:</h4>
+            <p>${data.clinicName}</p>
+            <p>
+  ${data.clinicAddress.description}, ${data.clinicAddress.ward}, ${data.clinicAddress.district}, ${data.clinicAddress.city}
+</p>
+            
+            <h4>Dịch vụ đã đặt:</h4>
+            <ul>
+              ${servicesList}
+            </ul>
+          </div>
+
+          <p>Vui lòng đến đúng giờ để được phục vụ tốt nhất. Nếu có bất kỳ thay đổi nào, vui lòng liên hệ với chúng tôi trước ít nhất 2 giờ.</p>
+          
+          <p>Trân trọng,<br>Đội ngũ Pettopia</p>
+          
+          <div class="footer">
+            <p>Đây là email tự động, vui lòng không trả lời email này.</p>
+            <p>© ${new Date().getFullYear()} Pettopia. Tất cả các quyền được bảo lưu.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+  }
 }
