@@ -1,5 +1,8 @@
 version: "3.9"
 
+# Load environment variables from .env file
+env_file: .env
+
 services:
   api-gateway:
     build:
@@ -7,109 +10,124 @@ services:
       dockerfile: Dockerfile
     container_name: api-gateway
     ports:
-      - "8000:3000"
+      - "8000:${API_GATEWAY_PORT}"
+    env_file: .env
     environment:
-      API_GATEWAY_PORT: 3000
-      NODE_ENV: production
-      SHOW_ERROR_DETAILS: "false"
+      - NODE_ENV=${NODE_ENV}
+      - SHOW_ERROR_DETAILS=${SHOW_ERROR_DETAILS}
+      - API_GATEWAY_PORT=${API_GATEWAY_PORT}
     networks:
       - pettopia-network
+
   auth-service:
     build:
       context: ./auth-service
       dockerfile: Dockerfile
     container_name: auth-service
     ports:
-      - "8001:3001"
+      - "8001:${AUTH_PORT}"
+    env_file: .env
     environment:
-      AUTH_DB_URI: mongodb+srv://khacduy0704:khacduy0704@cluster0.5rfakrg.mongodb.net/db_auth
-      AUTH_PORT: 3001
-      NODE_ENV: production
-      SHOW_ERROR_DETAILS: "false"
+      - NODE_ENV=${NODE_ENV}
+      - SHOW_ERROR_DETAILS=${SHOW_ERROR_DETAILS}
+      - AUTH_DB_URI=${AUTH_DB_URI}
+      - AUTH_PORT=${AUTH_PORT}
     networks:
       - pettopia-network
+
   billing-service:
     build:
       context: ./billing-service
       dockerfile: Dockerfile
     container_name: billing-service
     ports:
-      - "8007:3007"
+      - "8007:${BILLING_PORT}"
+    env_file: .env
     environment:
-      MONGO_URI: mongodb+srv://khacduy0704:khacduy0704@cluster0.5rfakrg.mongodb.net/db_billing
-      BILLING_PORT: 3007
-      NODE_ENV: production
-      SHOW_ERROR_DETAILS: "false"
+      - NODE_ENV=${NODE_ENV}
+      - SHOW_ERROR_DETAILS=${SHOW_ERROR_DETAILS}
+      - MONGO_URI=${MONGO_URI}
+      - BILLING_PORT=${BILLING_PORT}
     networks:
       - pettopia-network
+
   communication-service:
     build:
       context: ./communication-service
       dockerfile: Dockerfile
     container_name: communication-service
     ports:
-      - "8006:3006"
+      - "8006:${COMMUNICATION_PORT}"
+    env_file: .env
     environment:
-      MONGO_URI: mongodb+srv://khacduy0704:khacduy0704@cluster0.5rfakrg.mongodb.net/db_communication
-      COMMUNICATION_PORT: 3006
-      NODE_ENV: production
-      SHOW_ERROR_DETAILS: "false"
+      - NODE_ENV=${NODE_ENV}
+      - SHOW_ERROR_DETAILS=${SHOW_ERROR_DETAILS}
+      - MONGO_URI=${MONGO_URI}
+      - COMMUNICATION_PORT=${COMMUNICATION_PORT}
     networks:
       - pettopia-network
+
   customer-service:
     build:
       context: ./customer-service
       dockerfile: Dockerfile
     container_name: customer-service
     ports:
-      - "8002:3002"
+      - "8002:${CUSTOMER_PORT}"
+    env_file: .env
     environment:
-      CUSTOMER_DB_URI: mongodb+srv://khacduy0704:khacduy0704@cluster0.5rfakrg.mongodb.net/db_customer
-      CUSTOMER_PORT: 3002
-      NODE_ENV: production
-      SHOW_ERROR_DETAILS: "false"
+      - NODE_ENV=${NODE_ENV}
+      - SHOW_ERROR_DETAILS=${SHOW_ERROR_DETAILS}
+      - CUSTOMER_DB_URI=${CUSTOMER_DB_URI}
+      - CUSTOMER_PORT=${CUSTOMER_PORT}
     networks:
       - pettopia-network
+
   healthcare-service:
     build:
       context: ./healthcare-service
       dockerfile: Dockerfile
     container_name: healthcare-service
     ports:
-      - "8005:3005"
+      - "8005:${HEALTHCARE_PORT}"
+    env_file: .env
     environment:
-      HEALTHCARE_DB_URI: mongodb+srv://khacduy0704:khacduy0704@cluster0.5rfakrg.mongodb.net/db_healthcare
-      HEALTHCARE_PORT: 3005
-      NODE_ENV: production
-      SHOW_ERROR_DETAILS: "false"
+      - NODE_ENV=${NODE_ENV}
+      - SHOW_ERROR_DETAILS=${SHOW_ERROR_DETAILS}
+      - HEALTHCARE_DB_URI=${HEALTHCARE_DB_URI}
+      - HEALTHCARE_PORT=${HEALTHCARE_PORT}
     networks:
       - pettopia-network
+
   partner-service:
     build:
       context: ./partner-service
       dockerfile: Dockerfile
     container_name: partner-service
     ports:
-      - "8004:3004"
+      - "8004:${PARTNER_PORT}"
+    env_file: .env
     environment:
-      PARTNER_DB_URI: mongodb+srv://khacduy0704:khacduy0704@cluster0.5rfakrg.mongodb.net/db_partner
-      PARTNER_PORT: 3004
-      NODE_ENV: production
-      SHOW_ERROR_DETAILS: "false"
+      - NODE_ENV=${NODE_ENV}
+      - SHOW_ERROR_DETAILS=${SHOW_ERROR_DETAILS}
+      - PARTNER_DB_URI=${PARTNER_DB_URI}
+      - PARTNER_PORT=${PARTNER_PORT}
     networks:
       - pettopia-network
+
   petcare-service:
     build:
       context: ./petcare-service
       dockerfile: Dockerfile
     container_name: petcare-service
     ports:
-      - "8003:3003"
+      - "8003:${PETCARE_PORT}"
+    env_file: .env
     environment:
-      PET_DB_URI: mongodb+srv://khacduy0704:khacduy0704@cluster0.5rfakrg.mongodb.net/db_petcare
-      PETCARE_PORT: 3003
-      NODE_ENV: production
-      SHOW_ERROR_DETAILS: "false"
+      - NODE_ENV=${NODE_ENV}
+      - SHOW_ERROR_DETAILS=${SHOW_ERROR_DETAILS}
+      - PET_DB_URI=${PET_DB_URI}
+      - PETCARE_PORT=${PETCARE_PORT}
     networks:
       - pettopia-network
 

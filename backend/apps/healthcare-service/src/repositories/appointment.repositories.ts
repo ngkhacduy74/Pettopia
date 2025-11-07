@@ -31,4 +31,25 @@ export class AppointmentRepository {
       );
     }
   }
+
+  async findByUserId(userId: string, page: number = 1, limit: number = 10): Promise<{ data: Appointment[]; total: number }> {
+    try {
+      const skip = (page - 1) * limit;
+      const [data, total] = await Promise.all([
+        this.appointmentModel
+          .find({ user_id: userId })
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(limit)
+          .lean(),
+        this.appointmentModel.countDocuments({ user_id: userId })
+      ]);
+
+      return { data, total };
+    } catch (error) {
+      throw new InternalServerErrorException(
+        error.message || 'Lỗi khi lấy danh sách lịch hẹn',
+      );
+    }
+  }
 }

@@ -15,14 +15,47 @@ import { UpdateClinicShiftDto } from 'src/dto/clinic/shift/update-shift.dto';
 import { ClinicsRepository } from 'src/repositories/clinic/clinic.repositories';
 import { ShiftRepository } from 'src/repositories/clinic/shift.repositories';
 import { ClinicShiftType } from 'src/schemas/clinic/clinic_shift_setting.schema';
+import { ClinicService } from './clinic.service';
 
 @Injectable()
 export class ShiftService {
   constructor(
     private readonly shiftRepositories: ShiftRepository,
     private readonly clinicRepositories: ClinicsRepository,
+    private readonly clinicService: ClinicService,
     @Inject('CUSTOMER_SERVICE') private readonly customerService: ClientProxy,
   ) {}
+
+  async getClinicShiftById(clinic_id: string, shift_id: string): Promise<any> {
+    try {
+      if (!clinic_id || !shift_id) {
+        throw createRpcError(
+          HttpStatus.BAD_REQUEST,
+          'Thiếu thông tin phòng khám hoặc ca làm việc',
+          'Bad Request',
+        );
+      }
+
+      // Get the shift by ID and clinic_id
+      const shift = await this.shiftRepositories.getShiftByIdAndClinic(shift_id, clinic_id);
+      
+      if (!shift) {
+        return null;
+      }
+
+      return shift;
+    } catch (error) {
+      if (error instanceof RpcException) {
+        throw error;
+      }
+      throw createRpcError(
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        'Lỗi khi lấy thông tin ca làm việc',
+        'Internal Server Error',
+        error.message,
+      );
+    }
+  }
   async createClinicShift(data: CreateClinicShiftDto): Promise<any> {
     // Lưu ý hàm tạo shift sẽ đều phải mapping từ user sang clinic id
     // Sẽ có hàm so sánh phía dưới
@@ -34,7 +67,7 @@ export class ShiftService {
         clinic_id,
         max_slot,
       } = data;
-
+      console.log("ahsjhasd",data)
       let normalizedShift: string = '';
       if (shift) {
         normalizedShift =
@@ -123,7 +156,7 @@ export class ShiftService {
           'Bad Request',
         );
       }
-      const allShifts =
+      const { data: allShifts } =
         await this.shiftRepositories.getShiftsByClinicId(clinic_id);
       for (const existingShift of allShifts) {
         const [existStartHours, existStartMinutes] = existingShift.start_time
@@ -167,21 +200,9 @@ export class ShiftService {
           'NOT_FOUND',
         );
       }
-      console.log('lakjslkjasd', user);
       const clinic = await this.clinicRepositories.getClinicByEmail(
         user.email.email_address,
       );
-      console.log('oiqyhwejha', clinic);
-      // const clinic = await this.clinicRepositories.getClinicByEmail(
-      //   data,
-      // ); //clinic_id lúc này đang là user_id
-      // if (!clinic) {
-      //   throw createRpcError(
-      //     HttpStatus.INTERNAL_SERVER_ERROR,
-      //     'Lỗi khi tìm phòng khám theo email',
-      //     'Internal Server Error',
-      //   );
-      // }
       const result = await this.shiftRepositories
         .createClinicShift({
           ...data,
@@ -203,7 +224,8 @@ export class ShiftService {
             error.message,
           );
         });
-
+      const clinic_check =
+        await this.clinicService.triggerToCheckActiveClinic(clinic.id);
       return {
         status: 'success',
         message: 'Tạo ca làm việc thành công',
@@ -389,11 +411,17 @@ export class ShiftService {
       );
     }
   }
-  async getShiftsByClinicId(
-    clinic_id: string,
-  ): Promise<{ status: string; message: string; data: any[] }> {
+  async deleteShift(id: string, clinic_id: string): Promise<{ status: string; message: string }> {
     try {
-      // Validate clinic_id
+      // Validate input
+      if (!id || typeof id !== 'string') {
+        throw createRpcError(
+          HttpStatus.BAD_REQUEST,
+          'ID ca làm việc không hợp lệ',
+          'Bad Request',
+        );
+      }
+
       if (!clinic_id || typeof clinic_id !== 'string') {
         throw createRpcError(
           HttpStatus.BAD_REQUEST,
@@ -402,13 +430,81 @@ export class ShiftService {
         );
       }
 
-      const result =
-        await this.shiftRepositories.getShiftsByClinicId(clinic_id);
+      const shift = await this.shiftRepositories.getShiftById(id);
+      if (!shift) {
+        throw createRpcError(
+          HttpStatus.NOT_FOUND,
+          'Không tìm thấy ca làm việc',
+          'Not Found',
+        );
+      }
+
+      if (shift.clinic_id !== clinic_id) {
+        throw createRpcError(
+          HttpStatus.FORBIDDEN,
+          'Bạn không có quyền xóa ca làm việc này',
+          'Forbidden',
+        );
+      }
+
+      const deleteResult = await this.shiftRepositories.deleteClinicShift(id);
+      
+      if (!deleteResult || deleteResult.deletedCount === 0) {
+        throw createRpcError(
+          HttpStatus.INTERNAL_SERVER_ERROR,
+          'Không thể xóa ca làm việc',
+          'Internal Server Error',
+        );
+      }
+      console.log("ládljasd",clinic_id)
+      const trigger = await this.clinicService.triggerToCheckActiveClinic(clinic_id);
+      console.log("0918273ojasd",trigger)
+
+      return {
+        status: 'success',
+        message: 'Xóa ca làm việc thành công',
+      };
+    } catch (error) {
+      if (error instanceof RpcException) {
+        throw error;
+      }
+
+      if (error.status || error.statusCode) {
+        throw createRpcError(
+          error.statusCode || error.status,
+          error.message,
+          error.error || 'Bad Request',
+          error.details,
+        );
+      }
+
+      throw createRpcError(
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        'Đã xảy ra lỗi khi xóa ca làm việc',
+        'Internal Server Error',
+        error.message,
+      );
+    }
+  }
+
+  async getShiftsByClinicId(
+    clinic_id: string,
+  ): Promise<{ status: string; message: string; data: any[] }> {
+    try {
+      if (!clinic_id || typeof clinic_id !== 'string') {
+        throw createRpcError(
+          HttpStatus.BAD_REQUEST,
+          'ID phòng khám không hợp lệ',
+          'Bad Request',
+        );
+      }
+
+      const { data: shifts } = await this.shiftRepositories.getShiftsByClinicId(clinic_id);
 
       return {
         status: 'success',
         message: 'Lấy danh sách ca làm việc thành công',
-        data: result,
+        data: shifts,
       };
     } catch (error) {
       if (error.name === 'CastError' || error.message?.includes('not found')) {

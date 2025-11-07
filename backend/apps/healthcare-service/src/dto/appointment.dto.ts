@@ -4,7 +4,8 @@ import {
   ArrayNotEmpty,
   IsEnum,
   IsDateString,
-  IsNotEmpty,
+  IsOptional,
+  ValidateIf,
 } from 'class-validator';
 import {
   AppointmentCreatedBy,
@@ -26,13 +27,18 @@ export class CreateAppointmentDto {
   service_ids: string[];
 
   @IsDateString({}, { message: 'date phải đúng định dạng ngày (YYYY-MM-DD)' })
-  date: Date;
+  date: string | Date;
 
+  @IsUUID('4', { message: 'shift_id phải là UUID v4 hợp lệ' })
+  shift_id: string;
+
+  @IsOptional()
   @IsEnum(AppointmentShift, {
     message: 'shift phải là Morning hoặc Afternoon hoặc Evening',
   })
-  shift: AppointmentShift;
+  shift?: AppointmentShift;
 
+  @IsOptional()
   @IsEnum(AppointmentCreatedBy, {
     message: 'created_by phải là customer hoặc partner',
   })

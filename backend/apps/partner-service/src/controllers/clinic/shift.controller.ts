@@ -1,4 +1,6 @@
-import { Controller, Get, UsePipes, ValidationPipe } from '@nestjs/common';
+
+
+import { Controller, Get, UsePipes, ValidationPipe, HttpStatus } from '@nestjs/common';
 import { MessagePattern, Payload, RpcException } from '@nestjs/microservices';
 import { handleRpcError } from 'src/common/error.detail';
 import { CreateClinicShiftDto } from 'src/dto/clinic/shift/create-shift.dto';
@@ -14,6 +16,32 @@ import { ShiftService } from 'src/services/clinic/shift.service';
 @Controller()
 export class ShiftController {
   constructor(private readonly shiftService: ShiftService) {}
+
+  @MessagePattern({ cmd: 'getClinicShiftById' })
+  async getClinicShiftById(
+    @Payload() payload: { clinic_id: string; shift_id: string },
+  ) {
+    try {
+      const { clinic_id, shift_id } = payload;
+      const shift = await this.shiftService.getClinicShiftById(
+        clinic_id,
+        shift_id,
+      );
+      return {
+        status: 'success',
+        data: shift,
+      };
+    } catch (error) {
+      if (error instanceof RpcException) {
+        throw error;
+      }
+      console.error('Error in getClinicShiftById:', error);
+      throw new RpcException({
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        message: 'Đã xảy ra lỗi khi lấy thông tin ca làm việc',
+      });
+    }
+  }
 
   @MessagePattern({ cmd: 'createClinicShift' })
   async createClinicShift(@Payload() data: CreateClinicShiftDto) {
@@ -55,14 +83,19 @@ export class ShiftController {
       handleRpcError('ShiftController.getShiftsByClinicId', err);
     }
   }
-  //   @MessagePattern({ cmd: 'deleteClinicShift' })
-  //   async deleteClinicShift(@Payload() payload: { id: string }) {
-  //     try {
-  //       return await this.shiftService.deleteClinicShift(payload.id);
-  //     } catch (err) {
-  //       handleRpcError('ShiftController.deleteClinicShift', err);
-  //     }
-  //   }
+  @MessagePattern({ cmd: 'deleteClinicShift' })
+  async deleteClinicShift(
+    @Payload() payload: { id: string; clinic_id: string },
+  ) {
+    try {
+      if (!payload.id || !payload.clinic_id) {
+        throw new RpcException('Thiếu thông tin bắt buộc');
+      }
+      return await this.shiftService.deleteShift(payload.id, payload.clinic_id);
+    } catch (err) {
+      handleRpcError('ShiftController.deleteClinicShift', err);
+    }
+  }
 
   //   @MessagePattern({ cmd: 'updateClinicShiftStatus' })
   //   async updateClinicShiftStatus(

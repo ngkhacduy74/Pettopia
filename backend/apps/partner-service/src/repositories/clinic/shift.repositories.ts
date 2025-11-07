@@ -75,6 +75,47 @@ export class ShiftRepository {
     }
   }
 
+  async getShiftsByClinicId(
+    clinic_id: string,
+    page?: number,
+    limit?: number,
+  ): Promise<{ data: any[]; total: number }> {
+    try {
+      if (page !== undefined && limit !== undefined) {
+        const skip = (page - 1) * limit;
+        const [shifts, total] = await Promise.all([
+          this.shiftModel
+            .find({ clinic_id })
+            .skip(skip)
+            .limit(limit)
+            .lean(),
+          this.shiftModel.countDocuments({ clinic_id }),
+        ]);
+        return { data: shifts, total };
+      } else {
+        const shifts = await this.shiftModel.find({ clinic_id }).lean();
+        return { data: shifts, total: shifts.length };
+      }
+    } catch (err) {
+      throw new InternalServerErrorException(
+        err.message || 'Lỗi khi lấy danh sách ca làm việc',
+      );
+    }
+  }
+
+  async getShiftByIdAndClinic(shift_id: string, clinic_id: string): Promise<any> {
+    try {
+      const shift = await this.shiftModel
+        .findOne({ id: shift_id, clinic_id })
+        .lean();
+      return shift;
+    } catch (err) {
+      throw new InternalServerErrorException(
+        err.message || 'Lỗi khi lấy thông tin ca làm việc',
+      );
+    }
+  }
+
   async updateClinicShift(
     id: string,
     dto: UpdateClinicShiftDto,
@@ -135,15 +176,26 @@ export class ShiftRepository {
       );
     }
   }
-  async getShiftsByClinicId(clinic_id: string): Promise<ShiftDocument[]> {
+
+  async getShiftById(id: string): Promise<any> {
     try {
-      const shifts = await this.shiftModel
-        .find({ clinic_id: clinic_id, is_active: true })
-        .exec();
-      return shifts;
+      return await this.shiftModel.findOne({ id: id }).lean().exec();
     } catch (err) {
       throw new InternalServerErrorException(
-        err.message || 'Lỗi cơ sở dữ liệu khi lấy ca làm việc theo phòng khám',
+        err.message || 'Lỗi khi tìm kiếm ca làm việc',
+      );
+    }
+  }
+
+  async countShiftByClinicId(clinic_id: string): Promise<number> {
+    try {
+      return await this.shiftModel.countDocuments({
+        clinic_id: clinic_id,
+        // is_active: true
+      });
+    } catch (err) {
+      throw new InternalServerErrorException(
+        err.message || 'Lỗi khi đếm số lượng ca khám theo phòng khám',
       );
     }
   }

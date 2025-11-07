@@ -18,12 +18,14 @@ import { createRpcError } from 'src/common/error.detail';
 import { UpdateClinicFormDto } from 'src/dto/clinic/clinic/update-clinic-form.dto';
 import { generateRandomPassword } from 'src/common/generate.common';
 import { v4 as uuidv4 } from 'uuid';
+import { ShiftRepository } from 'src/repositories/clinic/shift.repositories';
 
 @Injectable()
 export class ClinicService {
   constructor(
     private readonly clinicRepositories: ClinicsRepository,
     private readonly serviceRepositories: ServiceRepository,
+    private readonly shiftRepositories: ShiftRepository,
     @Inject('CUSTOMER_SERVICE') private readonly customerService: ClientProxy,
   ) {}
 
@@ -163,7 +165,6 @@ export class ClinicService {
             logo_url: clinicForm.logo_url,
             website: clinicForm.website,
             representative: clinicForm.representative,
-            is_active: true,
           };
           console.log('ljkasldjasd', createDto);
           const createdClinic = await this.clinicRepositories
@@ -183,13 +184,12 @@ export class ClinicService {
               'Bad Request',
             );
           }
-          console.log("lálkjalsjdasd",createdClinic);
           // Tạo user account với vai trò "Clinic"
           const userAccountData = {
             id: uuidv4(),
             email: clinicForm.email,
             phone: clinicForm.phone,
-            clinic_id:createdClinic.id,
+            clinic_id: createdClinic.id,
             fullname: clinicForm.clinic_name,
             username: clinicForm.email.email_address,
             password: generateRandomPassword(),
@@ -579,7 +579,7 @@ export class ClinicService {
           'Not Found',
         );
       }
-
+ await this.triggerToCheckActiveClinic(clinic_id);
       return {
         status: 'success',
         message: 'Xóa dịch vụ thành công',
@@ -771,5 +771,50 @@ export class ClinicService {
     );
 
     return updatedClinic;
+  }
+
+  async triggerToCheckActiveClinic(clinic_id: string): Promise<void> {
+    try {
+      const serviceCount =
+        await this.serviceRepositories.countServicesByClinicId(clinic_id);
+console.log("klajhsdkhasd",serviceCount)
+      const shiftCount =
+        await this.shiftRepositories.countShiftByClinicId(clinic_id);
+console.log("i9813eih1ej",shiftCount)
+      const clinic = await this.clinicRepositories.getClinicById(clinic_id);
+
+      if (!clinic) {
+        throw createRpcError(
+          HttpStatus.NOT_FOUND,
+          'Không tìm thấy phòng khám!',
+          'Not Found',
+        );
+      }
+
+      if (serviceCount > 0 && shiftCount > 0) {
+        if (clinic.is_active === false) {
+          await this.clinicRepositories.updateClinic(clinic_id, {
+            is_active: true,
+          });
+        }
+      } else {
+        console.log("đã chạy vào đây ")
+        if (clinic.is_active === true) {
+         const update= await this.clinicRepositories.updateClinic(clinic_id, {
+            is_active: false,
+          });
+          console.log("ljalsdja12e0",update)
+        }
+      }
+    } catch (err) {
+      if (err.status === HttpStatus.NOT_FOUND) {
+        throw err;
+      }
+      throw createRpcError(
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        err.message || 'Lỗi khi kiểm tra phòng khám đã active hay chưa',
+        'Internal Server Error',
+      );
+    }
   }
 }
