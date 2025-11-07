@@ -11,10 +11,15 @@ import { lastValueFrom } from 'rxjs';
 @Injectable()
 export class AppointmentService {
   constructor(
+    @Inject('PARTNER_SERVICE')
+    private readonly partnerService: ClientProxy,
+    @Inject('CUSTOMER_SERVICE')
+    private readonly customerService: ClientProxy,
+    @Inject('AUTH_SERVICE')
+    private readonly authService: ClientProxy,
     private readonly appointmentRepositories: AppointmentRepository,
-    @Inject('PARTNER_SERVICE') private readonly partnerService: ClientProxy,
-    @Inject('CUSTOMER_SERVICE') private readonly customerService: ClientProxy,
   ) {}
+
   async createAppointment(
     data: CreateAppointmentDto,
     user_id: string,
@@ -22,7 +27,7 @@ export class AppointmentService {
     const { clinic_id, service_ids, pet_ids, shift_id, date } = data;
 
     try {
-      // 1. Verify clinic exists and is active
+
       const [clinic, services, shift] = await Promise.all([
         lastValueFrom(
           this.partnerService.send({ cmd: 'getClinicById' }, { id: clinic_id }),
@@ -56,7 +61,7 @@ export class AppointmentService {
       }
 console.log("oluhya98u129e",shift);
 console.log("98123ihahsd",services);
-      // // 4. Check if shift exists and belongs to the clinic
+
       if (!shift) {
         throw new RpcException({
           status: HttpStatus.BAD_REQUEST,
@@ -76,7 +81,6 @@ console.log("98123ihahsd",services);
       //   });
       // }
 
-      // 6. Create appointment
       const appointmentDate = new Date(date);
       const newAppointmentData = {
         ...data,
@@ -87,6 +91,51 @@ console.log("98123ihahsd",services);
       };
 
       const result = await this.appointmentRepositories.create(newAppointmentData);
+
+      const appointmentDateFormatted = appointmentDate.toLocaleDateString('vi-VN', {
+        weekday: 'long',
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      });
+      try {
+        const user = await lastValueFrom(
+          this.customerService.send(
+            { cmd: 'getUserById' },
+            { id: user_id }
+          )
+        );
+
+        // Extract email correctly from the user object
+        const userEmail = user.email?.email_address || user.email;
+        const userName = user.full_name || user.username || 'Quý khách';
+   
+        const emailResponse = await lastValueFrom(
+          this.authService.send(
+            { cmd: 'sendAppointmentConfirmation' },
+            {
+              email: userEmail, 
+              appointmentDetails: {
+                userName: userName, 
+                appointmentDate: appointmentDateFormatted,
+                appointmentTime: `${shift.data.start_time} - ${shift.data.end_time}`,
+                clinicName: clinic.data.clinic_name,
+                clinicAddress: clinic.data.address,
+                services: services.map(s => s.name),
+                appointmentId: result.id
+              }
+            }
+          )
+        );
+        
+        if (!emailResponse?.success) {
+          console.warn('Email notification might not have been sent successfully:', emailResponse?.message);
+        }
+      } catch (emailError) {
+        console.error('Không thể gửi email xác nhận:', emailError);
+      
+      }
+      
       return result;
     } catch (error) {
       if (error.code === 11000) {

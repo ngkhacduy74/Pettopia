@@ -38,6 +38,12 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
         options: {
           port: 5004,
         },
+      },{
+        name: 'AUTH_SERVICE',
+        transport: Transport.TCP,
+        options: {
+          port: 5001,
+        },
       },
     ]),
     MongooseModule.forRootAsync({

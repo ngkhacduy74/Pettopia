@@ -16,4 +16,43 @@ export class MailController {
     console.log('📨 Gửi mail xác minh phòng khám:', data.clinic_id);
     return this.mailService.sendClinicVerificationMail(data.clinic_id);
   }
+
+  @MessagePattern({ cmd: 'sendAppointmentConfirmation' })
+  async sendAppointmentConfirmation(
+    @Payload() 
+    data: { 
+      email: string; 
+      appointmentDetails: {
+        userName: string;
+        appointmentDate: string;
+        appointmentTime: string;
+        clinicName: string;
+        clinicAddress: string | {
+          description: string;
+          ward: string;
+          district: string;
+          city: string;
+        };
+        services: string[];
+        appointmentId: string;
+      } 
+    }
+  ) {
+    try {
+      const result = await this.mailService.sendAppointmentConfirmation(
+        data.email, 
+        data.appointmentDetails
+      );
+      
+      if (result.success) {
+        return { success: true, message: result.message };
+      } else {
+        console.error('Failed to send appointment confirmation:', result.message);
+        return { success: false, message: result.message };
+      }
+    } catch (error) {
+      console.error('Error in sendAppointmentConfirmation:', error);
+      return { success: false, message: 'Internal server error', error: error.message };
+    }
+  }
 }
