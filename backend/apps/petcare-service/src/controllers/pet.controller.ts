@@ -1,5 +1,5 @@
-import { Controller, HttpStatus, Logger } from '@nestjs/common';
-import { MessagePattern, Payload, RpcException } from '@nestjs/microservices';
+import { Controller, Logger } from '@nestjs/common';
+import { MessagePattern, Payload } from '@nestjs/microservices';
 import { PetService } from '../services/pet.service';
 import { CreatePetDto } from '../dto/pet/create-pet.dto';
 import { UpdatePetDto } from '../dto/pet/update-pet.dto';
@@ -92,19 +92,6 @@ export class PetController {
       return [
         { message: 'Failed to fetch pets by owner', error: error.message },
       ] as any;
-    }
-  }
-
-  @MessagePattern({ cmd: 'getUserPets' })
-  async getUserPets(data: { user_id: string, pet_ids: string[] }): Promise<PetResponseDto[]> {
-    try {
-      return await this.petService.findByOwnerAndPetIds(data.user_id, data.pet_ids);
-    } catch (error) {
-      this.logger.error('Error fetching user pets:', error);
-      throw new RpcException({
-        status: HttpStatus.INTERNAL_SERVER_ERROR,
-        message: 'Failed to fetch user pets: ' + error.message
-      });
     }
   }
   // @Patch(':pet_id')

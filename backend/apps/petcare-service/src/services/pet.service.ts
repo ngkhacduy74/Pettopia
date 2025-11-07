@@ -202,31 +202,6 @@ async findByOwnerId(user_id: string): Promise<PetResponseDto[]> {
   }
 }
 
-  async findByOwnerAndPetIds(user_id: string, pet_ids: string[]): Promise<PetResponseDto[]> {
-    try {
-      if (!Array.isArray(pet_ids) || pet_ids.length === 0) {
-        throw new BadRequestException('Pet IDs must be a non-empty array');
-      }
-
-      const pets = await this.petRepository.findByOwnerAndPetIds(user_id, pet_ids);
-      
-      // Verify all requested pet_ids were found
-      const foundPetIds = new Set(pets.map(pet => pet.id));
-      const missingPetIds = pet_ids.filter(id => !foundPetIds.has(id));
-      
-      if (missingPetIds.length > 0) {
-        throw new BadRequestException(`Pets not found or not owned by user: ${missingPetIds.join(', ')}`);
-      }
-
-      return pets.map(pet => mapToResponseDto(pet));
-    } catch (error) {
-      if (error instanceof BadRequestException) {
-        throw error;
-      }
-      throw new BadRequestException('Failed to fetch user pets: ' + error.message);
-    }
-  }
-
   async delete(pet_id: string): Promise<{ message: string }> {
   try {
     // 1️⃣ Kiểm tra pet có tồn tại không
