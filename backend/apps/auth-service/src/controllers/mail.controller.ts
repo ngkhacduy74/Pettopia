@@ -17,6 +17,26 @@ export class MailController {
     return this.mailService.sendClinicVerificationMail(data.clinic_id);
   }
 
+  @MessagePattern({ cmd: 'sendClinicWelcomeEmail' })
+  async sendClinicWelcomeEmail(
+    @Payload()
+    data: {
+      email: string;
+      clinicName: string;
+      representativeName: string;
+      username: string;
+      password: string;
+    }
+  ) {
+    return this.mailService.sendClinicWelcomeEmail(
+      data.email,
+      data.clinicName,
+      data.representativeName,
+      data.username,
+      data.password
+    );
+  }
+
   @MessagePattern({ cmd: 'sendAppointmentConfirmation' })
   async sendAppointmentConfirmation(
     @Payload() 
