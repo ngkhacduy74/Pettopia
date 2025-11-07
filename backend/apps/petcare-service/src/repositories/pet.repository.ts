@@ -125,29 +125,15 @@ export class PetRepository {
   }
 
   async findByOwnerId(user_id: string): Promise<Pet[]> {
-    try {
-      // Tìm tất cả thú cưng có owner.user_id = user_id
-      return await this.petModel.find({ 'owner.user_id': user_id }).exec();
-    } catch (error) {
-      throw new InternalServerErrorException(
-        'Lỗi khi tìm thú cưng theo owner_id: ' + error.message,
-      );
-    }
+  try {
+    // Tìm tất cả thú cưng có owner.user_id = user_id
+    return await this.petModel.find({ 'owner.user_id': user_id }).exec();
+  } catch (error) {
+    throw new InternalServerErrorException(
+      'Lỗi khi tìm thú cưng theo owner_id: ' + error.message,
+    );
   }
-
-  async findByOwnerAndPetIds(user_id: string, pet_ids: string[]): Promise<Pet[]> {
-    try {
-      // Tìm thú cưng có owner.user_id = user_id và id nằm trong mảng pet_ids
-      return await this.petModel.find({
-        'owner.user_id': user_id,
-        id: { $in: pet_ids }
-      }).exec();
-    } catch (error) {
-      throw new InternalServerErrorException(
-        'Lỗi khi tìm thú cưng theo owner_id và danh sách pet_ids: ' + error.message,
-      );
-    }
-  }
+}
   async count(): Promise<number> {
     return this.petModel.countDocuments().exec();
   }
