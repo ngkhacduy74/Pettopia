@@ -38,21 +38,24 @@ export class MailController {
       } 
     }
   ) {
-    try {
-      const result = await this.mailService.sendAppointmentConfirmation(
-        data.email, 
-        data.appointmentDetails
-      );
-      
-      if (result.success) {
-        return { success: true, message: result.message };
-      } else {
-        console.error('Failed to send appointment confirmation:', result.message);
-        return { success: false, message: result.message };
-      }
-    } catch (error) {
-      console.error('Error in sendAppointmentConfirmation:', error);
-      return { success: false, message: 'Internal server error', error: error.message };
-    }
+    const { appointmentDetails } = data;
+    
+    // If clinicAddress is a string, convert it to the expected object format
+    const formattedAppointmentDetails = {
+      ...appointmentDetails,
+      clinicAddress: typeof appointmentDetails.clinicAddress === 'string' 
+        ? {
+            description: appointmentDetails.clinicAddress,
+            ward: '',
+            district: '',
+            city: ''
+          }
+        : appointmentDetails.clinicAddress
+    };
+
+    return this.mailService.sendAppointmentConfirmation(
+      data.email, 
+      formattedAppointmentDetails
+    );
   }
 }

@@ -253,7 +253,7 @@ export class MailTemplateService {
       appointmentDate: string;
       appointmentTime: string;
       clinicName: string;
-      clinicAddress: string | {
+      clinicAddress: {
         description: string;
         ward: string;
         district: string;
@@ -263,34 +263,13 @@ export class MailTemplateService {
       appointmentId: string;
     },
   ) {
-    try {
-      // Convert string address to object format if needed
-      const address = typeof appointmentDetails.clinicAddress === 'string' 
-        ? {
-            description: appointmentDetails.clinicAddress,
-            ward: '',
-            district: '',
-            city: ''
-          }
-        : appointmentDetails.clinicAddress;
-
-      const template = this.getAppointmentConfirmationTemplate({
-        ...appointmentDetails,
-        clinicAddress: address
-      });
-
-      await this.mailService.sendMail(
-        email,
-        `Xác nhận đặt lịch hẹn thành công - ${appointmentDetails.appointmentId}`,
-        template,
-        MailType.APPOINTMENT_CONFIRMATION,
-      );
-      
-      return { success: true, message: 'Email sent successfully' };
-    } catch (error) {
-      console.error('Error sending appointment confirmation email:', error);
-      return { success: false, message: 'Failed to send email', error: error.message };
-    }
+    const template = this.getAppointmentConfirmationTemplate(appointmentDetails);
+    return this.mailService.sendMail(
+      email,
+      `Xác nhận đặt lịch hẹn thành công - ${appointmentDetails.appointmentId}`,
+      template,
+      MailType.APPOINTMENT_CONFIRMATION,
+    );
   }
 
   private getAppointmentConfirmationTemplate(data: {
@@ -372,7 +351,7 @@ export class MailTemplateService {
             <h4>Địa điểm:</h4>
             <p>${data.clinicName}</p>
             <p>
-   ${data.clinicAddress.ward}, ${data.clinicAddress.district}, ${data.clinicAddress.city}
+  ${data.clinicAddress.description}, ${data.clinicAddress.ward}, ${data.clinicAddress.district}, ${data.clinicAddress.city}
 </p>
             
             <h4>Dịch vụ đã đặt:</h4>

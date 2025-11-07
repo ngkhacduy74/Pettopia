@@ -110,7 +110,7 @@ console.log("98123ihahsd",services);
         const userEmail = user.email?.email_address || user.email;
         const userName = user.full_name || user.username || 'Quý khách';
    
-        const emailResponse = await lastValueFrom(
+        await lastValueFrom(
           this.authService.send(
             { cmd: 'sendAppointmentConfirmation' },
             {
@@ -127,10 +127,6 @@ console.log("98123ihahsd",services);
             }
           )
         );
-        
-        if (!emailResponse?.success) {
-          console.warn('Email notification might not have been sent successfully:', emailResponse?.message);
-        }
       } catch (emailError) {
         console.error('Không thể gửi email xác nhận:', emailError);
       
