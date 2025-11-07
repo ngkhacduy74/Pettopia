@@ -1,7 +1,5 @@
-import { Controller, Get, UsePipes, ValidationPipe } from '@nestjs/common';
-
+import { Controller, Get, UsePipes, ValidationPipe, HttpStatus } from '@nestjs/common';
 import { ClinicService } from '../../services/clinic/clinic.service';
-
 import { MessagePattern, Payload, RpcException } from '@nestjs/microservices';
 import { handleRpcError } from 'src/common/error.detail';
 import { ServiceService } from 'src/services/clinic/service.service';
@@ -113,6 +111,49 @@ export class ServiceController {
         page,
         limit,
       );
+    } catch (err) {
+      handleRpcError('ServiceController.getServicesByClinicId', err);
+    }
+  }
+
+  @MessagePattern({ cmd: 'validateClinicServices' })
+  async validateClinicServices(
+    @Payload() payload: { clinic_id: string; service_ids: string[] },
+  ) {
+    try {
+      const { clinic_id, service_ids } = payload;
+      const result = await this.serviceService.validateClinicServices(
+        clinic_id,
+        service_ids,
+      );
+      return result;
+    } catch (error) {
+      if (error instanceof RpcException) {
+        throw error;
+      }
+      console.error('Error in validateClinicServices:', error);
+      throw new RpcException({
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        message: 'Đã xảy ra lỗi khi xác thực dịch vụ',
+      });
+    }
+  }
+
+  @MessagePattern({ cmd: 'getAllServicesByClinicId' })
+  async getAllServicesByClinicId(
+    @Payload() payload: { clinic_id: string; page?: number; limit?: number },
+  ) {
+    try {
+      const { clinic_id, page = 1, limit = 10 } = payload;
+      const result = await this.serviceService.getAllServicesByClinicId(
+        clinic_id,
+        page,
+        limit,
+      );
+      return {
+        status: 'success',
+        data: result,
+      };
     } catch (err) {
       handleRpcError('ServiceController.getServicesByClinicId', err);
     }

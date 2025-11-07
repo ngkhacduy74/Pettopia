@@ -1,41 +1,163 @@
-import { HttpStatus, Injectable } from '@nestjs/common';
-import { RpcException } from '@nestjs/microservices';
+import { HttpStatus, Inject, Injectable } from '@nestjs/common';
+import { ClientProxy, RpcException } from '@nestjs/microservices';
 import { CreateAppointmentDto } from 'src/dto/appointment.dto';
 import { AppointmentRepository } from '../repositories/appointment.repositories';
-import { AppointmentStatus } from 'src/schemas/appoinment.schema';
+import {
+  AppointmentStatus,
+  AppointmentShift,
+} from 'src/schemas/appoinment.schema';
+import { lastValueFrom } from 'rxjs';
 
 @Injectable()
 export class AppointmentService {
   constructor(
     private readonly appointmentRepositories: AppointmentRepository,
+    @Inject('PARTNER_SERVICE') private readonly partnerService: ClientProxy,
+    @Inject('CUSTOMER_SERVICE') private readonly customerService: ClientProxy,
   ) {}
   async createAppointment(
     data: CreateAppointmentDto,
     user_id: string,
   ): Promise<any> {
-    console.log('data service12312323', data, user_id);
-    const newAppointmentData = {
-      ...data,
-      user_id: user_id,
-      status: AppointmentStatus.Pending_Confirmation,
-    };
+    const { clinic_id, service_ids, pet_ids, shift_id, date } = data;
 
     try {
-      const result =
-        await this.appointmentRepositories.create(newAppointmentData);
+      // 1. Verify clinic exists and is active
+      const [clinic, services, shift] = await Promise.all([
+        lastValueFrom(
+          this.partnerService.send({ cmd: 'getClinicById' }, { id: clinic_id }),
+        ),
+        lastValueFrom(
+          this.partnerService.send(
+            { cmd: 'validateClinicServices' },
+            { clinic_id, service_ids },
+          ),
+        ),
+        lastValueFrom(
+          this.partnerService.send(
+            { cmd: 'getClinicShiftById' },
+            { clinic_id, shift_id },
+          ),
+        ),
+      ]);
 
+      if (!clinic || clinic.is_active === false) {
+        throw new RpcException({
+          status: HttpStatus.NOT_FOUND,
+          message: 'Phòng khám không tồn tại hoặc đã ngừng hoạt động',
+        });
+      }
+
+      if (!services || services.length !== service_ids.length) {
+        throw new RpcException({
+          status: HttpStatus.BAD_REQUEST,
+          message: 'Một hoặc nhiều dịch vụ không tồn tại hoặc không thuộc phòng khám này',
+        });
+      }
+console.log("oluhya98u129e",shift);
+console.log("98123ihahsd",services);
+      // // 4. Check if shift exists and belongs to the clinic
+      if (!shift) {
+        throw new RpcException({
+          status: HttpStatus.BAD_REQUEST,
+          message: 'Ca khám không tồn tại hoặc không thuộc phòng khám này',
+        });
+      }
+
+      // // 5. Verify pets belong to user
+      // const pets = await lastValueFrom(
+      //   this.customerService.send({ cmd: 'getUserPets' }, { pet_ids, user_id }),
+      // );
+
+      // if (pets.length !== pet_ids.length) {
+      //   throw new RpcException({
+      //     status: HttpStatus.FORBIDDEN,
+      //     message: 'Một hoặc nhiều thú cưng không tồn tại hoặc không thuộc quyền sở hữu của bạn',
+      //   });
+      // }
+
+      // 6. Create appointment
+      const appointmentDate = new Date(date);
+      const newAppointmentData = {
+        ...data,
+        user_id,
+        date: appointmentDate,
+        shift: shift.data.shift,
+        status: AppointmentStatus.Pending_Confirmation,
+      };
+
+      const result = await this.appointmentRepositories.create(newAppointmentData);
       return result;
-    } catch (err) {
-      if (err.code === 11000) {
+    } catch (error) {
+      if (error.code === 11000) {
         throw new RpcException({
           status: HttpStatus.CONFLICT,
           message: 'Lịch hẹn của bạn bị trùng lặp.',
         });
       }
 
+      if (error instanceof RpcException) {
+        throw error;
+      }
+
+      console.error('Error creating appointment:', error);
       throw new RpcException({
         status: HttpStatus.INTERNAL_SERVER_ERROR,
-        message: err.message || 'Lỗi không xác định khi tạo lịch hẹn',
+        message: error.message || 'Lỗi không xác định khi tạo lịch hẹn',
+      });
+    }
+  }
+
+  async getUserAppointments(
+    userId: string,
+    page: number = 1,
+    limit: number = 10,
+  ): Promise<{
+    status: string;
+    message: string;
+    data: any[];
+    pagination: {
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+    };
+  }> {
+    try {
+      if (!userId) {
+        throw new RpcException({
+          status: HttpStatus.BAD_REQUEST,
+          message: 'Thiếu thông tin người dùng',
+        });
+      }
+
+      const { data, total } = await this.appointmentRepositories.findByUserId(
+        userId,
+        page,
+        limit,
+      );
+
+      const totalPages = Math.ceil(total / limit);
+
+      return {
+        status: 'success',
+        message: 'Lấy danh sách lịch hẹn thành công',
+        data,
+        pagination: {
+          total,
+          page,
+          limit,
+          totalPages,
+        },
+      };
+    } catch (error) {
+      if (error instanceof RpcException) {
+        throw error;
+      }
+
+      throw new RpcException({
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        message: error.message || 'Lỗi khi lấy danh sách lịch hẹn',
       });
     }
   }

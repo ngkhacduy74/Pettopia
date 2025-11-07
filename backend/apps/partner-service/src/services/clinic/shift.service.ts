@@ -25,6 +25,37 @@ export class ShiftService {
     private readonly clinicService: ClinicService,
     @Inject('CUSTOMER_SERVICE') private readonly customerService: ClientProxy,
   ) {}
+
+  async getClinicShiftById(clinic_id: string, shift_id: string): Promise<any> {
+    try {
+      if (!clinic_id || !shift_id) {
+        throw createRpcError(
+          HttpStatus.BAD_REQUEST,
+          'Thiếu thông tin phòng khám hoặc ca làm việc',
+          'Bad Request',
+        );
+      }
+
+      // Get the shift by ID and clinic_id
+      const shift = await this.shiftRepositories.getShiftByIdAndClinic(shift_id, clinic_id);
+      
+      if (!shift) {
+        return null;
+      }
+
+      return shift;
+    } catch (error) {
+      if (error instanceof RpcException) {
+        throw error;
+      }
+      throw createRpcError(
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        'Lỗi khi lấy thông tin ca làm việc',
+        'Internal Server Error',
+        error.message,
+      );
+    }
+  }
   async createClinicShift(data: CreateClinicShiftDto): Promise<any> {
     // Lưu ý hàm tạo shift sẽ đều phải mapping từ user sang clinic id
     // Sẽ có hàm so sánh phía dưới
@@ -125,7 +156,7 @@ export class ShiftService {
           'Bad Request',
         );
       }
-      const allShifts =
+      const { data: allShifts } =
         await this.shiftRepositories.getShiftsByClinicId(clinic_id);
       for (const existingShift of allShifts) {
         const [existStartHours, existStartMinutes] = existingShift.start_time
@@ -460,7 +491,6 @@ export class ShiftService {
     clinic_id: string,
   ): Promise<{ status: string; message: string; data: any[] }> {
     try {
-
       if (!clinic_id || typeof clinic_id !== 'string') {
         throw createRpcError(
           HttpStatus.BAD_REQUEST,
@@ -469,13 +499,12 @@ export class ShiftService {
         );
       }
 
-      const result =
-        await this.shiftRepositories.getShiftsByClinicId(clinic_id);
+      const { data: shifts } = await this.shiftRepositories.getShiftsByClinicId(clinic_id);
 
       return {
         status: 'success',
         message: 'Lấy danh sách ca làm việc thành công',
-        data: result,
+        data: shifts,
       };
     } catch (error) {
       if (error.name === 'CastError' || error.message?.includes('not found')) {

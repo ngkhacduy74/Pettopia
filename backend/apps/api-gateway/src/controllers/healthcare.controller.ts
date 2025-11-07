@@ -29,13 +29,53 @@ export class HealthcareController {
 
   @UseGuards(JwtAuthGuard)
   @Post('/appointment')
+  @HttpCode(HttpStatus.CREATED)
+  async createAppointment(
+    @Body() data: any, 
+    @UserToken('id') userId: string
+  ) {
+    try {
+      console.log("1928ujkasd");
+      return await lastValueFrom(
+        this.healthcareService.send(
+          { cmd: 'createAppointment' },
+          { 
+              data,
+              user_id: userId
+            
+          },
+        ),
+      );
+    } catch (error) {
+      if (error instanceof RpcException) {
+        throw error;
+      }
+      throw new RpcException({
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        message: error.message || 'Đã xảy ra lỗi khi tạo lịch hẹn',
+      });
+    }
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('/appointments')
   @HttpCode(HttpStatus.OK)
-  async createAppointment(@Body() data: any, @UserToken('id') user_id: string) {
-    console.log('data appointment gateway', data, user_id);
+  async getUserAppointments(
+    @UserToken('id') userId: string,
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
+  ) {
+    if (!userId) {
+      throw new RpcException({
+        status: HttpStatus.BAD_REQUEST,
+        message: 'Thiếu thông tin người dùng',
+      });
+    }
+
     return await lastValueFrom(
       this.healthcareService.send(
-        { cmd: 'createAppointment' },
-        { data, user_id },
+        { cmd: 'getUserAppointments' },
+        { userId, page: Number(page), limit: Number(limit) },
       ),
     );
   }

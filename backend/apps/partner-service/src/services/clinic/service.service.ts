@@ -4,6 +4,7 @@ import { CreateServiceDto } from 'src/dto/clinic/services/create-service.dto';
 import { ServiceRepository } from 'src/repositories/clinic/service.repositories';
 import { ClinicService } from './clinic.service';
 import { ClinicsRepository } from 'src/repositories/clinic/clinic.repositories';
+import { lastValueFrom } from 'rxjs';
 
 const createRpcError = (
   statusCode: number,
@@ -71,6 +72,38 @@ export class ServiceService {
       );
     }
   }
+  async validateClinicServices(clinic_id: string, service_ids: string[]): Promise<any[]> {
+    try {
+      if (!clinic_id || !service_ids?.length) {
+        throw createRpcError(
+          HttpStatus.BAD_REQUEST,
+          'Thiếu thông tin phòng khám hoặc danh sách dịch vụ',
+          'Bad Request',
+        );
+      }
+
+      // Get all services for the clinic
+      const services = await this.serviceRepositories.findServicesByClinicId(clinic_id, 0, 1000);
+      
+      // Filter services that match the requested service_ids
+      const validServices = services.filter(service => 
+        service_ids.includes(service.id) && service.is_active !== false
+      );
+
+      return validServices;
+    } catch (error) {
+      if (error instanceof RpcException) {
+        throw error;
+      }
+      throw createRpcError(
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        'Lỗi khi xác thực dịch vụ',
+        'Internal Server Error',
+        error.message,
+      );
+    }
+  }
+
   async createService(data: CreateServiceDto, clinic_id: string): Promise<any> {
     try {
       const result = await this.serviceRepositories

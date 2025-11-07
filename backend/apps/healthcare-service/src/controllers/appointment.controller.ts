@@ -1,8 +1,10 @@
 import { Controller, Get, UsePipes, ValidationPipe } from '@nestjs/common';
 import { AppointmentService } from '../services/appointment.service';
-import { MessagePattern, Payload } from '@nestjs/microservices';
+import { MessagePattern, Payload, RpcException } from '@nestjs/microservices';
 import { handleRpcError } from 'src/common/error.detail';
 import { CreateAppointmentDto } from 'src/dto/appointment.dto';
+import { HttpStatus } from '@nestjs/common/enums';
+
 @UsePipes(
   new ValidationPipe({
     transform: true,
@@ -16,20 +18,62 @@ export class AppointmentController {
 
   @MessagePattern({ cmd: 'createAppointment' })
   async createAppointment(
-    @Payload() data: { data: CreateAppointmentDto; user_id: string },
-  ): Promise<any> {
+    @Payload() payload: { data: CreateAppointmentDto; user_id: string },
+  ) {
     try {
-      console.log('oáidoasd', data);
+      console.log("oqueojakds",payload.data,payload.user_id);
+
+
       const result = await this.appointmentService.createAppointment(
-        data.data,
-        data.user_id,
+        payload.data,
+        payload.user_id,
       );
+
       return {
-        message: 'Appointment created successfully',
+        status: 'success',
+        message: 'Tạo lịch hẹn thành công',
         data: result,
       };
-    } catch (err) {
-      handleRpcError('AppointmentController.createAppointment', err);
+    } catch (error) {
+      if (error instanceof RpcException) {
+        throw error;
+      }
+      console.error('Error in createAppointment:', error);
+      throw new RpcException({
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        message: 'Đã xảy ra lỗi khi tạo lịch hẹn',
+      });
+    }
+  }
+
+  @MessagePattern({ cmd: 'getUserAppointments' })
+  async getUserAppointments(
+    @Payload() payload: { userId: string; page?: number; limit?: number },
+  ) {
+    try {
+      const { userId, page = 1, limit = 10 } = payload;
+
+      if (!userId) {
+        throw new RpcException({
+          status: HttpStatus.BAD_REQUEST,
+          message: 'Thiếu thông tin người dùng',
+        });
+      }
+
+      const result = await this.appointmentService.getUserAppointments(
+        userId,
+        page,
+        limit,
+      );
+
+      return {
+        status: 'success',
+        message: 'Lấy danh sách lịch hẹn thành công',
+        data: result.data,
+        pagination: result.pagination,
+      };
+    } catch (error) {
+      return handleRpcError('AppointmentController.getUserAppointments', error);
     }
   }
 }

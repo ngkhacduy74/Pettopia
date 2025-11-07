@@ -13,6 +13,7 @@ import {
 } from './schemas/medical_record.schema';
 import { Medication, MedicationSchema } from './schemas/preciption.schema';
 import { Vet_Schedule, VetScheduleSchema } from './schemas/vet_schedule.schema';
+import { ClientsModule, Transport } from '@nestjs/microservices';
 
 @Module({
   imports: [
@@ -23,6 +24,20 @@ import { Vet_Schedule, VetScheduleSchema } from './schemas/vet_schedule.schema';
       {
         ttl: 60000,
         limit: 10,
+      },
+    ]),ClientsModule.register([
+      {
+        name: 'CUSTOMER_SERVICE',
+        transport: Transport.TCP,
+        options: {
+          port: 5002,
+        },
+      },{
+        name: 'PARTNER_SERVICE',
+        transport: Transport.TCP,
+        options: {
+          port: 5004,
+        },
       },
     ]),
     MongooseModule.forRootAsync({
