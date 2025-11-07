@@ -117,7 +117,7 @@ export class PetRepository {
 }
 
   async delete(pet_id: string): Promise<Pet | null> {
-    return this.petModel.findOneAndDelete({ pet_id }).exec();
+    return this.petModel.findOneAndDelete({ id:pet_id }).exec();
   }
 
   async findBySpecies(species: string): Promise<Pet[]> {

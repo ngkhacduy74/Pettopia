@@ -1,92 +1,133 @@
 version: "3.9"
 
+# Load environment variables from .env file
+env_file: .env
+
 services:
   api-gateway:
     build:
-      context: ./backend/apps/api-gateway
+      context: ./api-gateway
       dockerfile: Dockerfile
     container_name: api-gateway
     ports:
-      - "8000:3000"
+      - "8000:${API_GATEWAY_PORT}"
+    env_file: .env
     environment:
-      MONGO_URI: mongodb://auth-db:27017/auth_db
+      - NODE_ENV=${NODE_ENV}
+      - SHOW_ERROR_DETAILS=${SHOW_ERROR_DETAILS}
+      - API_GATEWAY_PORT=${API_GATEWAY_PORT}
     networks:
       - pettopia-network
+
   auth-service:
     build:
-      context: ./backend/apps/auth-service
+      context: ./auth-service
       dockerfile: Dockerfile
     container_name: auth-service
     ports:
-      - "8001:3000"
+      - "8001:${AUTH_PORT}"
+    env_file: .env
     environment:
-      MONGO_URI: mongodb://auth-db:27017/auth_db
+      - NODE_ENV=${NODE_ENV}
+      - SHOW_ERROR_DETAILS=${SHOW_ERROR_DETAILS}
+      - AUTH_DB_URI=${AUTH_DB_URI}
+      - AUTH_PORT=${AUTH_PORT}
     networks:
       - pettopia-network
+
   billing-service:
     build:
-      context: ./backend/apps/billing-service
+      context: ./billing-service
       dockerfile: Dockerfile
     container_name: billing-service
     ports:
-      - "8007:3000"
+      - "8007:${BILLING_PORT}"
+    env_file: .env
     environment:
-      MONGO_URI: mongodb://auth-db:27017/auth_db
+      - NODE_ENV=${NODE_ENV}
+      - SHOW_ERROR_DETAILS=${SHOW_ERROR_DETAILS}
+      - MONGO_URI=${MONGO_URI}
+      - BILLING_PORT=${BILLING_PORT}
     networks:
       - pettopia-network
+
   communication-service:
     build:
-      context: ./backend/apps/communication-service
+      context: ./communication-service
       dockerfile: Dockerfile
     container_name: communication-service
     ports:
-      - "8006:3000"
+      - "8006:${COMMUNICATION_PORT}"
+    env_file: .env
     environment:
-      MONGO_URI: mongodb://auth-db:27017/auth_db
+      - NODE_ENV=${NODE_ENV}
+      - SHOW_ERROR_DETAILS=${SHOW_ERROR_DETAILS}
+      - MONGO_URI=${MONGO_URI}
+      - COMMUNICATION_PORT=${COMMUNICATION_PORT}
     networks:
       - pettopia-network
+
   customer-service:
     build:
-      context: ./backend/apps/customer-service
+      context: ./customer-service
       dockerfile: Dockerfile
     container_name: customer-service
     ports:
-      - "8002:3000"
+      - "8002:${CUSTOMER_PORT}"
+    env_file: .env
     environment:
-      MONGO_URI: mongodb://auth-db:27017/auth_db
+      - NODE_ENV=${NODE_ENV}
+      - SHOW_ERROR_DETAILS=${SHOW_ERROR_DETAILS}
+      - CUSTOMER_DB_URI=${CUSTOMER_DB_URI}
+      - CUSTOMER_PORT=${CUSTOMER_PORT}
     networks:
       - pettopia-network
+
   healthcare-service:
     build:
-      context: ./backend/apps/healthcare-service
+      context: ./healthcare-service
       dockerfile: Dockerfile
     container_name: healthcare-service
     ports:
-      - "8005:3000"
+      - "8005:${HEALTHCARE_PORT}"
+    env_file: .env
     environment:
-      MONGO_URI: mongodb://auth-db:27017/auth_db
+      - NODE_ENV=${NODE_ENV}
+      - SHOW_ERROR_DETAILS=${SHOW_ERROR_DETAILS}
+      - HEALTHCARE_DB_URI=${HEALTHCARE_DB_URI}
+      - HEALTHCARE_PORT=${HEALTHCARE_PORT}
     networks:
       - pettopia-network
+
   partner-service:
     build:
-      context: ./backend/apps/partner-service
+      context: ./partner-service
       dockerfile: Dockerfile
     container_name: partner-service
     ports:
-      - "8004:3000"
+      - "8004:${PARTNER_PORT}"
+    env_file: .env
     environment:
-      MONGO_URI: mongodb://auth-db:27017/auth_db
+      - NODE_ENV=${NODE_ENV}
+      - SHOW_ERROR_DETAILS=${SHOW_ERROR_DETAILS}
+      - PARTNER_DB_URI=${PARTNER_DB_URI}
+      - PARTNER_PORT=${PARTNER_PORT}
     networks:
       - pettopia-network
+
   petcare-service:
     build:
-      context: ./backend/apps/petcare-service
+      context: ./petcare-service
       dockerfile: Dockerfile
     container_name: petcare-service
     ports:
-      - "8003:3000"
+      - "8003:${PETCARE_PORT}"
+    env_file: .env
     environment:
-      MONGO_URI: mongodb://auth-db:27017/auth_db
+      - NODE_ENV=${NODE_ENV}
+      - SHOW_ERROR_DETAILS=${SHOW_ERROR_DETAILS}
+      - PET_DB_URI=${PET_DB_URI}
+      - PETCARE_PORT=${PETCARE_PORT}
     networks:
       - pettopia-network
 

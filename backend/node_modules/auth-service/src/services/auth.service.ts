@@ -1,4 +1,4 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { HttpStatus, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { LoginDto } from '../dtos/login.dto';
 import { ClientProxy, RpcException } from '@nestjs/microservices';
 import { RegisterDto } from '../dtos/register.dto';
@@ -6,13 +6,15 @@ import { lastValueFrom } from 'rxjs';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { v4 as uuidv4 } from 'uuid';
+import { createRpcError } from 'src/common/error.detail';
 @Injectable()
 export class AuthService {
   constructor(
     @Inject('CUSTOMER_SERVICE') private customerClient: ClientProxy,
     private readonly jwtService: JwtService,
   ) {}
-  async login(data: LoginDto): Promise<any> {
+
+ async login(data: LoginDto): Promise<any> {
     console.log('data customer service', data);
     try {
       const exist_user = await lastValueFrom(
@@ -20,47 +22,100 @@ export class AuthService {
           { cmd: 'getUserByUsername' },
           { username: data.username },
         ),
-      );
+      ).catch((error) => {
+
+        console.error('Error from customerClient[getUserByUsername]:', error.message);
+        throw createRpcError(
+          HttpStatus.NOT_FOUND,
+          'Tài khoản không tồn tại',
+          'Not Found',
+          error.message,
+        );
+      });
 
       if (!exist_user) {
-        throw new NotFoundException('Không tìm thấy user');
+        throw createRpcError(
+          HttpStatus.NOT_FOUND, 
+          'Tài khoản không tồn tại',
+          'Not Found',
+        );
       }
       const isMatch = await bcrypt.compare(data.password, exist_user.password);
       if (!isMatch) {
-        throw new RpcException('Mật khẩu không đúng');
+        throw createRpcError(
+          HttpStatus.UNAUTHORIZED, 
+          'Mật khẩu không đúng',
+          'Unauthorized',
+        );
       }
+
       const { password, ...result } = exist_user;
       const token = this.jwtService.sign(result);
-      return { status: true, token: token };
-    } catch (err: any) {
-      throw new Error(err);
+      return { status: 'success', token };
+    } catch (error) {
+
+      if (error instanceof RpcException) {
+
+        throw error;
+      }
+
+      throw createRpcError(
+        HttpStatus.INTERNAL_SERVER_ERROR, 
+        'Đã xảy ra lỗi khi đăng nhập',
+        'Internal Server Error',
+        error.message,
+      );
     }
   }
 
-  async register(data: any): Promise<any> {
+  async register(data: RegisterDto): Promise<any> {
     try {
       const exist_phone = await lastValueFrom(
         this.customerClient.send(
           { cmd: 'checkPhoneExist' },
           { phone_number: data.phone_number },
         ),
-      );
+      ).catch((error) => {
+        console.error('Error checking phone:', error);
+        throw createRpcError(
+          HttpStatus.INTERNAL_SERVER_ERROR, 
+          'Lỗi khi kiểm tra số điện thoại',
+          'Internal Server Error',
+          error.message,
+        );
+      });
 
       const exist_email = await lastValueFrom(
         this.customerClient.send(
           { cmd: 'getUserByEmail' },
           { email_address: data.email_address },
         ),
-      );
+      ).catch((error) => {
+        console.error('Error checking email:', error);
+        throw createRpcError(
+          HttpStatus.INTERNAL_SERVER_ERROR, 
+          'Lỗi khi kiểm tra email',
+          'Internal Server Error',
+          error.message,
+        );
+      });
 
-      if (exist_email.status == false) {
-        throw new RpcException(
-          'Email đã được đăng ký bằng 1 tài khoản khác. Vui lòng sử dụng email khác',
+      if (exist_email?.status === false) {
+        throw createRpcError(
+          HttpStatus.BAD_REQUEST, 
+          'Email đã được đăng ký bằng tài khoản khác',
+          'Bad Request',
+          'Vui lòng sử dụng email khác',
         );
       }
 
-      if (exist_phone.status == false) {
-        throw new RpcException('Đăng ký thất bại! Số điện thoại đã tồn tại');
+      if (exist_phone?.status === false) {
+        throw createRpcError(
+          HttpStatus.BAD_REQUEST, 
+          'Số điện thoại đã được đăng ký',
+          'Bad Request',
+          'Vui lòng sử dụng số điện thoại khác',
+        );
       }
 
       const salt = await bcrypt.genSalt(10);
@@ -85,16 +140,49 @@ export class AuthService {
         is_active: true,
         address: data.address,
       };
-      console.log('newUser', newUser);
       const savedUser = await lastValueFrom(
         this.customerClient.send({ cmd: 'createUser' }, newUser),
-      );
+      ).catch((error) => {
+        console.error('Error creating user:', error);
+        if (
+          error.message?.includes('E11000 duplicate key error') &&
+          error.message?.includes('username_1')
+        ) {
+          throw createRpcError(
+            HttpStatus.BAD_REQUEST, 
+            'Tên đăng nhập đã được sử dụng',
+            'Bad Request',
+            'Vui lòng chọn tên đăng nhập khác',
+          );
+        }
+        throw createRpcError(
+          HttpStatus.INTERNAL_SERVER_ERROR, 
+          'Lỗi khi tạo tài khoản',
+          'Internal Server Error',
+          error.message,
+        );
+      });
 
-      return savedUser;
-    } catch (err: any) {
-      console.error('Register error:', err);
-      throw new RpcException(
-        err?.message || 'Lỗi không xác định từ auth-service',
+      const { password, ...userWithoutPassword } = savedUser;
+      const token = this.jwtService.sign(userWithoutPassword);
+
+      return {
+        status: 'success',
+        message: 'Đăng ký tài khoản thành công',
+        data: {
+          user: userWithoutPassword,
+          token,
+        },
+      };
+    } catch (error) {
+      if (error instanceof RpcException) {
+        throw error;
+      }
+      throw createRpcError(
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        'Đã xảy ra lỗi khi đăng ký tài khoản',
+        'Internal Server Error',
+        error.message,
       );
     }
   }

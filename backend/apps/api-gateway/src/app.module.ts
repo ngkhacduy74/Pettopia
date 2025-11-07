@@ -1,15 +1,18 @@
 import { Module } from '@nestjs/common';
 import { AuthController } from './controllers/auth.controller';
 import { CustomerController } from './controllers/customer.controller';
-import { AppointmentsController } from './controllers/appointments.controller';
-import { PaymentController } from './controllers/payment.controller';
 import { AppService } from './app.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { JwtModule } from '@nestjs/jwt';
 import { PetController } from './controllers/petcare.controller';
 import { PartnerController } from './controllers/partner.controller';
+<<<<<<< HEAD
 import { AiController } from './controllers/ai.controller';
+=======
+import { CommunicationController } from './controllers/communication.controller';
+import { HealthcareController } from './controllers/healthcare.controller';
+>>>>>>> origin/test
 
 @Module({
   imports: [
@@ -80,10 +83,14 @@ import { AiController } from './controllers/ai.controller';
     AuthController,
     CustomerController,
     PetController,
-    AppointmentsController,
     PartnerController,
+<<<<<<< HEAD
     PaymentController,
     AiController,
+=======
+    CommunicationController,
+    HealthcareController,
+>>>>>>> origin/test
   ],
   providers: [AppService],
 })

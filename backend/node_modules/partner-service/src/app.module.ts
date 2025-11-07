@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, ValidationPipe } from '@nestjs/common';
 import { ClinicController } from './controllers/clinic/clinic.controller';
 import { ClinicService } from './services/clinic/clinic.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -9,12 +9,27 @@ import {
 import { MongooseModule } from '@nestjs/mongoose';
 import { ClinicsRepository } from './repositories/clinic/clinic.repositories';
 import { Clinic, ClinicSchema } from './schemas/clinic/clinic.schema';
-
+import { APP_GUARD, APP_PIPE } from '@nestjs/core';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { VetRepository } from './repositories/vet/vet.repositories';
+import { VetService } from './services/vet/vet.service';
+import {
+  Vet_Register,
+  VetRegisterSchema,
+} from './schemas/vet/vet-register.schema';
+import { Vet, VetSchema } from './schemas/vet/vet.schema';
+import { VetController } from './controllers/vet/vet.controller';
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60000,
+        limit: 10,
+      },
+    ]),
     MongooseModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -22,12 +37,33 @@ import { Clinic, ClinicSchema } from './schemas/clinic/clinic.schema';
         uri: configService.get<string>('PARTNER_DB_URI'),
       }),
     }),
+
     MongooseModule.forFeature([
       { name: Clinic_Register.name, schema: ClinicRegisterSchema },
       { name: Clinic.name, schema: ClinicSchema },
+      { name: Vet_Register.name, schema: VetRegisterSchema },
+      { name: Vet.name, schema: VetSchema },
     ]),
   ],
-  controllers: [ClinicController],
-  providers: [ClinicService, ClinicsRepository],
+  controllers: [ClinicController, VetController],
+  providers: [
+    ClinicService,
+    ClinicsRepository,
+    VetRepository,
+    VetService,
+    {
+      provide: APP_PIPE,
+      useValue: new ValidationPipe({
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        transform: true,
+        forbidUnknownValues: true,
+      }),
+    },
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
+  ],
 })
 export class AppModule {}

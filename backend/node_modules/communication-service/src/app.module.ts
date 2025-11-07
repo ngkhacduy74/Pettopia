@@ -1,8 +1,12 @@
 import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
-import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
+import { PostController } from './controllers/post.controller';
+import { PostService } from './services/post.service';
+import { PostRepository } from './repositories/post.repository';
+import { Post, PostSchema } from './schemas/post.schemas';
+import { ClientsModule, Transport } from '@nestjs/microservices';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+
 
 @Module({
   imports: [
@@ -13,11 +17,26 @@ import { MongooseModule } from '@nestjs/mongoose';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
-        uri: configService.get<string>('COMMUNICATION_DB_URI'),
+        uri: configService.get<string>('POST_DB_URI'),
       }),
     }),
+    MongooseModule.forFeature([{ name: Post.name, schema: PostSchema }]),
+    ClientsModule.register([
+      {
+        name: 'CUSTOMER_SERVICE',
+        transport: Transport.TCP,
+        options: {
+          port: 5002,
+        },
+      },
+      {
+        name: 'AUTH_SERVICE',
+        transport: Transport.TCP,
+        options: { port: 5001 },
+  },
+    ]),
   ],
-  controllers: [AppController],
-  providers: [AppService],
+  controllers: [PostController],
+  providers: [PostService, PostRepository],
 })
 export class AppModule {}

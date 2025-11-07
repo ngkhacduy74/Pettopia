@@ -14,7 +14,6 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { AppService } from '../app.service';
 import { lastValueFrom } from 'rxjs';
 import { ClientProxy } from '@nestjs/microservices';
 import { Role, Roles } from 'src/decorators/roles.decorator';
@@ -46,8 +45,8 @@ export class CustomerController {
     return user;
   }
 
-  // @UseGuards(JwtAuthGuard, RoleGuard)
-  // @Roles(Role.ADMIN, Role.Staff)
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.ADMIN, Role.STAFF)
   @Patch(':id/status')
   @HttpCode(HttpStatus.OK)
   async updateUserStatus(
@@ -59,8 +58,8 @@ export class CustomerController {
     );
     return user;
   }
-  // @UseGuards(JwtAuthGuard, RoleGuard)
-  // @Roles(Role.ADMIN, Role.Staff)
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.ADMIN, Role.STAFF)
   @Get()
   @HttpCode(HttpStatus.OK)
   async getAllUsers(
@@ -71,10 +70,76 @@ export class CustomerController {
     @Query('role') role?: string,
     @Query('sort_field') sort_field?: string,
     @Query('sort_order') sort_order?: 'asc' | 'desc',
+    @Query('fullname') fullname?: string,
+    @Query('username') username?: string,
+    @Query('email_address') email_address?: string,
+    @Query('reward_point', new ParseIntPipe({ optional: true })) reward_point?: number,
+    @Query('phone_number') phone_number?: string,
   ) {
-    const dto = { page, limit, search, status, role, sort_field, sort_order };
+    const dto = {
+      page,
+      limit,
+      search,
+      status,
+      role,
+      sort_field,
+      sort_order,
+      fullname,
+      username,
+      email_address,
+      reward_point,
+      phone_number,
+    };
+    
     return await lastValueFrom(
       this.customerService.send({ cmd: 'getAllUsers' }, dto),
     );
+  }
+
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.ADMIN)
+  @Patch(':id/add-role')
+  @HttpCode(HttpStatus.OK)
+  async addRoleToUser(@Param('id') id: string, @Body('role') role: string) {
+    const result = await lastValueFrom(
+      this.customerService.send({ cmd: 'add_user_role' }, { userId: id, role }),
+    );
+    return {
+      message: `Đã thêm role "${role}" cho user ${id}`,
+      data: result,
+    };
+  }
+
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.ADMIN)
+  @Patch(':id/remove-role')
+  @HttpCode(HttpStatus.OK)
+  async removeRoleFromUser(
+    @Param('id') id: string,
+    @Body('role') role: string,
+  ) {
+    const result = await lastValueFrom(
+      this.customerService.send(
+        { cmd: 'remove_user_role' },
+        { userId: id, role },
+      ),
+    );
+    return {
+      message: `Đã xóa role "${role}" khỏi user ${id}`,
+      data: result,
+    };
+  }
+
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.ADMIN)
+  @Get('total/detail')
+  async totalDetailAccount() {
+    const result = await lastValueFrom(
+      this.customerService.send({ cmd: 'total-detail-account' }, {}),
+    );
+    return {
+      message: `Lấy tổng chi tiết user thành công`,
+      data: result,
+    };
   }
 }

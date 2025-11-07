@@ -26,7 +26,6 @@ export class VetInviteRepository {
       id: uuidv4(),
       email,
       token,
-      // invited_by: clinicId, // Người mời (thường là ID người dùng)
       clinic_id: clinicId,
       status: VetInviteTokenStatus.PENDING,
       expires_at: expiresAt,

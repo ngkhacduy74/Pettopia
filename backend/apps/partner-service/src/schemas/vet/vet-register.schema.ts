@@ -1,12 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 import * as uuid from 'uuid';
-
-export enum VetRegisterStatus {
-  PENDING = 'pending',
-  APPROVED = 'approved',
-  REJECTED = 'rejected',
-}
+import { RegisterStatus } from '../clinic/clinic-register.schema';
 
 @Schema({ _id: false })
 export class SocialLink {
@@ -85,7 +80,6 @@ export class Vet_Register {
   })
   id: string;
 
-  // Nếu vet này đăng ký từ user đã có tài khoản
   @Prop({ type: String, required: true, trim: true })
   user_id: string;
 
@@ -105,23 +99,15 @@ export class Vet_Register {
   @Prop({ type: String, trim: true })
   bio: string;
 
-  // Liên kết mạng xã hội
   @Prop({ type: SocialLinkSchema })
   social_link?: SocialLink;
 
-  // Danh sách chứng chỉ
   @Prop({ type: [CertificationSchema], default: [] })
   certifications?: Certification[];
 
-  // Thông tin phòng khám nếu có (có thể null)
-  @Prop({ type: String, trim: true })
-  clinic_id?: string;
+  @Prop({ type: [String], trim: true })
+  clinic_id?: string[];
 
-  // Ngôn ngữ làm việc
-  @Prop({ type: [String], enum: ['vi', 'en'], default: ['vi'] })
-  languages: string[];
-
-  // Giấy phép hành nghề
   @Prop({
     type: String,
     required: true,
@@ -136,27 +122,25 @@ export class Vet_Register {
   })
   license_image_url?: string;
 
-  // Trạng thái xét duyệt
   @Prop({
     type: String,
-    enum: VetRegisterStatus,
-    default: VetRegisterStatus.PENDING,
+    enum: RegisterStatus,
+    default: RegisterStatus.PENDING,
   })
-  status: VetRegisterStatus;
+  status: RegisterStatus;
 
-  // Ghi chú từ staff khi duyệt
   @Prop({ type: String, trim: true })
   note?: string;
 
   @Prop({
     type: String,
-    required: true,
+    required: false,
     match: [
       /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
       'review_by phải là UUIDv4 hợp lệ',
     ],
   })
-  review_by: string;
+  review_by?: string;
 }
 
 function transformValue(doc: any, ret: any) {

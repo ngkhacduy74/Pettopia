@@ -63,14 +63,13 @@ export class PetController {
   //   return this.petService.getPetCount();
   // }
 
-
   // @Get('species/:species')
   // async findBySpecies(
   //   @Param('species') species: string,
   // ): Promise<PetResponseDto[]> {
   //   return this.petService.findBySpecies(species);
   // }
-    @MessagePattern({ cmd: 'getPetById' })
+  @MessagePattern({ cmd: 'getPetById' })
   async getPetById(data: GetPetByIdDto): Promise<PetResponseDto> {
     try {
       return await this.petService.findById(data.pet_id);
@@ -84,15 +83,17 @@ export class PetController {
   // async findById(@Param('pet_id') pet_id: string): Promise<PetResponseDto> {
   //   return this.petService.findById(pet_id);
   // }
-@MessagePattern({ cmd: 'getPetsByOwner' })
-async getPetsByOwner(data: { user_id: string }): Promise<PetResponseDto[]> {
-  try {
-    return await this.petService.findByOwnerId(data.user_id);
-  } catch (error) {
-    this.logger.error('Error fetching pets by owner:', error);
-    return [{ message: 'Failed to fetch pets by owner', error: error.message }] as any;
+  @MessagePattern({ cmd: 'getPetsByOwner' })
+  async getPetsByOwner(data: { user_id: string }): Promise<PetResponseDto[]> {
+    try {
+      return await this.petService.findByOwnerId(data.user_id);
+    } catch (error) {
+      this.logger.error('Error fetching pets by owner:', error);
+      return [
+        { message: 'Failed to fetch pets by owner', error: error.message },
+      ] as any;
+    }
   }
-}
   // @Patch(':pet_id')
   // async update(
   //   @Param('pet_id') pet_id: string,
@@ -100,10 +101,14 @@ async getPetsByOwner(data: { user_id: string }): Promise<PetResponseDto[]> {
   // ): Promise<PetResponseDto> {
   //   return this.petService.update(pet_id, updatePetDto);
   @MessagePattern({ cmd: 'updatePet' })
-  async updatePet(data: { pet_id: string; updateData: UpdatePetDto }): Promise<any> {
+  async updatePet(data: {
+    pet_id: string;
+    updateData: UpdatePetDto;
+    fileBuffer?: string;
+  }): Promise<any> {
     try {
       this.logger.log(`Received updatePet for ${data.pet_id}`);
-      return await this.petService.update(data.pet_id, data.updateData);
+      return await this.petService.update(data);
     } catch (error) {
       this.logger.error('Error updating pet:', error);
       return { message: 'Failed to update pet', error: error.message } as any;
@@ -115,7 +120,7 @@ async getPetsByOwner(data: { user_id: string }): Promise<PetResponseDto[]> {
   // async delete(@Param('pet_id') pet_id: string): Promise<{ message: string }> {
   //   return this.petService.delete(pet_id);
   // }
-    @MessagePattern({ cmd: 'deletePet' })
+  @MessagePattern({ cmd: 'deletePet' })
   async deletePet(data: GetPetByIdDto): Promise<{ message: string }> {
     try {
       return await this.petService.delete(data.pet_id);

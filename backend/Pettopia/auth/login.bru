@@ -1,0 +1,58 @@
+meta {
+  name: login
+  type: http
+  seq: 2
+}
+
+post {
+  url: http://localhost:3000/api/v1/auth/login
+  body: json
+  auth: inherit
+}
+
+body:json {
+  //Admin , Staff
+  // {
+  //     "username": "quynhmai811",
+  //     "password": "Khacduy1212**"
+  // }
+  
+  
+  //User //Clinic
+  // {
+  //     "username": "khacduy07041",
+  //     "password": "Khacduy1212**"
+  // }
+  
+  //User
+  {
+      "username": "nvduc3002",
+      "password": "Khacduy1212**"
+  }
+  
+  
+  
+  //Clinic 
+  // {
+  //     "username": "info.petcare@gmail.com",
+  //     "password": "9k+Zj*>TUEdz"
+  // }
+}
+
+script:post-response {
+  const res = res.getBody();
+  console.log("Response body:", res);
+  
+  if (res.token) {
+    bru.setEnvVar("token", res.token);
+    console.log("✅ Token đã được lưu vào environment:", res.token);
+  } else {
+    console.warn("⚠️ Không tìm thấy token trong response");
+  }
+  
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

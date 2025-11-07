@@ -7,9 +7,11 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { CreateClinicFormDto } from 'src/dto/clinic/create-clinic-form.dto';
-import { CreateClinicDto } from 'src/dto/clinic/create-clinic.dto';
-import { UpdateStatusClinicDto } from 'src/dto/clinic/update-status.dto';
+import { CreateClinicFormDto } from 'src/dto/clinic/clinic/create-clinic-form.dto';
+import { CreateClinicDto } from 'src/dto/clinic/clinic/create-clinic.dto';
+import { UpdateClinicFormDto } from 'src/dto/clinic/clinic/update-clinic-form.dto';
+
+import { UpdateStatusClinicDto } from 'src/dto/clinic/clinic/update-status.dto';
 import {
   Clinic_Register,
   ClinicRegisterDocument,
@@ -59,7 +61,7 @@ export class ClinicsRepository {
     updateStatus: UpdateStatusClinicDto,
   ): Promise<any> {
     const { id, status, note, review_by } = updateStatus;
-
+   
     const clinic = await this.clinicFormModel.findOne({ id });
     if (!clinic) {
       throw new NotFoundException(`Không tìm thấy đơn đăng ký với id: ${id}`);
@@ -204,6 +206,109 @@ export class ClinicsRepository {
     } catch (err) {
       throw new InternalServerErrorException(
         err.message || 'Lỗi cơ sở dữ liệu khi đếm tổng số phòng khám',
+      );
+    }
+  }
+  async getClinicById(id: string): Promise<any> {
+    try {
+      const clinic = await this.clinicModel.findOne({ id: id }).lean().exec();
+      if (!clinic) {
+        return null;
+      }
+      return clinic;
+    } catch (err) {
+      throw new InternalServerErrorException(
+        err.message || `Lỗi cơ sở dữ liệu khi tìm phòng khám với ID: ${id}`,
+      );
+    }
+  }
+  async updateClinicFormByMail(updateData: any): Promise<any> {
+    const { id, ...data } = updateData;
+
+    const clinic = await this.clinicFormModel.findOneAndUpdate(
+      { id },
+      { $set: data },
+      { new: true },
+    );
+
+    if (!clinic) {
+      throw new NotFoundException(`Không tìm thấy form đăng ký với id: ${id}`);
+    }
+
+    return clinic;
+  }
+  async findByVerificationToken(token: string) {
+    return this.clinicFormModel.findOne({ verification_token: token });
+  }
+  async updateClinicForm(id: string, dto: UpdateClinicFormDto): Promise<any> {
+    return this.clinicFormModel.findOneAndUpdate({ id: id }, dto, {
+      new: true,
+      runValidators: true,
+    });
+  }
+  async findClinicByVerificationToken(token: string): Promise<any> {
+    return this.clinicFormModel.findOne({ verification_token: token });
+  }
+
+  async clearClinicVerificationToken(id: string) {
+    return this.clinicModel.updateOne(
+      { _id: id },
+      { $unset: { verification_token: '', token_expires_at: '' } },
+    );
+  }
+  async updateClinic(id: string, dto: any): Promise<ClinicDocument> {
+    try {
+      const updatedClinic = await this.clinicModel
+        .findOneAndUpdate(
+          { id: id },
+          { $set: dto },
+          {
+            new: true,
+            runValidators: true,
+          },
+        )
+        .exec();
+
+      if (!updatedClinic) {
+        throw new NotFoundException(
+          `Không tìm thấy phòng khám với id: ${id} để cập nhật`,
+        );
+      }
+
+      return updatedClinic;
+    } catch (err) {
+      if (
+        err instanceof NotFoundException ||
+        err instanceof BadRequestException
+      ) {
+        throw err;
+      }
+
+      if (err.code === 11000) {
+        throw new BadRequestException(
+          'Cập nhật thất bại: Dữ liệu bị trùng lặp (ví dụ: số giấy phép).',
+        );
+      }
+      throw new InternalServerErrorException(
+        err.message || `Lỗi cơ sở dữ liệu khi cập nhật phòng khám ${id}`,
+      );
+    }
+  }
+  async getClinicByEmail(email: string): Promise<any> {
+    try {
+      const clinic = await this.clinicModel
+        .findOne({ 'email.email_address': email })
+        .lean()
+        .exec();
+
+      if (!clinic) {
+        return null;
+      }
+      return clinic;
+    } catch (err) {
+      throw new InternalServerErrorException(
+        err.message ||
+          `Lỗi cơ sở dữ liệu khi tìm phòng khám với email: ${email}`,
       );
     }
   }

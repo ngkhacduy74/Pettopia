@@ -1,0 +1,25 @@
+meta {
+  name: sendEmailOtp
+  type: http
+  seq: 5
+}
+
+post {
+  url: http://localhost:3000/api/v1/auth/send-otp-email
+  body: json
+  auth: inherit
+}
+
+body:json {
+  // {
+  //     "email":"duynkhe170075@fpt.edu.vn"
+  // }
+  
+  {
+      "email":"onlynanh@gmail.com"
+  }
+}
+
+settings {
+  encodeUrl: true
+}

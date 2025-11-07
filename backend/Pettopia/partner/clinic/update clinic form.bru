@@ -1,0 +1,41 @@
+meta {
+  name: update clinic form
+  type: http
+  seq: 10
+}
+
+put {
+  url: http://localhost:3000/api/v1/partner/verify-clinic/update-form/da57f9b3-e2e5-4241-a53b-c957f90bb72e
+  body: json
+  auth: inherit
+}
+
+headers {
+  token_clinic: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkYTU3ZjliMy1lMmU1LTQyNDEtYTUzYi1jOTU3ZjkwYmI3MmUiLCJ0eXBlIjoiY2xpbmljLXVwZGF0ZSIsImlhdCI6MTc2MjA1NTMzNiwiZXhwIjoxNzYyMDU2MjM2fQ.DD8B-NVBD73mXByRR_gqAf05bYXTDTcfFvACHPxgZ1c
+}
+
+body:json {
+  {
+    "clinic_name": "Phòng khám Thú y PetCare Premium1",
+    "email": {
+      "email_address": "contact@petcarepremium.vn"
+    },
+    "phone": {
+      "phone_number": "+84901234567"
+    },
+    "address": {
+      "city": "Hồ Chí Minh",
+      "district": "Quận 3",
+      "ward": "Phường 6",
+      "detail": "123 Cách Mạng Tháng 8"
+    },
+    "description": "Phòng khám thú y cao cấp, cung cấp dịch vụ chăm sóc, xét nghiệm và tiêm phòng toàn diện cho thú cưng.",
+    "logo_url": "https://cdn.petcarepremium.vn/logo.png",
+    "website": "https://petcarepremium.vn"
+  }
+  
+}
+
+settings {
+  encodeUrl: true
+}

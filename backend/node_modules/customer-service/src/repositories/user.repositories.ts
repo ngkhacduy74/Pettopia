@@ -1,5 +1,9 @@
 // src/users/users.repository.ts
-import { Injectable } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { User, UserDocument } from '../schemas/user.schema';
@@ -98,56 +102,101 @@ export class UsersRepository {
     }
   }
   async updateUserStatus(id: string, status: UserStatus): Promise<any> {
-    try {
-      const result = await this.userModel
-        .findOneAndUpdate({ id }, { is_active: status })
-        .exec();
-      return result;
-    } catch (err) {
-      throw new Error(err);
-    }
+  try {
+    const isActive = status === UserStatus.ACTIVE;
+    const result = await this.userModel
+      .findOneAndUpdate({ id: id }, { is_active: isActive }, { new: true })
+      .exec();
+    return result;
+  } catch (err) {
+    throw new Error(err.message);
   }
+}
+
 
   async getAllUsers(
     data: GetAllUsersDto,
   ): Promise<PaginatedUsersResponse<User>> {
     try {
-      const { page, limit, search, status, role, sort_field, sort_order } =
-        data;
+      const { 
+        page, 
+        limit, 
+        search,
+        status,
+        role,
+        sort_field = 'createdAt',
+        sort_order = 'desc',
+        fullname,
+        username,
+        email_address,
+        reward_point,
+        phone_number
+      } = data;
 
       const safePage = Math.max(Number(page) || 1, 1);
       const safeLimit = Math.max(Number(limit) || 15, 1);
       const skip = (safePage - 1) * safeLimit;
-      const filter: any = {};
+
+      // Build the query
+      const query: any = {};
+
+      // Apply search filter if provided
       if (search) {
-        const regex = new RegExp(search, 'i');
-        filter.$or = [
-          { fullname: regex },
-          { username: regex },
-          { 'email.email_address': regex },
-          { 'phone.phone_number': regex },
+        query.$or = [
+          { 'fullname': { $regex: search, $options: 'i' } },
+          { 'username': { $regex: search, $options: 'i' } },
+          { 'email.email_address': { $regex: search, $options: 'i' } },
+          { 'phone.phone_number': { $regex: search, $options: 'i' } }
         ];
       }
+
+      // Apply status filter if provided
       if (status) {
-        filter.is_active = status === 'active';
+        query.is_active = status === 'active';
       }
+
+      // Apply role filter if provided
       if (role) {
-        filter.role = role;
+        query.role = role;
       }
+
+      // Apply individual field filters if provided
+      if (fullname) {
+        query.fullname = { $regex: fullname, $options: 'i' };
+      }
+
+      if (username) {
+        query.username = { $regex: username, $options: 'i' };
+      }
+
+      if (email_address) {
+        query['email.email_address'] = { $regex: email_address, $options: 'i' };
+      }
+
+      if (reward_point !== undefined) {
+        query.reward_point = reward_point;
+      }
+
+      if (phone_number) {
+        query['phone.phone_number'] = { $regex: phone_number, $options: 'i' };
+      }
+
+      // Build sort object
       const sort: any = {};
       if (sort_field) {
         sort[sort_field] = sort_order === 'asc' ? 1 : -1;
       } else {
-        sort['createdAt'] = -1;
+        sort['createdAt'] = -1; // Default sort by createdAt desc
       }
+
       const [items, total] = await Promise.all([
         this.userModel
-          .find(filter)
+          .find(query)
           .sort(sort)
           .skip(skip)
           .limit(safeLimit)
           .exec(),
-        this.userModel.countDocuments(filter).exec(),
+        this.userModel.countDocuments(query).exec(),
       ]);
 
       return {
@@ -159,5 +208,92 @@ export class UsersRepository {
     } catch (err) {
       throw new Error(err);
     }
+  }
+
+  async addRoleToUser(id: string, newRole: string): Promise<User> {
+    try {
+      const validRoles = ['User', 'Admin', 'Vet', 'Staff', 'Clinic'];
+      if (!validRoles.includes(newRole)) {
+        throw new Error(`Role '${newRole}' không hợp lệ`);
+      }
+      const user = await this.userModel.findOne({ id: id }).exec();
+      if (!user) {
+        throw new Error(`User với id '${id}' không tồn tại`);
+      }
+      if (user.role.includes(newRole)) {
+        return user;
+      }
+      user.role.push(newRole);
+      await user.save();
+      return user;
+    } catch (err) {
+      throw new Error(err.message || 'Lỗi khi thêm role cho user');
+    }
+  }
+
+  async updateRole(id: string, newRole: string): Promise<User> {
+    try {
+      const validRoles = ['User', 'Admin', 'Vet', 'Staff', 'Clinic'];
+      if (!validRoles.includes(newRole)) {
+        throw new Error(`Role '${newRole}' không hợp lệ`);
+      }
+      const user = await this.userModel.findOne({ id: id }).exec();
+      if (!user) {
+        throw new Error(`User với id '${id}' không tồn tại`);
+      }
+      if (user.role.includes(newRole)) {
+        return user;
+      }
+      user.role.push(newRole);
+      await user.save();
+      return user;
+    } catch (err) {
+      throw new Error(err.message || 'Lỗi khi thêm role cho user');
+    }
+  }
+  async removeRoleFromUser(userId: string, role: string): Promise<User> {
+    const user = await this.userModel.findById(userId);
+    if (!user) {
+      throw new NotFoundException('Người dùng không tồn tại.');
+    }
+
+    if (!user.role.includes(role)) {
+      throw new NotFoundException(`Người dùng không có role: ${role}`);
+    }
+
+    user.role = user.role.filter((r) => r !== role);
+    await user.save();
+    return user;
+  }
+  async totalDetailAccount(): Promise<any> {
+    const result = await this.userModel.aggregate([
+      { $unwind: '$role' }, // Nếu role là array
+      {
+        $group: {
+          _id: '$role',
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+
+    const data = {
+      user: 0,
+      staff: 0,
+      clinic: 0,
+      vet: 0,
+    };
+
+    result.forEach((item) => {
+      const role = item._id.toLowerCase();
+      if (data.hasOwnProperty(role)) {
+        data[role] = item.count;
+      }
+    });
+
+    return {
+      status: true,
+      message: 'Đã lấy thành công tổng các account theo role',
+      data,
+    };
   }
 }

@@ -1,22 +1,23 @@
-FROM node:20-alpine3.22 AS gateway-builder
-WORKDIR /backend/apps
+FROM node:20-alpine3.22 AS builder
+WORKDIR /usr/src/app
 
 COPY package*.json ./
-RUN npm ci 
+RUN npm ci
 
 COPY . .
-# chạy để build ứng dụng ra file dist
+# build app to dist
 RUN npm run build
 
-#giai doan 2 
-FROM node:20-alpine3.22 
-WORKDIR /backend/apps
-COPY package*.json ./
+FROM node:20-alpine3.22 AS runner
+WORKDIR /usr/src/app
+ENV NODE_ENV=production
 
-RUN npm ci --omit=dev
-COPY --from=gateway-builder /backend/apps/dist ./dist
+# Copy built artifacts and dependencies from builder
+COPY --from=builder /usr/src/app/dist ./dist
+COPY --from=builder /usr/src/app/node_modules ./node_modules
+COPY --from=builder /usr/src/app/package*.json ./
 
-
+USER node
 
 EXPOSE 3000
 

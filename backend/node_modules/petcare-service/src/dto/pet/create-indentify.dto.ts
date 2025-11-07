@@ -46,7 +46,7 @@ export class CreateIdentificationDto {
 
   @IsString()
   @IsNotEmpty({ message: 'Avatar of Identify is not empty' })
-  avatar_url: string;
+  avatar_url: string | undefined;
 
   @Type(() => Date)
   @IsDate({ message: 'Date of birth must be a valid date (YYYY-MM-DD)' })

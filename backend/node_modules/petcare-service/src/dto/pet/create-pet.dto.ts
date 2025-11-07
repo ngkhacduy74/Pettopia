@@ -41,7 +41,7 @@ export class CreatePetDto {
   @IsNotEmpty({ message: 'Breed is required' })
   breed: string;
   @IsString()
-  avatar_url: string;
+  avatar_url: string ;
 
   @IsOptional()
   medical_records?: string[];
