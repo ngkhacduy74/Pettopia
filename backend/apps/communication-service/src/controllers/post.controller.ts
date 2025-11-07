@@ -118,4 +118,44 @@ async getPostsByUserId(@Payload() data: { user_id: string }) {
       return { message: 'Failed to delete comment', error: error.message } as any;
     }
   }
+  // === REPORT POST ===
+@MessagePattern({ cmd: 'reportPost' })
+async reportPost(
+  @Payload() data: { post_id: string; user_id: string; reason: string },
+) {
+  try {
+    this.logger.log(`User ${data.user_id} báo cáo bài viết ${data.post_id}`);
+    const dto = { reason: data.reason };
+    return await this.postService.reportPost(data.post_id, data.user_id, dto);
+  } catch (error) {
+    this.logger.error('Error reporting post:', error);
+    return { message: 'Failed to report post', error: error.message };
+  }
+}
+
+// === LẤY BÀI BỊ REPORT (STAFF) ===
+@MessagePattern({ cmd: 'getReportedPosts' })
+async getReportedPosts() {
+  try {
+    this.logger.log('Staff requested reported posts');
+    return await this.postService.getReportedPosts();
+  } catch (error) {
+    this.logger.error('Error fetching reported posts:', error);
+    return { message: 'Failed to fetch reported posts', error: error.message };
+  }
+}
+
+// === ẨN / BỎ ẨN BÀI VIẾT (STAFF) ===
+@MessagePattern({ cmd: 'toggleHidePost' })
+async toggleHidePost(
+  @Payload() data: { post_id: string; isHidden: boolean; staff_id: string },
+) {
+  try {
+    this.logger.log(`Staff ${data.staff_id} toggle hide post ${data.post_id}`);
+    return await this.postService.toggleHidePost(data.post_id, data.isHidden, data.staff_id);
+  } catch (error) {
+    this.logger.error('Error toggling post visibility:', error);
+    return { message: 'Failed to toggle post', error: error.message };
+  }
+}
 }

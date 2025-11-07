@@ -68,9 +68,11 @@ export class CommunicationController {
     );
   }
   @Get('user/:user_id')
+@Get('user/:user_id')
 async getPostsByUserId(
   @Param('user_id') user_id: string,
 ) {
+
   return await lastValueFrom(
     this.communicationService.send(
       { cmd: 'getPostsByUserId' },
@@ -170,5 +172,45 @@ async getPostsByUserId(
         { post_id, comment_id, user_id },
       ),
     );
-  } 
+  }
+  // === REPORT POST (User) ===
+@Post(':id/report')
+@HttpCode(HttpStatus.OK)
+async reportPost(
+  @Param('id') post_id: string,
+  @Body('user_id') user_id: string,
+  @Body('reason') reason: string, // Lấy trực tiếp
+) {
+  return await lastValueFrom(
+    this.communicationService.send(
+      { cmd: 'reportPost' },
+      { post_id, user_id, reason }, // forward nguyên bản
+    ),
+  );
+}
+
+// === LẤY DANH SÁCH BÀI BỊ REPORT (Staff) ===
+@Get('staff/reported')
+@HttpCode(HttpStatus.OK)
+async getReportedPosts() {
+  return await lastValueFrom(
+    this.communicationService.send({ cmd: 'getReportedPosts' }, {}),
+  );
+}
+
+// === ẨN / BỎ ẨN BÀI VIẾT (Staff) ===
+@Patch(':id/hide')
+@HttpCode(HttpStatus.OK)
+async toggleHidePost(
+  @Param('id') post_id: string,
+  @Body('isHidden') isHidden: boolean,
+  @Body('staff_id') staff_id: string,
+) {
+  return await lastValueFrom(
+    this.communicationService.send(
+      { cmd: 'toggleHidePost' },
+      { post_id, isHidden, staff_id },
+    ),
+  );
+}
 }

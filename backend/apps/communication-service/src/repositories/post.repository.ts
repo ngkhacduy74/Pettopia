@@ -45,10 +45,7 @@ export class PostRepository {
   return this.postModel
     .find({ "author.user_id": user_id })
     // 1. Sửa .select() để bao gồm 'author'
-    .select('post_id title content comments likeCount author') // <-- THÊM 'author' VÀO ĐÂY
-
-    // 2. HOẶC, XÓA HOÀN TOÀN DÒNG .select() ĐI
-    // .select(...) // <-- Xóa dòng này đi
+    .select('post_id title content comments likeCount author reports reportCount') // <-- THÊM 'author' VÀO ĐÂY
 
     .exec();
 }

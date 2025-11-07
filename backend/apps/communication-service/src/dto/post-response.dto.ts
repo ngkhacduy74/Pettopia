@@ -1,3 +1,8 @@
+export class ReportDto {
+  user_id: string;
+  reason: string;
+  reportedAt: Date;
+}
 export class PostResponseDto {
   post_id: string;
   author: {
@@ -30,6 +35,7 @@ export class PostResponseDto {
   likeCount: number;
   viewCount: number;
   reportCount: number;
+  reports: ReportDto[];
   createdAt: Date;
   updatedAt: Date;
 }

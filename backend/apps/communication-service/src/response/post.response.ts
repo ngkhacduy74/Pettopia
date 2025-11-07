@@ -19,6 +19,11 @@ export function mapToResponseDto(post: Post): PostResponseDto {
     likeCount: post.likeCount,
     viewCount: post.viewCount,
     reportCount: post.reportCount,
+    reports: post.reports.map(r => ({
+      user_id: r.user_id,
+      reason: r.reason,
+      reportedAt: r.reportedAt,
+    })),
     createdAt: post['createdAt'],
     updatedAt: post['updatedAt'],
   };
