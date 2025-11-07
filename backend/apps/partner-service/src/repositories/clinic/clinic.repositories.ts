@@ -61,7 +61,7 @@ export class ClinicsRepository {
     updateStatus: UpdateStatusClinicDto,
   ): Promise<any> {
     const { id, status, note, review_by } = updateStatus;
-
+   
     const clinic = await this.clinicFormModel.findOne({ id });
     if (!clinic) {
       throw new NotFoundException(`Không tìm thấy đơn đăng ký với id: ${id}`);

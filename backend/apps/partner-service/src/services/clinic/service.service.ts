@@ -2,6 +2,8 @@ import { RpcException } from '@nestjs/microservices';
 import { HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { CreateServiceDto } from 'src/dto/clinic/services/create-service.dto';
 import { ServiceRepository } from 'src/repositories/clinic/service.repositories';
+import { ClinicService } from './clinic.service';
+import { ClinicsRepository } from 'src/repositories/clinic/clinic.repositories';
 
 const createRpcError = (
   statusCode: number,
@@ -19,7 +21,11 @@ const createRpcError = (
 
 @Injectable()
 export class ServiceService {
-  constructor(private readonly serviceRepositories: ServiceRepository) {}
+  constructor(
+    private readonly serviceRepositories: ServiceRepository,
+    private readonly clinicService: ClinicService,
+    private readonly clinicRepositories : ClinicsRepository
+  ) {}
 
   async getAllServicesByClinicId(
     clinic_id: string,
@@ -27,7 +33,7 @@ export class ServiceService {
     limit: number = 10,
   ) {
     try {
-      console.log(";akd;kads;ad",clinic_id)
+      console.log(';akd;kads;ad', clinic_id);
       if (!clinic_id) {
         throw createRpcError(
           HttpStatus.BAD_REQUEST,
@@ -37,7 +43,7 @@ export class ServiceService {
       }
 
       const skip = (page - 1) * limit;
-      
+
       const [services, total] = await Promise.all([
         this.serviceRepositories.findServicesByClinicId(clinic_id, skip, limit),
         this.serviceRepositories.countServicesByClinicId(clinic_id),
@@ -85,7 +91,8 @@ export class ServiceService {
           'Bad Request',
         );
       }
-
+      const clinic_check =
+        await this.clinicService.triggerToCheckActiveClinic(clinic_id);
       return {
         status: 'success',
         message: 'Tạo dịch vụ thành công',
@@ -186,6 +193,32 @@ export class ServiceService {
 
   async removeService(serviceId: string, clinic_id: string): Promise<any> {
     try {
+      console.log("oiaud9871e")
+      if (!serviceId || !clinic_id) {
+        throw createRpcError(
+          HttpStatus.BAD_REQUEST,
+          'Thiếu thông tin bắt buộc',
+          'Bad Request',
+        );
+      }
+
+      const service = await this.serviceRepositories.getServiceById(serviceId);
+      if (!service) {
+        throw createRpcError(
+          HttpStatus.NOT_FOUND,
+          'Không tìm thấy dịch vụ',
+          'Not Found',
+        );
+      }
+
+      if (service.clinic_id.toString() !== clinic_id) {
+        throw createRpcError(
+          HttpStatus.FORBIDDEN,
+          'Bạn không có quyền xóa dịch vụ này',
+          'Forbidden',
+        );
+      }
+
       const result = await this.serviceRepositories
         .removeService(serviceId, clinic_id)
         .catch((error) => {
@@ -205,7 +238,10 @@ export class ServiceService {
         );
       }
 
-      return {
+    const trigger =  await this.clinicService.triggerToCheckActiveClinic(clinic_id);
+    console.log('lkjaldkjasd',trigger)
+
+      return { 
         status: 'success',
         message: 'Xóa dịch vụ thành công',
         data: result,
@@ -301,20 +337,24 @@ export class ServiceService {
     }
   }
 
-  async getServicesByClinicId(clinic_id: string, page: number = 1, limit: number = 10): Promise<any> {
+  async getServicesByClinicId(
+    clinic_id: string,
+    page: number = 1,
+    limit: number = 10,
+  ): Promise<any> {
     try {
       if (!clinic_id) {
         throw createRpcError(
           HttpStatus.BAD_REQUEST,
           'Thiếu thông tin phòng khám',
-          'Bad Request'
+          'Bad Request',
         );
       }
 
       const result = await this.serviceRepositories.getServicesByClinicId(
         clinic_id,
         page,
-        limit
+        limit,
       );
 
       return {
@@ -326,9 +366,9 @@ export class ServiceService {
             total: result.total,
             page: result.page,
             limit: result.limit,
-            totalPages: Math.ceil(result.total / result.limit)
-          }
-        }
+            totalPages: Math.ceil(result.total / result.limit),
+          },
+        },
       };
     } catch (error) {
       if (error instanceof RpcException) {

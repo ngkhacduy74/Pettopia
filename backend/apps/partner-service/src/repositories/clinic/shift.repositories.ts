@@ -135,15 +135,39 @@ export class ShiftRepository {
       );
     }
   }
-  async getShiftsByClinicId(clinic_id: string): Promise<ShiftDocument[]> {
+  async getShiftsByClinicId(clinic_id: string): Promise<any> {
     try {
       const shifts = await this.shiftModel
-        .find({ clinic_id: clinic_id, is_active: true })
-        .exec();
+        .find({ clinic_id })
+        .sort({ shift: 1 })
+        .lean();
       return shifts;
     } catch (err) {
       throw new InternalServerErrorException(
-        err.message || 'Lỗi cơ sở dữ liệu khi lấy ca làm việc theo phòng khám',
+        err.message || 'Lỗi khi lấy danh sách ca làm việc',
+      );
+    }
+  }
+
+  async getShiftById(id: string): Promise<any> {
+    try {
+      return await this.shiftModel.findOne({ id: id }).lean().exec();
+    } catch (err) {
+      throw new InternalServerErrorException(
+        err.message || 'Lỗi khi tìm kiếm ca làm việc',
+      );
+    }
+  }
+
+  async countShiftByClinicId(clinic_id: string): Promise<number> {
+    try {
+      return await this.shiftModel.countDocuments({
+        clinic_id: clinic_id,
+        // is_active: true
+      });
+    } catch (err) {
+      throw new InternalServerErrorException(
+        err.message || 'Lỗi khi đếm số lượng ca khám theo phòng khám',
       );
     }
   }

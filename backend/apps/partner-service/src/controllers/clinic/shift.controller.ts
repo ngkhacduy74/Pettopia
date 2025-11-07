@@ -1,3 +1,5 @@
+
+
 import { Controller, Get, UsePipes, ValidationPipe } from '@nestjs/common';
 import { MessagePattern, Payload, RpcException } from '@nestjs/microservices';
 import { handleRpcError } from 'src/common/error.detail';
@@ -55,14 +57,19 @@ export class ShiftController {
       handleRpcError('ShiftController.getShiftsByClinicId', err);
     }
   }
-  //   @MessagePattern({ cmd: 'deleteClinicShift' })
-  //   async deleteClinicShift(@Payload() payload: { id: string }) {
-  //     try {
-  //       return await this.shiftService.deleteClinicShift(payload.id);
-  //     } catch (err) {
-  //       handleRpcError('ShiftController.deleteClinicShift', err);
-  //     }
-  //   }
+  @MessagePattern({ cmd: 'deleteClinicShift' })
+  async deleteClinicShift(
+    @Payload() payload: { id: string; clinic_id: string },
+  ) {
+    try {
+      if (!payload.id || !payload.clinic_id) {
+        throw new RpcException('Thiếu thông tin bắt buộc');
+      }
+      return await this.shiftService.deleteShift(payload.id, payload.clinic_id);
+    } catch (err) {
+      handleRpcError('ShiftController.deleteClinicShift', err);
+    }
+  }
 
   //   @MessagePattern({ cmd: 'updateClinicShiftStatus' })
   //   async updateClinicShiftStatus(

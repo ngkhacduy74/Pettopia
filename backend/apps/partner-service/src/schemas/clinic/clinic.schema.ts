@@ -78,7 +78,7 @@ export class Clinic {
   @Prop({ type: Representative, required: true })
   representative: Representative;
 
-  @Prop({ type: Boolean, default: true })
+  @Prop({ type: Boolean, default: false })
   is_active: boolean;
 
   @Prop({ type: [String], default: [] })

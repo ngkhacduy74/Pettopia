@@ -88,7 +88,7 @@ export class ServiceRepository {
   ): Promise<Service | null> {
     try {
       const result = await this.serviceModel.findOneAndUpdate(
-        { _id: serviceId, clinic_id },
+        { id: serviceId, clinic_id },
         { $set: updateServiceDto },
         { new: true },
       );
@@ -110,7 +110,7 @@ export class ServiceRepository {
   async removeService(serviceId: string, clinic_id: string): Promise<any> {
     try {
       const result = await this.serviceModel.deleteOne({
-        _id: serviceId,
+        id: serviceId,
         clinic_id,
       });
 
@@ -128,8 +128,8 @@ export class ServiceRepository {
 
   async updateServiceStatus(id: string, is_active: boolean): Promise<Service> {
     try {
-      const result = await this.serviceModel.findByIdAndUpdate(
-        id,
+      const result = await this.serviceModel.findOneAndUpdate(
+        { id },
         { is_active },
         { new: true },
       );
@@ -181,7 +181,7 @@ export class ServiceRepository {
   }
   async getServiceById(id: string): Promise<Service | null> {
     try {
-      const service = await this.serviceModel.findById(id).lean().exec();
+      const service = await this.serviceModel.findOne({ id }).lean().exec();
       return service;
     } catch (err) {
       throw new InternalServerErrorException(
