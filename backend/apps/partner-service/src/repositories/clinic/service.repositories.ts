@@ -70,9 +70,9 @@ export class ServiceRepository {
 
   async countServicesByClinicId(clinicId: string): Promise<number> {
     try {
-      return await this.serviceModel.countDocuments({ 
-        clinic_id: clinicId, 
-        is_active: true 
+      return await this.serviceModel.countDocuments({
+        clinic_id: clinicId,
+        is_active: true,
       });
     } catch (err) {
       throw new InternalServerErrorException(

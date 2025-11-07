@@ -65,8 +65,33 @@ export class CustomerController {
   async getAllUsers(
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
     @Query('limit', new DefaultValuePipe(15), ParseIntPipe) limit: number,
+    @Query('search') search?: string,
+    @Query('status') status?: 'active' | 'deactive',
+    @Query('role') role?: string,
+    @Query('sort_field') sort_field?: string,
+    @Query('sort_order') sort_order?: 'asc' | 'desc',
+    @Query('fullname') fullname?: string,
+    @Query('username') username?: string,
+    @Query('email_address') email_address?: string,
+    @Query('reward_point', new ParseIntPipe({ optional: true }))
+    reward_point?: number,
+    @Query('phone_number') phone_number?: string,
   ) {
-    const dto = { page, limit };
+    const dto = {
+      page,
+      limit,
+      search,
+      status,
+      role,
+      sort_field,
+      sort_order,
+      fullname,
+      username,
+      email_address,
+      reward_point,
+      phone_number,
+    };
+
     return await lastValueFrom(
       this.customerService.send({ cmd: 'getAllUsers' }, dto),
     );
@@ -102,6 +127,19 @@ export class CustomerController {
     );
     return {
       message: `Đã xóa role "${role}" khỏi user ${id}`,
+      data: result,
+    };
+  }
+
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.ADMIN)
+  @Get('total/detail')
+  async totalDetailAccount() {
+    const result = await lastValueFrom(
+      this.customerService.send({ cmd: 'total-detail-account' }, {}),
+    );
+    return {
+      message: `Lấy tổng chi tiết user thành công`,
       data: result,
     };
   }

@@ -1,15 +1,15 @@
 import { Controller } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
-import { InviteService } from '../services/invite.service';
+import { MailTemplateService } from '../services/mail.template.service';
 
 @Controller()
 export class InviteController {
-  constructor(private readonly inviteService: InviteService) {}
+  constructor(private readonly mailService: MailTemplateService) {}
 
   @MessagePattern({ cmd: 'invite_vet' })
   async inviteVet(@Payload() data: { email: string; clinic_id: string }) {
     console.log('oqj2eq2', data);
-    return this.inviteService.inviteVet(data.email, data.clinic_id);
+    return this.mailService.inviteVet(data.email, data.clinic_id);
   }
 
   //   @MessagePattern({ cmd: 'accept_invite' })

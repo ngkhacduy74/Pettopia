@@ -112,10 +112,7 @@ export class CommunicationController {
     @Body('user_id') user_id: string,
   ) {
     return await lastValueFrom(
-      this.communicationService.send(
-        { cmd: 'likePost' },
-        { post_id, user_id },
-      ),
+      this.communicationService.send({ cmd: 'likePost' }, { post_id, user_id }),
     );
   }
 
@@ -125,10 +122,7 @@ export class CommunicationController {
     @Body('user_id') user_id: string,
   ) {
     return await lastValueFrom(
-      this.communicationService.send(
-        { cmd: 'likePost' },
-        { post_id, user_id },
-      ),
+      this.communicationService.send({ cmd: 'likePost' }, { post_id, user_id }),
     );
   }
 

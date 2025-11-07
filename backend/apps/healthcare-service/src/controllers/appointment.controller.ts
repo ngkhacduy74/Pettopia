@@ -21,8 +21,7 @@ export class AppointmentController {
     @Payload() payload: { data: CreateAppointmentDto; user_id: string },
   ) {
     try {
-      console.log("oqueojakds",payload.data,payload.user_id);
-
+      console.log('oqueojakds', payload.data, payload.user_id);
 
       const result = await this.appointmentService.createAppointment(
         payload.data,

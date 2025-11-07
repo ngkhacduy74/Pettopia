@@ -1,4 +1,10 @@
-import { Controller, Get, UsePipes, ValidationPipe, HttpStatus } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  UsePipes,
+  ValidationPipe,
+  HttpStatus,
+} from '@nestjs/common';
 import { ClinicService } from '../../services/clinic/clinic.service';
 import { MessagePattern, Payload, RpcException } from '@nestjs/microservices';
 import { handleRpcError } from 'src/common/error.detail';
