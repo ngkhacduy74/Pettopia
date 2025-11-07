@@ -7,7 +7,7 @@ import {
 import { OtpMethod } from 'src/schemas/otp.schema';
 import { MailType } from 'src/schemas/mail.schema';
 import { OtpRepository } from 'src/repositories/otp.repositories';
-import { MailService } from './mail.service';
+import { MailService } from './mail.services';
 import { generateOtpCode } from 'src/common/generateOtp.common';
 
 @Injectable()

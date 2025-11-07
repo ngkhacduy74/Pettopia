@@ -8,6 +8,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { PetController } from './controllers/petcare.controller';
 import { PartnerController } from './controllers/partner.controller';
 import { CommunicationController } from './controllers/communication.controller';
+import { HealthcareController } from './controllers/healthcare.controller';
 
 @Module({
   imports: [
@@ -79,7 +80,8 @@ import { CommunicationController } from './controllers/communication.controller'
     CustomerController,
     PetController,
     PartnerController,
-    CommunicationController
+    CommunicationController,
+    HealthcareController,
   ],
   providers: [AppService],
 })
