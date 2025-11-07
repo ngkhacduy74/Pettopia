@@ -4,7 +4,6 @@ import { BadRequestException, ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
 import { RpcToHttpExceptionFilter } from './filters/rpc-exception.filter';
-import { doubleCsrf, DoubleCsrfConfigOptions } from 'csrf-csrf';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -27,29 +26,9 @@ async function bootstrap() {
     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
     credentials: true,
   });
-  // const doubleCsrfOptions = {
-  //   getSecret: (req: any) => req.secret,
-  //   cookieName: 'XSRF-TOKEN',
-  //   cookieOptions: {
-  //     httpOnly: false,
-  //     sameSite: 'strict',
-  //     secure: false,
-  //   } as const,
-  // };
-
-  // const { doubleCsrfProtection } = doubleCsrf(doubleCsrfOptions);
-
-  // app.use((req, res, next) => {
-  //   const safeMethods = ['GET', 'HEAD', 'OPTIONS'];
-  //   if (!safeMethods.includes(req.method)) {
-  //     return doubleCsrfProtection(req, res, next);
-  //   }
-  //   next();
-  // });
 
   app.enableShutdownHooks();
   app.useGlobalFilters(new RpcToHttpExceptionFilter());
-
   const config = new DocumentBuilder()
     .setTitle('API Gateway')
     .setDescription('Tài liệu API tổng hợp cho hệ thống')
@@ -63,7 +42,7 @@ async function bootstrap() {
 
   await app.listen(process.env.API_GATEWAY_PORT!);
   console.log(
-    `🚀 API Gateway running at http://localhost:${process.env.API_GATEWAY_PORT}`,
+    `🚀 API Gateway đang chạy tại http://localhost:${process.env.API_GATEWAY_PORT}`,
   );
   console.log(
     `📘 Swagger docs: http://localhost:${process.env.API_GATEWAY_PORT}/api/v1/docs`,
