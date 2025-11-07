@@ -26,7 +26,7 @@ export class ClinicService {
     private readonly clinicRepositories: ClinicsRepository,
     private readonly serviceRepositories: ServiceRepository,
     private readonly shiftRepositories: ShiftRepository,
-    @Inject('CUSTOMER_SERVICE') private readonly customerService: ClientProxy,@Inject('AUTH_SERVICE') private readonly authService: ClientProxy,
+    @Inject('CUSTOMER_SERVICE') private readonly customerService: ClientProxy,
   ) {}
 
   async createClinicForm(
@@ -153,18 +153,19 @@ export class ClinicService {
       }
       if (updateStatus.status === RegisterStatus.APPROVED) {
         try {
-            const createDto: CreateClinicDto = {
-              id: clinicForm.id,
-              clinic_name: clinicForm.clinic_name,
-              email: clinicForm.email,
-              phone: clinicForm.phone,
-              license_number: clinicForm.license_number,
-              address: clinicForm.address,
-              description: clinicForm.description,
-              logo_url: clinicForm.logo_url,
-              website: clinicForm.website,
-              representative: clinicForm.representative,
-            };
+          const createDto: CreateClinicDto = {
+            id: clinicForm.id,
+            // creator_id: clinicForm.user_id,
+            clinic_name: clinicForm.clinic_name,
+            email: clinicForm.email,
+            phone: clinicForm.phone,
+            license_number: clinicForm.license_number,
+            address: clinicForm.address,
+            description: clinicForm.description,
+            logo_url: clinicForm.logo_url,
+            website: clinicForm.website,
+            representative: clinicForm.representative,
+          };
           console.log('ljkasldjasd', createDto);
           const createdClinic = await this.clinicRepositories
             .createClinic(createDto)
@@ -176,7 +177,6 @@ export class ClinicService {
                 error.message,
               );
             });
-            console.log('createdClinic', createdClinic);
           if (!createdClinic) {
             throw createRpcError(
               HttpStatus.BAD_REQUEST,
@@ -196,33 +196,6 @@ export class ClinicService {
             role: ['Clinic'],
             is_active: true,
           };
-
-          try {
-   
-            const recipientEmail = typeof clinicForm.representative.email === 'object' 
-              ? clinicForm.representative.email.email_address 
-              : clinicForm.representative.email;
-              
-            console.log('Sending welcome email to:', recipientEmail);
-            
-            await this.authService.send(
-              { cmd: 'sendClinicWelcomeEmail' },
-              {
-                email: recipientEmail,  
-                clinicName: clinicForm.clinic_name,
-                representativeName: clinicForm.representative.full_name,
-                username: userAccountData.username,
-                password: userAccountData.password
-              }
-            ).toPromise();
-            
-            console.log('Welcome email sent successfully');
-          } catch (error) {
-            console.error('Error sending welcome email:', {
-              message: error.message,
-              stack: error.stack
-            });
-          }
           console.log('ljkalskdjalsd', userAccountData);
           const newUser = await lastValueFrom(
             this.customerService.send({ cmd: 'createUser' }, userAccountData),
@@ -243,7 +216,7 @@ export class ClinicService {
             );
           }
 
-        //  Sau khi tạo tài khoản clinic xong thì cần update lại để mapping clinic đến bảng user
+          //Sau khi tạo tài khoản clinic xong thì cần update lại để mapping clinic đến bảng user
           const update_clinic = await this.clinicRepositories.updateClinic(
             clinicForm.id,
             { user_account_id: userAccountData.id },

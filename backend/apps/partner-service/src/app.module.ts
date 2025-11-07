@@ -49,12 +49,6 @@ import {
         options: {
           port: 5002,
         },
-      },{
-        name: 'AUTH_SERVICE',
-        transport: Transport.TCP,
-        options: {
-          port: 5001,
-        },
       },
     ]),
     MongooseModule.forRootAsync({

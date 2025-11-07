@@ -246,48 +246,6 @@ export class MailTemplateService {
     }
   }
 
-  async sendClinicWelcomeEmail(
-    email: string,
-    clinicName: string,
-    representativeName: string,
-    username: string,
-    password: string
-  ) {
-    const welcomeTemplate = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2>Xin chào quý phòng khám ${clinicName},</h2>
-        <p>Cảm ơn bạn đã đăng ký tài khoản trên hệ thống PetTopia. Dưới đây là thông tin đăng nhập của bạn:</p>
-        
-        <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 15px 0;">
-          <p><strong>Email đăng nhập:</strong> ${email}</p>
-          <p><strong>Tên đăng nhập:</strong> ${username}</p>
-          <p><strong>Mật khẩu:</strong> ${password}</p>
-        </div>
-
-        <p><strong>Lưu ý quan trọng:</strong></p>
-        <ul>
-          <li>Vui lòng đổi mật khẩu ngay sau khi đăng nhập lần đầu tiên để đảm bảo bảo mật.</li>
-          <li>Để phòng khám của bạn được hiển thị trên hệ thống, vui lòng thực hiện các bước sau:</li>
-          <ol>
-            <li>Đăng nhập vào tài khoản</li>
-            <li>Đăng ký ca làm việc (shifts) cho phòng khám</li>
-            <li>Đăng ký các dịch vụ (services) mà phòng khám cung cấp</li>
-          </ol>
-          <li>Mọi thắc mắc xin vui lòng liên hệ bộ phận hỗ trợ qua email support@petopia.com</li>
-        </ul>
-
-        <p>Trân trọng,<br>Đội ngũ PetTopia</p>
-      </div>
-    `;
-
-    return this.mailService.sendMail(
-      email,
-      `Chào mừng ${clinicName} đến với PetTopia`,
-      welcomeTemplate,
-      MailType.REMIND
-    );
-  }
-
   async sendAppointmentConfirmation(
     email: string,
     appointmentDetails: {
