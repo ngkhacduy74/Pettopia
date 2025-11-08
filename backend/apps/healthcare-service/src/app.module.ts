@@ -25,20 +25,23 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
         ttl: 60000,
         limit: 10,
       },
-    ]),ClientsModule.register([
+    ]),
+    ClientsModule.register([
       {
         name: 'CUSTOMER_SERVICE',
         transport: Transport.TCP,
         options: {
           port: 5002,
         },
-      },{
+      },
+      {
         name: 'PARTNER_SERVICE',
         transport: Transport.TCP,
         options: {
           port: 5004,
         },
-      },{
+      },
+      {
         name: 'AUTH_SERVICE',
         transport: Transport.TCP,
         options: {

@@ -1,6 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
-import * as uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
+
 @Schema({ _id: false })
 export class Address {
   @Prop({ type: String, required: true, trim: true }) city: string;
@@ -9,56 +10,6 @@ export class Address {
   @Prop({ type: String, required: true, trim: true }) detail: string;
 }
 export const AddressSchema = SchemaFactory.createForClass(Address);
-
-@Schema({ _id: false })
-export class Representative {
-  // Thông tin người đại diện cho phòng khám
-  @Prop({
-    type: String,
-    required: true,
-    trim: true,
-    match: [/^[A-Za-zÀ-ỹ\s]+$/, 'Tên không hợp lệ'],
-  })
-  name: string;
-
-  @Prop({
-    type: String,
-    required: true,
-    trim: true,
-    unique: true,
-    match: [/^[0-9]{9,12}$/, 'CCCD/CMND không hợp lệ'],
-  })
-  identify_number: string;
-
-  @Prop({
-    type: String,
-    required: false,
-    trim: true,
-    // match: [/^https?:\/\/.+\.(jpg|jpeg|png|gif)$/i, 'URL ảnh không hợp lệ'],
-  })
-  avatar_url?: string;
-
-  @Prop({
-    type: [String],
-    required: true,
-    validate: [
-      (v: string[]) => v.length > 0,
-      'Phải có ít nhất một giấy phép hành nghề',
-    ],
-  })
-  responsible_licenses: string[];
-
-  @Prop({
-    type: Date,
-    required: false,
-    validate: {
-      validator: (v: Date) => v <= new Date(),
-      message: 'Ngày cấp phép không được lớn hơn ngày hiện tại',
-    },
-  })
-  license_issued_date?: Date;
-}
-
 @Schema({ _id: false })
 export class Email {
   @Prop({
@@ -96,6 +47,60 @@ export class Phone {
 }
 export const PhoneSchema = SchemaFactory.createForClass(Phone);
 
+export class Representative {
+  @Prop({
+    type: String,
+    required: [true, 'Tên người đại diện là bắt buộc'],
+    trim: true,
+    match: [
+      /^[A-Za-zÀ-ỹ\s]+$/,
+      'Tên không hợp lệ (chỉ chứa chữ và khoảng trắng)',
+    ],
+  })
+  name: string;
+
+  @Prop({ type: EmailSchema, required: true })
+  email: Email;
+
+  @Prop({ type: PhoneSchema, required: true })
+  phone: Phone;
+
+  @Prop({
+    type: String,
+    required: [true, 'CCCD/CMND là bắt buộc'],
+    trim: true,
+    match: [/^[0-9]{9,12}$/, 'CCCD/CMND không hợp lệ (9–12 chữ số)'],
+  })
+  identify_number: string;
+
+  @Prop({
+    type: String,
+    trim: true,
+    required: false,
+  })
+  avatar_url?: string;
+
+  @Prop({
+    type: [String],
+    required: [true, 'Cần cung cấp ít nhất một giấy phép hành nghề'],
+    validate: {
+      validator: (v: string[]) => Array.isArray(v) && v.length > 0,
+      message: 'Phải có ít nhất một giấy phép hành nghề',
+    },
+  })
+  responsible_licenses: string[];
+
+  @Prop({
+    type: Date,
+    required: false,
+    validate: {
+      validator: (v: Date) => !v || v <= new Date(),
+      message: 'Ngày cấp phép không được lớn hơn ngày hiện tại',
+    },
+  })
+  license_issued_date?: Date;
+}
+
 export enum RegisterStatus {
   PENDING = 'pending',
   APPROVED = 'approved',
@@ -112,7 +117,7 @@ export class Clinic_Register {
     type: String,
     required: [true, 'Clinic ID is required'],
     unique: true,
-    default: () => uuid.v4(),
+    default: () => uuidv4(),
     trim: true,
   })
   id: string;
@@ -129,7 +134,15 @@ export class Clinic_Register {
   @Prop({ type: PhoneSchema, required: true })
   phone: Phone;
 
-  @Prop({ type: String, required: true, trim: true })
+  @Prop({
+    type: String,
+    required: true,
+    trim: true,
+    match: [
+      /^([0-9]{10}|[0-9]{3,6}\/[A-Z]{2,6}(-[A-Z]{2,10})?)$/,
+      'Số giấy phép không hợp lệ (phải là 10 số hoặc dạng 123/HNY-SNNPTNT)',
+    ],
+  })
   license_number: string;
 
   @Prop({ type: AddressSchema, required: true })
@@ -166,6 +179,12 @@ export class Clinic_Register {
     ],
   })
   review_by?: string;
+
+  @Prop({ type: String, trim: true })
+  verification_token?: string;
+
+  @Prop({ type: Date })
+  token_expires_at?: Date;
 }
 
 function transformValue(doc: any, ret: any) {

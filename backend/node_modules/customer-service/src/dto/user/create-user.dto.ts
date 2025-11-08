@@ -1,3 +1,4 @@
+import { Type } from 'class-transformer';
 import {
   IsString,
   IsEmail,
@@ -5,6 +6,8 @@ import {
   IsOptional,
   IsBoolean,
   IsDate,
+  ValidateNested,
+  IsNotEmpty,
 } from 'class-validator';
 
 class EmailDto {
@@ -12,7 +15,8 @@ class EmailDto {
   email_address: string;
 
   @IsBoolean()
-  verified: boolean;
+  @IsOptional()
+  verified?: boolean;
 }
 
 class PhoneDto {
@@ -20,11 +24,13 @@ class PhoneDto {
   phone_number: string;
 
   @IsBoolean()
-  verified: boolean;
+  @IsOptional()
+  verified?: boolean;
 }
 
 export class CreateUserDto {
   @IsString()
+  @IsNotEmpty({ message: 'Họ tên không được để trống.' })
   fullname: string;
 
   @IsString()
@@ -32,9 +38,11 @@ export class CreateUserDto {
   gender?: string;
 
   @IsString()
+  @IsNotEmpty({ message: 'Username không được để trống.' })
   username: string;
 
   @IsString()
+  @IsNotEmpty({ message: 'Mật khẩu không được để trống.' })
   password: string;
 
   @IsDate()
@@ -45,21 +53,13 @@ export class CreateUserDto {
   @IsOptional()
   avatar_url?: string;
 
+  @ValidateNested()
+  @Type(() => EmailDto)
   email: EmailDto;
+
+  @ValidateNested()
+  @Type(() => PhoneDto)
   phone: PhoneDto;
-
-  @IsBoolean()
-  @IsOptional()
-  is_active?: boolean = true;
-
-  @IsDate()
-  @IsOptional()
-  created_at?: Date = new Date();
-
-  @IsDate()
-  @IsOptional()
-  updated_at?: Date = new Date();
-
   @IsString()
   @IsOptional()
   address?: string;

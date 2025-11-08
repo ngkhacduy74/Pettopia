@@ -11,7 +11,6 @@ export function handleRpcError(context: string, err: any): never {
     timestamp: new Date().toISOString(),
   });
 }
-
 export function createRpcError(
   statusCode: number,
   message: string,
