@@ -37,8 +37,11 @@ export class ShiftService {
       }
 
       // Get the shift by ID and clinic_id
-      const shift = await this.shiftRepositories.getShiftByIdAndClinic(shift_id, clinic_id);
-      
+      const shift = await this.shiftRepositories.getShiftByIdAndClinic(
+        shift_id,
+        clinic_id,
+      );
+
       if (!shift) {
         return null;
       }
@@ -67,7 +70,7 @@ export class ShiftService {
         clinic_id,
         max_slot,
       } = data;
-      console.log("ahsjhasd",data)
+      console.log('ahsjhasd', data);
       let normalizedShift: string = '';
       if (shift) {
         normalizedShift =
@@ -224,8 +227,9 @@ export class ShiftService {
             error.message,
           );
         });
-      const clinic_check =
-        await this.clinicService.triggerToCheckActiveClinic(clinic.id);
+      const clinic_check = await this.clinicService.triggerToCheckActiveClinic(
+        clinic.id,
+      );
       return {
         status: 'success',
         message: 'Tạo ca làm việc thành công',
@@ -411,7 +415,10 @@ export class ShiftService {
       );
     }
   }
-  async deleteShift(id: string, clinic_id: string): Promise<{ status: string; message: string }> {
+  async deleteShift(
+    id: string,
+    clinic_id: string,
+  ): Promise<{ status: string; message: string }> {
     try {
       // Validate input
       if (!id || typeof id !== 'string') {
@@ -448,7 +455,7 @@ export class ShiftService {
       }
 
       const deleteResult = await this.shiftRepositories.deleteClinicShift(id);
-      
+
       if (!deleteResult || deleteResult.deletedCount === 0) {
         throw createRpcError(
           HttpStatus.INTERNAL_SERVER_ERROR,
@@ -456,9 +463,10 @@ export class ShiftService {
           'Internal Server Error',
         );
       }
-      console.log("ládljasd",clinic_id)
-      const trigger = await this.clinicService.triggerToCheckActiveClinic(clinic_id);
-      console.log("0918273ojasd",trigger)
+      console.log('ládljasd', clinic_id);
+      const trigger =
+        await this.clinicService.triggerToCheckActiveClinic(clinic_id);
+      console.log('0918273ojasd', trigger);
 
       return {
         status: 'success',
@@ -499,7 +507,8 @@ export class ShiftService {
         );
       }
 
-      const { data: shifts } = await this.shiftRepositories.getShiftsByClinicId(clinic_id);
+      const { data: shifts } =
+        await this.shiftRepositories.getShiftsByClinicId(clinic_id);
 
       return {
         status: 'success',

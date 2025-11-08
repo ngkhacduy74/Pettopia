@@ -1,9 +1,11 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
   Get,
   HttpCode,
+  HttpException,
   HttpStatus,
   Inject,
   Param,
@@ -15,12 +17,13 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { lastValueFrom } from 'rxjs';
-import { ClientProxy } from '@nestjs/microservices';
+import { ClientProxy, RpcException } from '@nestjs/microservices';
 import { Role, Roles } from 'src/decorators/roles.decorator';
 import { JwtAuthGuard } from 'src/guard/jwtAuth.guard';
 import { RoleGuard } from 'src/guard/role.guard';
 import { UserToken } from 'src/decorators/user.decorator';
 import { VerifiedGuard } from 'src/guard/verified.guard';
+import { ClinicUpdateGuard } from 'src/guard/clinic-update.guard';
 
 @Controller('api/v1/partner')
 export class PartnerController {
@@ -43,7 +46,23 @@ export class PartnerController {
       ),
     );
   }
-
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.CLINIC)
+  @Get('/service/all')
+  @HttpCode(HttpStatus.OK)
+  async getAllServices(
+    @UserToken('clinic_id') clinic_id: string,
+    @Query('page', new ParseIntPipe({ optional: true })) page = 1,
+    @Query('limit', new ParseIntPipe({ optional: true })) limit = 10,
+  ) {
+    console.log('ládlakjsd', clinic_id);
+    return await lastValueFrom(
+      this.partnerService.send(
+        { cmd: 'getAllServicesFollowClinicId' },
+        { clinic_id, page, limit },
+      ),
+    );
+  }
   @UseGuards(JwtAuthGuard)
   @Post('/clinic/register')
   @HttpCode(HttpStatus.CREATED)
@@ -52,7 +71,22 @@ export class PartnerController {
       this.partnerService.send({ cmd: 'registerClinic' }, { ...data, user_id }),
     );
   }
-
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.CLINIC)
+  @Get('/clinic/shift')
+  @HttpCode(HttpStatus.OK)
+  async getClinicShifts(
+    @Query('page', new ParseIntPipe({ optional: true })) page = 1,
+    @Query('limit', new ParseIntPipe({ optional: true })) limit = 10,
+    @UserToken('id') clinic_id: any,
+  ) {
+    return await lastValueFrom(
+      this.partnerService.send(
+        { cmd: 'getClinicShifts' },
+        { clinic_id, page, limit },
+      ),
+    );
+  }
   @UseGuards(JwtAuthGuard)
   @Get('/clinic/:id')
   @HttpCode(HttpStatus.OK)
@@ -187,12 +221,16 @@ export class PartnerController {
   @Roles(Role.CLINIC)
   @Get('/service')
   @HttpCode(HttpStatus.OK)
-  async getAllService(
+  async getMyServices(
     @Query('page', new ParseIntPipe({ optional: true })) page = 1,
     @Query('limit', new ParseIntPipe({ optional: true })) limit = 10,
+    @UserToken('id') clinic_id: string,
   ) {
     return await lastValueFrom(
-      this.partnerService.send({ cmd: 'getAllService' }, { page, limit }),
+      this.partnerService.send(
+        { cmd: 'getServicesByClinicId' },
+        { clinic_id, page, limit },
+      ),
     );
   }
 
@@ -249,23 +287,6 @@ export class PartnerController {
 
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(Role.CLINIC)
-  @Get('/clinic/shift')
-  @HttpCode(HttpStatus.OK)
-  async getClinicShifts(
-    @Query('page', new ParseIntPipe({ optional: true })) page = 1,
-    @Query('limit', new ParseIntPipe({ optional: true })) limit = 10,
-    @UserToken('id') clinic_id: any,
-  ) {
-    return await lastValueFrom(
-      this.partnerService.send(
-        { cmd: 'getClinicShifts' },
-        { clinic_id, page, limit },
-      ),
-    );
-  }
-
-  @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles(Role.CLINIC)
   @Put('/clinic/shift/:id')
   @HttpCode(HttpStatus.OK)
   async updateClinicShift(
@@ -282,9 +303,18 @@ export class PartnerController {
   @Roles(Role.CLINIC)
   @Delete('/clinic/shift/:id')
   @HttpCode(HttpStatus.OK)
-  async deleteClinicShift(@Param('id') idShift: string) {
+  async deleteClinicShift(
+    @Param('id') idShift: string,
+    @UserToken('clinic_id') clinic_id: string,
+  ) {
+    if (!idShift || !clinic_id) {
+      throw new BadRequestException('Thiếu thông tin bắt buộc');
+    }
     return await lastValueFrom(
-      this.partnerService.send({ cmd: 'deleteClinicShift' }, { id: idShift }),
+      this.partnerService.send(
+        { cmd: 'deleteClinicShift' },
+        { id: idShift, clinic_id },
+      ),
     );
   }
 
@@ -317,11 +347,42 @@ export class PartnerController {
       this.partnerService.send({ cmd: 'getServicesByClinicId' }, { clinic_id }),
     );
   }
+
+  @UseGuards(JwtAuthGuard, RoleGuard)
   @Get('/service/:id')
   @HttpCode(HttpStatus.OK)
   async getServiceById(@Param('id') id: string) {
     return await lastValueFrom(
       this.partnerService.send({ cmd: 'getServiceById' }, { id }),
+    );
+  }
+
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.CLINIC)
+  @Delete('/service/:id')
+  @HttpCode(HttpStatus.OK)
+  async deleteService(
+    @Param('id') serviceId: string,
+    @UserToken('clinic_id') clinic_id: string,
+  ) {
+    return await lastValueFrom(
+      this.partnerService.send(
+        { cmd: 'remove_service' },
+        { serviceId, clinic_id },
+      ),
+    );
+  }
+
+  @UseGuards(ClinicUpdateGuard)
+  @Put('/verify-clinic/update-form/:id')
+  @HttpCode(HttpStatus.OK)
+  async updateClinicForm(@Param('id') id: string, @Body() dto: any) {
+    if (!id) {
+      throw new RpcException('Thiếu ID phòng khám trong URL');
+    }
+    const payload = { id, dto };
+    return await lastValueFrom(
+      this.partnerService.send({ cmd: 'updateClinicForm' }, payload),
     );
   }
 }

@@ -101,25 +101,24 @@ export class UsersRepository {
     }
   }
   async updateUserStatus(id: string, status: UserStatus): Promise<any> {
-  try {
-    const isActive = status === UserStatus.ACTIVE;
-    const result = await this.userModel
-      .findOneAndUpdate({ id: id }, { is_active: isActive }, { new: true })
-      .exec();
-    return result;
-  } catch (err) {
-    throw new Error(err.message);
+    try {
+      const isActive = status === UserStatus.ACTIVE;
+      const result = await this.userModel
+        .findOneAndUpdate({ id: id }, { is_active: isActive }, { new: true })
+        .exec();
+      return result;
+    } catch (err) {
+      throw new Error(err.message);
+    }
   }
-}
-
 
   async getAllUsers(
     data: GetAllUsersDto,
   ): Promise<PaginatedUsersResponse<User>> {
     try {
-      const { 
-        page, 
-        limit, 
+      const {
+        page,
+        limit,
         search,
         status,
         role,
@@ -129,7 +128,7 @@ export class UsersRepository {
         username,
         email_address,
         reward_point,
-        phone_number
+        phone_number,
       } = data;
 
       const safePage = Math.max(Number(page) || 1, 1);
@@ -142,10 +141,10 @@ export class UsersRepository {
       // Apply search filter if provided
       if (search) {
         query.$or = [
-          { 'fullname': { $regex: search, $options: 'i' } },
-          { 'username': { $regex: search, $options: 'i' } },
+          { fullname: { $regex: search, $options: 'i' } },
+          { username: { $regex: search, $options: 'i' } },
           { 'email.email_address': { $regex: search, $options: 'i' } },
-          { 'phone.phone_number': { $regex: search, $options: 'i' } }
+          { 'phone.phone_number': { $regex: search, $options: 'i' } },
         ];
       }
 

@@ -27,7 +27,6 @@ export class AppointmentService {
     const { clinic_id, service_ids, pet_ids, shift_id, date } = data;
 
     try {
-
       const [clinic, services, shift] = await Promise.all([
         lastValueFrom(
           this.partnerService.send({ cmd: 'getClinicById' }, { id: clinic_id }),
@@ -56,11 +55,12 @@ export class AppointmentService {
       if (!services || services.length !== service_ids.length) {
         throw new RpcException({
           status: HttpStatus.BAD_REQUEST,
-          message: 'Một hoặc nhiều dịch vụ không tồn tại hoặc không thuộc phòng khám này',
+          message:
+            'Một hoặc nhiều dịch vụ không tồn tại hoặc không thuộc phòng khám này',
         });
       }
-console.log("oluhya98u129e",shift);
-console.log("98123ihahsd",services);
+      console.log('oluhya98u129e', shift);
+      console.log('98123ihahsd', services);
 
       if (!shift) {
         throw new RpcException({
@@ -90,48 +90,48 @@ console.log("98123ihahsd",services);
         status: AppointmentStatus.Pending_Confirmation,
       };
 
-      const result = await this.appointmentRepositories.create(newAppointmentData);
+      const result =
+        await this.appointmentRepositories.create(newAppointmentData);
 
-      const appointmentDateFormatted = appointmentDate.toLocaleDateString('vi-VN', {
-        weekday: 'long',
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric'
-      });
+      const appointmentDateFormatted = appointmentDate.toLocaleDateString(
+        'vi-VN',
+        {
+          weekday: 'long',
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+        },
+      );
       try {
         const user = await lastValueFrom(
-          this.customerService.send(
-            { cmd: 'getUserById' },
-            { id: user_id }
-          )
+          this.customerService.send({ cmd: 'getUserById' }, { id: user_id }),
         );
 
         // Extract email correctly from the user object
         const userEmail = user.email?.email_address || user.email;
         const userName = user.full_name || user.username || 'Quý khách';
-   
+
         await lastValueFrom(
           this.authService.send(
             { cmd: 'sendAppointmentConfirmation' },
             {
-              email: userEmail, 
+              email: userEmail,
               appointmentDetails: {
-                userName: userName, 
+                userName: userName,
                 appointmentDate: appointmentDateFormatted,
                 appointmentTime: `${shift.data.start_time} - ${shift.data.end_time}`,
                 clinicName: clinic.data.clinic_name,
                 clinicAddress: clinic.data.address,
-                services: services.map(s => s.name),
-                appointmentId: result.id
-              }
-            }
-          )
+                services: services.map((s) => s.name),
+                appointmentId: result.id,
+              },
+            },
+          ),
         );
       } catch (emailError) {
         console.error('Không thể gửi email xác nhận:', emailError);
-      
       }
-      
+
       return result;
     } catch (error) {
       if (error.code === 11000) {

@@ -25,7 +25,7 @@ export class ServiceService {
   constructor(
     private readonly serviceRepositories: ServiceRepository,
     private readonly clinicService: ClinicService,
-    private readonly clinicRepositories : ClinicsRepository
+    private readonly clinicRepositories: ClinicsRepository,
   ) {}
 
   async getAllServicesByClinicId(
@@ -72,7 +72,10 @@ export class ServiceService {
       );
     }
   }
-  async validateClinicServices(clinic_id: string, service_ids: string[]): Promise<any[]> {
+  async validateClinicServices(
+    clinic_id: string,
+    service_ids: string[],
+  ): Promise<any[]> {
     try {
       if (!clinic_id || !service_ids?.length) {
         throw createRpcError(
@@ -83,11 +86,16 @@ export class ServiceService {
       }
 
       // Get all services for the clinic
-      const services = await this.serviceRepositories.findServicesByClinicId(clinic_id, 0, 1000);
-      
+      const services = await this.serviceRepositories.findServicesByClinicId(
+        clinic_id,
+        0,
+        1000,
+      );
+
       // Filter services that match the requested service_ids
-      const validServices = services.filter(service => 
-        service_ids.includes(service.id) && service.is_active !== false
+      const validServices = services.filter(
+        (service) =>
+          service_ids.includes(service.id) && service.is_active !== false,
       );
 
       return validServices;
@@ -226,7 +234,7 @@ export class ServiceService {
 
   async removeService(serviceId: string, clinic_id: string): Promise<any> {
     try {
-      console.log("oiaud9871e")
+      console.log('oiaud9871e');
       if (!serviceId || !clinic_id) {
         throw createRpcError(
           HttpStatus.BAD_REQUEST,
@@ -271,10 +279,11 @@ export class ServiceService {
         );
       }
 
-    const trigger =  await this.clinicService.triggerToCheckActiveClinic(clinic_id);
-    console.log('lkjaldkjasd',trigger)
+      const trigger =
+        await this.clinicService.triggerToCheckActiveClinic(clinic_id);
+      console.log('lkjaldkjasd', trigger);
 
-      return { 
+      return {
         status: 'success',
         message: 'Xóa dịch vụ thành công',
         data: result,

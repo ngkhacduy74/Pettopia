@@ -7,7 +7,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { Mail, MailSchema } from './schemas/mail.schema';
 import { MongooseModule } from '@nestjs/mongoose';
 import { InviteController } from './controllers/invite.controller';
-import { InviteService } from './services/invite.service';
+
 import { CloudinaryController } from './controllers/cloudinary.controller';
 import { CloudinaryService } from './services/cloudinary.service';
 import {
@@ -20,6 +20,8 @@ import { OtpRepository } from './repositories/otp.repositories';
 import { Otp, OtpSchema } from './schemas/otp.schema';
 import { OtpService } from './services/otp.service';
 import { APP_PIPE } from '@nestjs/core';
+import { MailTemplateService } from './services/mail.template.service';
+import { MailController } from './controllers/mail.controller';
 const customer_port = parseInt(process.env.TCP_CUSTOMER_PORT || '5002', 10);
 @Module({
   imports: [
@@ -46,6 +48,13 @@ const customer_port = parseInt(process.env.TCP_CUSTOMER_PORT || '5002', 10);
           port: 5002,
         },
       },
+      {
+        name: 'PARTNER_SERVICE',
+        transport: Transport.TCP,
+        options: {
+          port: 5004,
+        },
+      },
     ]),
     JwtModule.registerAsync({
       imports: [ConfigModule],
@@ -57,10 +66,15 @@ const customer_port = parseInt(process.env.TCP_CUSTOMER_PORT || '5002', 10);
     }),
   ],
 
-  controllers: [AuthController, InviteController, CloudinaryController],
+  controllers: [
+    AuthController,
+    InviteController,
+    CloudinaryController,
+    MailController,
+  ],
   providers: [
     AuthService,
-    InviteService,
+    MailTemplateService,
     MailService,
     VetInviteRepository,
     OtpRepository,

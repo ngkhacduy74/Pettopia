@@ -84,11 +84,7 @@ export class ShiftRepository {
       if (page !== undefined && limit !== undefined) {
         const skip = (page - 1) * limit;
         const [shifts, total] = await Promise.all([
-          this.shiftModel
-            .find({ clinic_id })
-            .skip(skip)
-            .limit(limit)
-            .lean(),
+          this.shiftModel.find({ clinic_id }).skip(skip).limit(limit).lean(),
           this.shiftModel.countDocuments({ clinic_id }),
         ]);
         return { data: shifts, total };
@@ -103,7 +99,10 @@ export class ShiftRepository {
     }
   }
 
-  async getShiftByIdAndClinic(shift_id: string, clinic_id: string): Promise<any> {
+  async getShiftByIdAndClinic(
+    shift_id: string,
+    clinic_id: string,
+  ): Promise<any> {
     try {
       const shift = await this.shiftModel
         .findOne({ id: shift_id, clinic_id })

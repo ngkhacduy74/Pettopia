@@ -26,56 +26,59 @@ export class MailController {
       representativeName: string;
       username: string;
       password: string;
-    }
+    },
   ) {
     return this.mailService.sendClinicWelcomeEmail(
       data.email,
       data.clinicName,
       data.representativeName,
       data.username,
-      data.password
+      data.password,
     );
   }
 
   @MessagePattern({ cmd: 'sendAppointmentConfirmation' })
   async sendAppointmentConfirmation(
-    @Payload() 
-    data: { 
-      email: string; 
+    @Payload()
+    data: {
+      email: string;
       appointmentDetails: {
         userName: string;
         appointmentDate: string;
         appointmentTime: string;
         clinicName: string;
-        clinicAddress: string | {
-          description: string;
-          ward: string;
-          district: string;
-          city: string;
-        };
+        clinicAddress:
+          | string
+          | {
+              description: string;
+              ward: string;
+              district: string;
+              city: string;
+            };
         services: string[];
         appointmentId: string;
-      } 
-    }
+      };
+    },
   ) {
     const { appointmentDetails } = data;
-    
+
     // If clinicAddress is a string, convert it to the expected object format
     const formattedAppointmentDetails = {
       ...appointmentDetails,
-      clinicAddress: typeof appointmentDetails.clinicAddress === 'string' 
-        ? {
-            description: appointmentDetails.clinicAddress,
-            ward: '',
-            district: '',
-            city: ''
-          }
-        : appointmentDetails.clinicAddress
+      clinicAddress:
+        typeof appointmentDetails.clinicAddress === 'string'
+          ? {
+              description: appointmentDetails.clinicAddress,
+              ward: '',
+              district: '',
+              city: '',
+            }
+          : appointmentDetails.clinicAddress,
     };
 
     return this.mailService.sendAppointmentConfirmation(
-      data.email, 
-      formattedAppointmentDetails
+      data.email,
+      formattedAppointmentDetails,
     );
   }
 }
