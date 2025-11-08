@@ -12,7 +12,7 @@ import {
   VetInviteTokenStatus,
 } from 'src/schemas/vet.inviteToken';
 import { v4 as uuidv4 } from 'uuid';
-import { MailService } from './mail.service';
+import { MailService } from './mail.services';
 import { MailType } from 'src/schemas/mail.schema';
 import { VetInviteRepository } from 'src/repositories/invite.repositories';
 import { ClientProxy } from '@nestjs/microservices';
