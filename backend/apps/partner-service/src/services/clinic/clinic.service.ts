@@ -206,8 +206,8 @@ export class ClinicService {
 
             console.log('Sending welcome email to:', recipientEmail);
 
-            await this.authService
-              .send(
+            await lastValueFrom(
+              this.authService.send(
                 { cmd: 'sendClinicWelcomeEmail' },
                 {
                   email: recipientEmail,
@@ -216,14 +216,15 @@ export class ClinicService {
                   username: userAccountData.username,
                   password: userAccountData.password,
                 },
-              )
-              .toPromise();
+              ),
+            );
 
             console.log('Welcome email sent successfully');
           } catch (error) {
             console.error('Error sending welcome email:', {
-              message: error.message,
-              stack: error.stack,
+              message: error?.message || error?.toString() || 'Unknown error',
+              stack: error?.stack,
+              error: error,
             });
           }
           console.log('ljkalskdjalsd', userAccountData);

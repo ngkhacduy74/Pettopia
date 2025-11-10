@@ -21,6 +21,7 @@ import { Otp, OtpSchema } from './schemas/otp.schema';
 import { OtpService } from './services/otp.service';
 import { APP_PIPE } from '@nestjs/core';
 import { MailTemplateService } from './services/mail.template.service';
+import { MailController } from './controllers/mail.controller';
 const customer_port = parseInt(process.env.TCP_CUSTOMER_PORT || '5002', 10);
 @Module({
   imports: [
@@ -65,7 +66,12 @@ const customer_port = parseInt(process.env.TCP_CUSTOMER_PORT || '5002', 10);
     }),
   ],
 
-  controllers: [AuthController, InviteController, CloudinaryController],
+  controllers: [
+    AuthController,
+    InviteController,
+    CloudinaryController,
+    MailController,
+  ],
   providers: [
     AuthService,
     InviteService,
