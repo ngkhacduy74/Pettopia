@@ -1,22 +1,29 @@
 FROM node:20-alpine3.22 AS builder
 WORKDIR /usr/src/app
 
-# Copy package files
+# Copy package files trước để cache tốt
 COPY package*.json ./
-RUN npm ci
+
+# Cài full dependencies (dev + prod)
+RUN npm i
 
 # Copy source code
 COPY . .
 
-# Build app to dist
+# Build NestJS → dist
 RUN npm run build
+
+# Loại bỏ devDependencies cho node_modules nhẹ hơn
+RUN npm prune --production
+
+
 
 FROM node:20-alpine3.22 AS runner
 WORKDIR /usr/src/app
 
 # Set default environment variables
 ENV NODE_ENV=production
-ENV PORT=3006  # Default port for communication-service
+ENV PORT=3006 
 
 # Copy built artifacts and dependencies from builder
 COPY --from=builder /usr/src/app/dist ./dist
@@ -28,7 +35,7 @@ RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 USER appuser
 
 # Expose the port the app runs on
-EXPOSE $PORT
+EXPOSE ${PORT}
 
 # Command to run the application
 CMD ["node", "dist/main.js"]

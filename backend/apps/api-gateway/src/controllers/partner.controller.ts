@@ -30,7 +30,14 @@ export class PartnerController {
   constructor(
     @Inject('PARTNER_SERVICE') private readonly partnerService: ClientProxy,
   ) {}
-
+  @UseGuards(JwtAuthGuard)
+  @Post('/clinic/register')
+  @HttpCode(HttpStatus.CREATED)
+  async clinicRegister(@Body() data: any, @UserToken('id') user_id: string) {
+    return await lastValueFrom(
+      this.partnerService.send({ cmd: 'registerClinic' }, { ...data, user_id }),
+    );
+  }
   @UseGuards(JwtAuthGuard)
   @Get('/clinic/form')
   @HttpCode(HttpStatus.OK)
@@ -63,14 +70,7 @@ export class PartnerController {
       ),
     );
   }
-  @UseGuards(JwtAuthGuard)
-  @Post('/clinic/register')
-  @HttpCode(HttpStatus.CREATED)
-  async clinicRegister(@Body() data: any, @UserToken('id') user_id: string) {
-    return await lastValueFrom(
-      this.partnerService.send({ cmd: 'registerClinic' }, { ...data, user_id }),
-    );
-  }
+
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(Role.CLINIC)
   @Get('/clinic/shift')
