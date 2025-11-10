@@ -11,11 +11,30 @@ services:
     networks:
       - pettopia-network
 
+  kong-migrations:
+    image: kong:latest
+    container_name: kong-migrations
+    depends_on:
+      - kong-db
+    environment:
+      KONG_DATABASE: "postgres"
+      KONG_PG_HOST: "kong-db"
+      KONG_PG_DATABASE: "kong"
+      KONG_PG_USER: "kong"
+      KONG_PG_PASSWORD: ${KONG_PG_PASSWORD}
+    command: "kong migrations bootstrap"
+    networks:
+      - pettopia-network
+    restart: on-failure
+
   kong-gateway:
     image: kong:latest
     container_name: kong-gateway
     depends_on:
-      - kong-db
+      kong-db:
+        condition: service_started
+      kong-migrations:
+        condition: service_completed_successfully
     environment:
       KONG_DATABASE: "postgres"
       KONG_PG_HOST: "kong-db"
@@ -35,72 +54,74 @@ services:
     container_name: konga-gui
     depends_on:
       - kong-gateway
+      - konga-db
     environment:
-      DB_ADAPTER: "disk"
+      DB_ADAPTER: "postgres"
+      DB_HOST: "konga-db"
+      DB_PORT: 5432
+      DB_USER: "konga"
+      DB_PASSWORD: "konga123"
+      DB_DATABASE: "konga"
     ports:
       - "1337:1337"
     networks:
       - pettopia-network
+    restart: always
 
-  # api-gateway:
-  #   build:
-  #     context: ./apps/api-gateway
-  #     dockerfile: Dockerfile
-  #   image: ${DOCKER_HUB}/pettopia-api-gateway:latest
-  #   container_name: api-gateway
-  #   ports:
-  #     - "8000:${API_GATEWAY_PORT_OUT}"
-  #   env_file: apps/api-gateway/.env
-  #   environment:
-  #     - NODE_ENV=production
-  #   networks:
-  #     - pettopia-network
-  api-gateway-1: # <-- ĐỔI TÊN TỪ 'api-gateway'
+  konga-db:
+    image: postgres:11
+    container_name: konga-db
+    environment:
+      POSTGRES_DB: konga
+      POSTGRES_USER: konga
+      POSTGRES_PASSWORD: "konga123"
+    volumes:
+      - konga_data:/var/lib/postgresql/data
+    networks:
+      - pettopia-network
+
+  api-gateway-1:
     build:
       context: ./apps/api-gateway
       dockerfile: Dockerfile
     image: ${DOCKER_HUB}/pettopia-api-gateway:latest
-    container_name: api-gateway-1 # <-- ĐỔI TÊN
-    # ports: <-- XÓA BỎ (Lỗi trùng cổng 8000)
+    container_name: api-gateway-1
     env_file: apps/api-gateway/.env
     environment:
       - NODE_ENV=production
     networks:
       - pettopia-network
 
-  api-gateway-2: # <-- Thêm bản sao thứ 2
+  api-gateway-2:
     build:
       context: ./apps/api-gateway
       dockerfile: Dockerfile
     image: ${DOCKER_HUB}/pettopia-api-gateway:latest
     container_name: api-gateway-2
-    # ports: (Không có)
     env_file: apps/api-gateway/.env
     environment:
       - NODE_ENV=production
     networks:
       - pettopia-network
+
   auth-service:
     build:
       context: ./apps/auth-service
       dockerfile: Dockerfile
     image: ${DOCKER_HUB}/pettopia-auth-service:latest
     container_name: auth-service
-    # ports:
-    #   - "8001:${AUTH_PORT_OUT}"
     env_file: apps/auth-service/.env
     environment:
       - NODE_ENV=production
     networks:
       - pettopia-network
+
   billing-service:
     build:
       context: ./apps/billing-service
       dockerfile: Dockerfile
     image: ${DOCKER_HUB}/pettopia-billing-service:latest
     container_name: billing-service
-    # ports:
-    #   - "8007:${BILLING_PORT_OUT}"
     env_file: apps/billing-service/.env
     environment:
       - NODE_ENV=production
@@ -113,8 +134,6 @@ services:
       dockerfile: Dockerfile
     image: ${DOCKER_HUB}/pettopia-communication-service:latest
     container_name: communication-service
-    # ports:
-    #   - "8006:${COMMUNICATION_PORT_OUT}"
     env_file: apps/communication-service/.env
     environment:
       - NODE_ENV=production
@@ -127,8 +146,6 @@ services:
       dockerfile: Dockerfile
     image: ${DOCKER_HUB}/pettopia-customer-service:latest
     container_name: customer-service
-    # ports:
-    #   - "8002:${CUSTOMER_PORT_OUT}"
     env_file: apps/customer-service/.env
     environment:
       - NODE_ENV=production
@@ -141,8 +158,6 @@ services:
       dockerfile: Dockerfile
     image: ${DOCKER_HUB}/pettopia-healthcare-service:latest
     container_name: healthcare-service
-    # ports:
-    #   - "8005:${HEALTHCARE_PORT_OUT}"
     env_file: apps/healthcare-service/.env
     environment:
       - NODE_ENV=production
@@ -155,8 +170,6 @@ services:
       dockerfile: Dockerfile
     image: ${DOCKER_HUB}/pettopia-partner-service:latest
     container_name: partner-service
-    # ports:
-    #   - "8004:${PARTNER_PORT_OUT}"
     env_file: apps/partner-service/.env
     environment:
       - NODE_ENV=production
@@ -169,8 +182,6 @@ services:
       dockerfile: Dockerfile
     image: ${DOCKER_HUB}/pettopia-petcare-service:latest
     container_name: petcare-service
-    # ports:
-    #   - "8003:${PETCARE_PORT_OUT}"
     env_file: apps/petcare-service/.env
     environment:
       - NODE_ENV=production
@@ -180,5 +191,7 @@ services:
 networks:
   pettopia-network:
     driver: bridge
+
 volumes:
   kong_db_data:
+  konga_data:
