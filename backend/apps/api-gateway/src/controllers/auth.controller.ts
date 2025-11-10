@@ -31,6 +31,7 @@ export class AuthController {
   async test(@Param('id') id: string) {
     return lastValueFrom(this.customerService.send({ cmd: 'test' }, {}));
   }
+  
   @Post('login')
   @HttpCode(HttpStatus.OK)
   async login(@Body() data: any) {
