@@ -1,23 +1,34 @@
-FROM node:20-alpine3.22 AS communication-builder
-WORKDIR /backend/apps
+FROM node:20-alpine3.22 AS builder
+WORKDIR /usr/src/app
 
+# Copy package files
 COPY package*.json ./
-RUN npm ci 
+RUN npm ci
 
+# Copy source code
 COPY . .
-# chạy để build ứng dụng ra file dist
+
+# Build app to dist
 RUN npm run build
 
-#giai doan 2 
-FROM node:20-alpine3.22 
-WORKDIR /backend/apps
-COPY package*.json ./
+FROM node:20-alpine3.22 AS runner
+WORKDIR /usr/src/app
 
-RUN npm ci --omit=dev
-COPY --from=communication-builder /backend/apps/dist ./dist
+# Set default environment variables
+ENV NODE_ENV=production
+ENV PORT=3006  # Default port for communication-service
 
+# Copy built artifacts and dependencies from builder
+COPY --from=builder /usr/src/app/dist ./dist
+COPY --from=builder /usr/src/app/node_modules ./node_modules
+COPY --from=builder /usr/src/app/package*.json ./
 
+# Create a non-root user and switch to it
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+USER appuser
 
-EXPOSE 3006
+# Expose the port the app runs on
+EXPOSE $PORT
 
+# Command to run the application
 CMD ["node", "dist/main.js"]

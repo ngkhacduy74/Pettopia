@@ -14,11 +14,11 @@ import { UpdateStatusClinicDto } from 'src/dto/clinic/clinic/update-status.dto';
 import { ClinicsRepository } from 'src/repositories/clinic/clinic.repositories';
 import { ServiceRepository } from 'src/repositories/clinic/service.repositories';
 import { RegisterStatus } from 'src/schemas/clinic/clinic-register.schema';
-import { createRpcError } from 'src/common/error.detail';
 import { UpdateClinicFormDto } from 'src/dto/clinic/clinic/update-clinic-form.dto';
 import { generateRandomPassword } from 'src/common/generate.common';
 import { v4 as uuidv4 } from 'uuid';
 import { ShiftRepository } from 'src/repositories/clinic/shift.repositories';
+import { createRpcError } from 'src/common/error.detail';
 
 @Injectable()
 export class ClinicService {

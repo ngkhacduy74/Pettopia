@@ -41,6 +41,24 @@ export class AuditLogs {
   delete_time?: Date;
 }
 export const AuditLogsSchema = SchemaFactory.createForClass(AuditLogs);
+@Schema({ _id: false })
+export class Location {
+  @Prop({ type: String, enum: ['Point'], required: true, default: 'Point' })
+  type: 'Point';
+
+  @Prop({
+    type: [Number],
+    required: true,
+    index: '2dsphere',
+    validate: {
+      validator: (v: number[]) => v.length === 2,
+      message: 'Coordinates must be an array of [lng, lat]',
+    },
+  })
+  coordinates: number[];
+}
+
+export const LocationSchema = SchemaFactory.createForClass(Location);
 
 @Schema({
   timestamps: true,
@@ -56,8 +74,9 @@ export class User {
     trim: true,
   })
   id: string;
-
-  @Prop({ type: String, required: [true, 'Fullname is required'], trim: true })
+  @Prop({type:String, required:false})
+  clinic_id?:string;
+  @Prop({ type: String, required: false, trim: true })
   fullname: string;
 
   @Prop({ type: EmailSchema })
@@ -94,11 +113,11 @@ export class User {
   password: string;
 
   @Prop({
-    type: String,
-    enum: ['User', 'Admin', 'Vet', 'Staff', 'Clinic_staff'],
-    default: 'User',
+    type: [String],
+    enum: ['User', 'Admin', 'Staff', 'Vet', 'Clinic'],
+    default: ['User'],
   })
-  role: string;
+  role: string[];
 
   @Prop()
   bio?: string;
@@ -106,14 +125,17 @@ export class User {
   @Prop({ type: AddressSchema })
   address: Address;
 
+  @Prop({ type: LocationSchema, required: false })
+  location?: Location;
+
   @Prop({ type: Number, default: 0, min: [0, 'Reward point must be positive'] })
   reward_point: number;
 
   @Prop({
     type: Date,
-    required: [true, 'dob is required'],
+    required: false,
   })
-  dob: Date;
+  dob?: Date;
 
   @Prop({ default: true })
   is_active: boolean;

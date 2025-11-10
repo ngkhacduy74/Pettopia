@@ -12,12 +12,10 @@ import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { v4 as uuidv4 } from 'uuid';
 import { createRpcError } from 'src/common/error.detail';
-import axios from 'axios';
 @Injectable()
 export class AuthService {
   constructor(
     @Inject('CUSTOMER_SERVICE') private customerClient: ClientProxy,
-    @Inject('PARTNER_SERVICE') private partnerService: ClientProxy,
     private readonly jwtService: JwtService,
   ) {}
 
@@ -126,15 +124,15 @@ export class AuthService {
         );
       }
 
-      // const salt = await bcrypt.genSalt(10);
-      // const hashPass = await bcrypt.hash(data.password, salt);
+      const salt = await bcrypt.genSalt(10);
+      const hashPass = await bcrypt.hash(data.password, salt);
 
       const newUser = {
         id: uuidv4(),
         fullname: data.fullname,
         gender: data.gender,
         username: data.username,
-        password: data.password,
+        password: hashPass,
         dob: data.dob,
         avatar_url: data.avatar_url,
         email: {
@@ -192,104 +190,6 @@ export class AuthService {
         'Internal Server Error',
         error.message,
       );
-    }
-  }
-  async verifyClinicToken(token: string): Promise<any> {
-    try {
-      const clinic = await lastValueFrom(
-        this.partnerService.send(
-          { cmd: 'getClinicByVerificationToken' },
-          { token },
-        ),
-      );
-      console.log('clinic verify token service123123: ', clinic);
-      if (!clinic) {
-        throw createRpcError(
-          HttpStatus.NOT_FOUND,
-          'Token xác minh không hợp lệ hoặc phòng khám không tồn tại.',
-          'Not Found',
-        );
-      }
-      const now = new Date();
-      if (clinic.data.token_expires_at < now) {
-        throw createRpcError(
-          HttpStatus.BAD_REQUEST,
-          'Token xác minh đã hết hạn.',
-          'Bad Request',
-        );
-      }
-      //Vô hiệu hóa token cũ
-      const disableOldToken = await lastValueFrom(
-        this.partnerService.send(
-          { cmd: 'updateClinicForm' },
-          {
-            id: clinic.data.id,
-            dto: {
-              verification_token: null,
-              token_expires_at: null,
-            },
-          },
-        ),
-      );
-      if (!disableOldToken) {
-        throw createRpcError(
-          HttpStatus.INTERNAL_SERVER_ERROR,
-          'Lỗi khi vô hiệu hóa token cũ.',
-          'Internal Server Error',
-        );
-      }
-
-      //update token mới
-      const payload = {
-        sub: clinic.data.id,
-        type: 'clinic-update',
-      };
-
-      const updateToken = this.jwtService.sign(payload, {
-        expiresIn: '15m',
-      });
-
-      return {
-        message: 'Token xác minh hợp lệ.',
-        token: updateToken,
-      };
-    } catch (err) {
-      if (err instanceof RpcException) {
-        throw err;
-      }
-      throw createRpcError(
-        HttpStatus.INTERNAL_SERVER_ERROR,
-        'Lỗi khi xác minh token phòng khám.',
-        'Internal Server Error',
-        err.message,
-      );
-    }
-  }
-  async convertAddressToLocation(address: string) {
-    if (!address) return null;
-
-    try {
-      const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(
-        address,
-      )}&format=json&addressdetails=1&limit=1&countrycodes=vn`;
-
-      const response = await axios.get(url, {
-        headers: { 'User-Agent': 'NestJS App' },
-      });
-
-      if (!response.data || response.data.length === 0) {
-        return null;
-      }
-
-      const { lat, lon } = response.data[0];
-
-      return {
-        type: 'Point',
-        coordinates: [parseFloat(lon), parseFloat(lat)],
-      };
-    } catch (error) {
-      console.error('Error converting address to location:', error?.message);
-      return null;
     }
   }
 }
