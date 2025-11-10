@@ -127,7 +127,7 @@ export class MailTemplateService {
         <p>Trân trọng,<br>Đội ngũ PetTopia</p>
       </div>
     `;
-
+ console.log("đã chạy được vào mial");
     return this.mailService.sendMail(
       email,
       `Chào mừng ${clinicName} đến với PetTopia`,

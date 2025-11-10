@@ -47,8 +47,9 @@ export class AuthService {
           'Not Found',
         );
       }
-      console.log('918u1okjle', exist_user);
+  
       const isMatch = await bcrypt.compare(data.password, exist_user.password);
+      console.log('isMatch123132', isMatch);
       if (!isMatch) {
         throw createRpcError(
           HttpStatus.UNAUTHORIZED,
@@ -124,15 +125,12 @@ export class AuthService {
         );
       }
 
-      const salt = await bcrypt.genSalt(10);
-      const hashPass = await bcrypt.hash(data.password, salt);
-
       const newUser = {
         id: uuidv4(),
         fullname: data.fullname,
         gender: data.gender,
         username: data.username,
-        password: hashPass,
+        password: data.password,
         dob: data.dob,
         avatar_url: data.avatar_url,
         email: {
