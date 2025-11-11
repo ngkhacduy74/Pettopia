@@ -1,4 +1,9 @@
-import { Module, ValidationPipe } from '@nestjs/common';
+import {
+  MiddlewareConsumer,
+  Module,
+  NestModule,
+  ValidationPipe,
+} from '@nestjs/common';
 import { AppointmentController } from './controllers/appointment.controller';
 import { AppointmentService } from './services/appointment.service';
 import { AppointmentRepository } from './repositories/appointment.repositories';
@@ -14,6 +19,9 @@ import {
 import { Medication, MedicationSchema } from './schemas/preciption.schema';
 import { Vet_Schedule, VetScheduleSchema } from './schemas/vet_schedule.schema';
 import { ClientsModule, Transport } from '@nestjs/microservices';
+import { PrometheusMiddleware } from './middleware/prometheus.middleware';
+import { PrometheusController } from './controllers/prometheus.controller';
+import { PrometheusService } from './services/prometheus.service';
 
 @Module({
   imports: [
@@ -31,6 +39,10 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
         name: 'CUSTOMER_SERVICE',
         transport: Transport.TCP,
         options: {
+          host:
+            process.env.NODE_ENV === 'production'
+              ? 'customer-service'
+              : 'localhost',
           port: 5002,
         },
       },
@@ -38,6 +50,10 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
         name: 'PARTNER_SERVICE',
         transport: Transport.TCP,
         options: {
+          host:
+            process.env.NODE_ENV === 'production'
+              ? 'partner-service'
+              : 'localhost',
           port: 5004,
         },
       },
@@ -45,6 +61,10 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
         name: 'AUTH_SERVICE',
         transport: Transport.TCP,
         options: {
+          host:
+            process.env.NODE_ENV === 'production'
+              ? 'auth-service'
+              : 'localhost',
           port: 5001,
         },
       },
@@ -63,10 +83,11 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
       { name: Vet_Schedule.name, schema: VetScheduleSchema },
     ]),
   ],
-  controllers: [AppointmentController],
+  controllers: [AppointmentController, PrometheusController],
   providers: [
     AppointmentService,
     AppointmentRepository,
+    PrometheusService,
     {
       provide: APP_PIPE,
       useValue: new ValidationPipe({
@@ -82,4 +103,8 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
     },
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(PrometheusMiddleware).forRoutes('*');
+  }
+}

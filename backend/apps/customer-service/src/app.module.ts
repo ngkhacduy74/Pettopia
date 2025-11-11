@@ -1,10 +1,13 @@
-import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
+import { AppController } from './controllers/app.controller';
+import { AppService } from './services/app.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import { User, UserSchema } from './schemas/user.schema';
 import { UsersRepository } from './repositories/user.repositories';
+import { PrometheusMiddleware } from './middleware/prometheus.middleware';
+import { PrometheusService } from './services/prometheus.service';
+import { PrometheusController } from './controllers/prometheus.controller';
 
 @Module({
   imports: [
@@ -21,7 +24,11 @@ import { UsersRepository } from './repositories/user.repositories';
     MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
   ],
 
-  controllers: [AppController],
-  providers: [AppService, UsersRepository],
+  controllers: [AppController, PrometheusController],
+  providers: [AppService, UsersRepository, PrometheusService],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(PrometheusMiddleware).forRoutes('*');
+  }
+}

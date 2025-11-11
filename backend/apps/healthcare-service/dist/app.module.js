@@ -20,7 +20,13 @@ const medical_record_schema_1 = require("./schemas/medical_record.schema");
 const preciption_schema_1 = require("./schemas/preciption.schema");
 const vet_schedule_schema_1 = require("./schemas/vet_schedule.schema");
 const microservices_1 = require("@nestjs/microservices");
+const prometheus_middleware_1 = require("./middleware/prometheus.middleware");
+const prometheus_controller_1 = require("./controllers/prometheus.controller");
+const prometheus_service_1 = require("./services/prometheus.service");
 let AppModule = class AppModule {
+    configure(consumer) {
+        consumer.apply(prometheus_middleware_1.PrometheusMiddleware).forRoutes('*');
+    }
 };
 exports.AppModule = AppModule;
 exports.AppModule = AppModule = __decorate([
@@ -72,10 +78,11 @@ exports.AppModule = AppModule = __decorate([
                 { name: vet_schedule_schema_1.Vet_Schedule.name, schema: vet_schedule_schema_1.VetScheduleSchema },
             ]),
         ],
-        controllers: [appointment_controller_1.AppointmentController],
+        controllers: [appointment_controller_1.AppointmentController, prometheus_controller_1.PrometheusController],
         providers: [
             appointment_service_1.AppointmentService,
             appointment_repositories_1.AppointmentRepository,
+            prometheus_service_1.PrometheusService,
             {
                 provide: core_1.APP_PIPE,
                 useValue: new common_1.ValidationPipe({

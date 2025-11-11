@@ -3,16 +3,16 @@ import {
   Injectable,
   HttpStatus, // Thêm HttpStatus
 } from '@nestjs/common';
-import { User } from './schemas/user.schema';
+import { User } from '../schemas/user.schema';
 import * as bcrypt from 'bcrypt';
 import { RpcException } from '@nestjs/microservices'; // Chỉ cần RpcException
-import { UsersRepository } from './repositories/user.repositories';
-import { CreateUserDto } from './dto/user/create-user.dto';
-import { UserStatus } from './dto/request/update-user-status.dto';
+import { UsersRepository } from '../repositories/user.repositories';
+import { CreateUserDto } from '../dto/user/create-user.dto';
+import { UserStatus } from '../dto/request/update-user-status.dto';
 import {
   GetAllUsersDto,
   PaginatedUsersResponse,
-} from './dto/request/get-all-user.dto';
+} from '../dto/request/get-all-user.dto';
 
 @Injectable()
 export class AppService {
@@ -21,7 +21,7 @@ export class AppService {
   async getUserById(id: string): Promise<User> {
     try {
       const user = await this.userRepositories.findOneById(id);
-console.log("userReopsasd",user)
+      console.log('userReopsasd', user);
       if (!user) {
         throw new RpcException({
           status: HttpStatus.NOT_FOUND,
@@ -80,9 +80,8 @@ console.log("userReopsasd",user)
 
   async getUserByEmailForAuth(email_address: string): Promise<User> {
     try {
-      const user = await this.userRepositories.findOneByEmailWithPassword(
-        email_address,
-      );
+      const user =
+        await this.userRepositories.findOneByEmailWithPassword(email_address);
       if (!user) {
         throw new RpcException({
           status: HttpStatus.NOT_FOUND,

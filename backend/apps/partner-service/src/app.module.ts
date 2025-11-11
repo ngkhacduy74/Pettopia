@@ -1,4 +1,9 @@
-import { Module, ValidationPipe } from '@nestjs/common';
+import {
+  MiddlewareConsumer,
+  Module,
+  NestModule,
+  ValidationPipe,
+} from '@nestjs/common';
 import { ClinicController } from './controllers/clinic/clinic.controller';
 import { ClinicService } from './services/clinic/clinic.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -31,6 +36,9 @@ import {
   Shift,
   ShiftSchema,
 } from './schemas/clinic/clinic_shift_setting.schema';
+import { PrometheusController } from './controllers/prometheus.controller';
+import { PrometheusService } from './services/prometheus.service';
+import { PrometheusMiddleware } from './middleware/prometheus.middleware';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -47,6 +55,10 @@ import {
         name: 'CUSTOMER_SERVICE',
         transport: Transport.TCP,
         options: {
+          host:
+            process.env.NODE_ENV === 'production'
+              ? 'customer-service'
+              : 'localhost',
           port: 5002,
         },
       },
@@ -54,6 +66,10 @@ import {
         name: 'AUTH_SERVICE',
         transport: Transport.TCP,
         options: {
+          host:
+            process.env.NODE_ENV === 'production'
+              ? 'auth-service'
+              : 'localhost',
           port: 5001,
         },
       },
@@ -80,6 +96,7 @@ import {
     VetController,
     ShiftController,
     ServiceController,
+    PrometheusController,
   ],
   providers: [
     ClinicService,
@@ -90,6 +107,7 @@ import {
     ShiftRepository,
     ShiftService,
     ServiceService,
+    PrometheusService,
     {
       provide: APP_PIPE,
       useValue: new ValidationPipe({
@@ -105,4 +123,8 @@ import {
     },
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(PrometheusMiddleware).forRoutes('*');
+  }
+}

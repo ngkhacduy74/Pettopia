@@ -22,6 +22,10 @@ import { PaymentController } from './controllers/payment.controller';
         name: 'AUTH_SERVICE',
         transport: Transport.TCP,
         options: {
+          host:
+            process.env.NODE_ENV === 'production'
+              ? 'auth-service'
+              : 'localhost',
           port: 5001,
         },
       },
@@ -29,6 +33,10 @@ import { PaymentController } from './controllers/payment.controller';
         name: 'CUSTOMER_SERVICE',
         transport: Transport.TCP,
         options: {
+          host:
+            process.env.NODE_ENV === 'production'
+              ? 'customer-service'
+              : 'localhost',
           port: 5002,
         },
       },
@@ -36,6 +44,10 @@ import { PaymentController } from './controllers/payment.controller';
         name: 'PETCARE_SERVICE',
         transport: Transport.TCP,
         options: {
+          host:
+            process.env.NODE_ENV === 'production'
+              ? 'petcare-service'
+              : 'localhost',
           port: 5003,
         },
       },
@@ -43,6 +55,10 @@ import { PaymentController } from './controllers/payment.controller';
         name: 'PARTNER_SERVICE',
         transport: Transport.TCP,
         options: {
+          host:
+            process.env.NODE_ENV === 'production'
+              ? 'partner-service'
+              : 'localhost',
           port: 5004,
         },
       },
@@ -50,6 +66,10 @@ import { PaymentController } from './controllers/payment.controller';
         name: 'HEALTHCARE_SERVICE',
         transport: Transport.TCP,
         options: {
+          host:
+            process.env.NODE_ENV === 'production'
+              ? 'healthcare-service'
+              : 'localhost',
           port: 5005,
         },
       },
@@ -57,6 +77,10 @@ import { PaymentController } from './controllers/payment.controller';
         name: 'COMMUNICATION_SERVICE',
         transport: Transport.TCP,
         options: {
+          host:
+            process.env.NODE_ENV === 'production'
+              ? 'communication-service'
+              : 'localhost',
           port: 5006,
         },
       },
@@ -64,6 +88,10 @@ import { PaymentController } from './controllers/payment.controller';
         name: 'BILLING_SERVICE',
         transport: Transport.TCP,
         options: {
+          host:
+            process.env.NODE_ENV === 'production'
+              ? 'billing-service'
+              : 'localhost',
           port: 5007,
         },
       },

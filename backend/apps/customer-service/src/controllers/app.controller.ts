@@ -1,21 +1,21 @@
 import { Controller, Get, UsePipes, ValidationPipe } from '@nestjs/common';
 
-import { AppService } from './app.service';
+import { AppService } from '../services/app.service';
 
 import { MessagePattern, Payload } from '@nestjs/microservices';
-import { User } from './schemas/user.schema';
-import { GetUserByIdDto } from './dto/request/get-user-by-id.dto';
-import { GetUserByUsernameDto } from './dto/request/get-user-by-username.dto';
-import { GetUserByEmailDto } from './dto/request/get-user-by-email.dto';
-import { CheckPhoneExistDto } from './dto/request/check-phone-exist.dto';
-import { CreateUserDto } from './dto/user/create-user.dto';
-import { DeleteUserByIdDto } from './dto/request/delete-user-by-id.dto';
-import { UpdateUserStatusDto } from './dto/request/update-user-status.dto';
+import { User } from '../schemas/user.schema';
+import { GetUserByIdDto } from '../dto/request/get-user-by-id.dto';
+import { GetUserByUsernameDto } from '../dto/request/get-user-by-username.dto';
+import { GetUserByEmailDto } from '../dto/request/get-user-by-email.dto';
+import { CheckPhoneExistDto } from '../dto/request/check-phone-exist.dto';
+import { CreateUserDto } from '../dto/user/create-user.dto';
+import { DeleteUserByIdDto } from '../dto/request/delete-user-by-id.dto';
+import { UpdateUserStatusDto } from '../dto/request/update-user-status.dto';
 import {
   GetAllUsersDto,
   PaginatedUsersResponse,
-} from './dto/request/get-all-user.dto';
-import { handleRpcError } from './common/error.detail';
+} from '../dto/request/get-all-user.dto';
+import { handleRpcError } from '../common/error.detail';
 
 @UsePipes(
   new ValidationPipe({

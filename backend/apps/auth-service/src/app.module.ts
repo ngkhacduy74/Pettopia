@@ -1,4 +1,9 @@
-import { Module, ValidationPipe } from '@nestjs/common';
+import {
+  MiddlewareConsumer,
+  Module,
+  NestModule,
+  ValidationPipe,
+} from '@nestjs/common';
 import { AuthController } from './controllers/auth.controller';
 import { AuthService } from './services/auth.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -22,6 +27,9 @@ import { OtpService } from './services/otp.service';
 import { APP_PIPE } from '@nestjs/core';
 import { MailTemplateService } from './services/mail.template.service';
 import { MailController } from './controllers/mail.controller';
+import { PrometheusService } from './services/prometheus.service';
+import { PrometheusController } from './controllers/prometheus.controller';
+import { PrometheusMiddleware } from './middleware/prometheus.middleware';
 const customer_port = parseInt(process.env.TCP_CUSTOMER_PORT || '5002', 10);
 @Module({
   imports: [
@@ -45,6 +53,10 @@ const customer_port = parseInt(process.env.TCP_CUSTOMER_PORT || '5002', 10);
         name: 'CUSTOMER_SERVICE',
         transport: Transport.TCP,
         options: {
+          host:
+            process.env.NODE_ENV === 'production'
+              ? 'customer-service'
+              : 'localhost',
           port: 5002,
         },
       },
@@ -52,6 +64,10 @@ const customer_port = parseInt(process.env.TCP_CUSTOMER_PORT || '5002', 10);
         name: 'PARTNER_SERVICE',
         transport: Transport.TCP,
         options: {
+          host:
+            process.env.NODE_ENV === 'production'
+              ? 'partner-service'
+              : 'localhost',
           port: 5004,
         },
       },
@@ -71,6 +87,7 @@ const customer_port = parseInt(process.env.TCP_CUSTOMER_PORT || '5002', 10);
     InviteController,
     CloudinaryController,
     MailController,
+    PrometheusController,
   ],
   providers: [
     AuthService,
@@ -81,6 +98,7 @@ const customer_port = parseInt(process.env.TCP_CUSTOMER_PORT || '5002', 10);
     OtpService,
     CloudinaryService,
     MailTemplateService,
+    PrometheusService,
     {
       provide: APP_PIPE,
       useValue: new ValidationPipe({
@@ -92,4 +110,8 @@ const customer_port = parseInt(process.env.TCP_CUSTOMER_PORT || '5002', 10);
     },
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(PrometheusMiddleware).forRoutes('*');
+  }
+}
