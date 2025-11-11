@@ -56,6 +56,19 @@ export class AppController {
       handleRpcError('AppController.getUserByEmail', err);
     }
   }
+  @MessagePattern({ cmd: 'getUserByEmailForAuth' })
+  async getUserByEmailForAuth(
+    @Payload() data: GetUserByEmailDto,
+  ): Promise<User> {
+    try {
+      const result = await this.appService.getUserByEmailForAuth(
+        data.email_address,
+      );
+      return result;
+    } catch (err) {
+      handleRpcError('AppController.getUserByEmailForAuth', err);
+    }
+  }
   @MessagePattern({ cmd: 'checkPhoneExist' })
   async checkPhoneExist(@Payload() data: CheckPhoneExistDto): Promise<Boolean> {
     try {

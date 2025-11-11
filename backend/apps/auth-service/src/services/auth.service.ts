@@ -22,14 +22,23 @@ export class AuthService {
   async login(data: LoginDto): Promise<any> {
     console.log('data customer service', data);
     try {
+      const identifier = data.username;
+      const isEmail =
+        typeof identifier === 'string' &&
+        /^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$/.test(identifier);
+
       const exist_user = await lastValueFrom(
         this.customerClient.send(
-          { cmd: 'getUserByUsername' },
-          { username: data.username },
+          isEmail
+            ? { cmd: 'getUserByEmailForAuth' }
+            : { cmd: 'getUserByUsername' },
+          isEmail
+            ? { email_address: identifier }
+            : { username: identifier },
         ),
       ).catch((error) => {
         console.error(
-          'Error from customerClient[getUserByUsername]:',
+          `Error from customerClient[${isEmail ? 'getUserByEmailForAuth' : 'getUserByUsername'}]:`,
           error.message,
         );
         throw createRpcError(
