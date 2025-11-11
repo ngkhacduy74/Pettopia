@@ -53,7 +53,8 @@ export class HealthcareController {
     }
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.USER)
   @Get('/appointments')
   @HttpCode(HttpStatus.OK)
   async getUserAppointments(
@@ -72,6 +73,22 @@ export class HealthcareController {
       this.healthcareService.send(
         { cmd: 'getUserAppointments' },
         { userId, page: Number(page), limit: Number(limit) },
+      ),
+    );
+  }
+
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.ADMIN, Role.STAFF)
+  @Get('/appointments/all')
+  @HttpCode(HttpStatus.OK)
+  async getAllAppointments(
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
+  ) {
+    return await lastValueFrom(
+      this.healthcareService.send(
+        { cmd: 'getAllAppointments' },
+        { page: Number(page), limit: Number(limit) },
       ),
     );
   }

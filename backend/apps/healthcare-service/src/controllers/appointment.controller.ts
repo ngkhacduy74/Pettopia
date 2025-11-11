@@ -75,4 +75,22 @@ export class AppointmentController {
       return handleRpcError('AppointmentController.getUserAppointments', error);
     }
   }
+
+  @MessagePattern({ cmd: 'getAllAppointments' })
+  async getAllAppointments(@Payload() payload: { page?: number; limit?: number }) {
+    try {
+      const { page = 1, limit = 10 } = payload || {};
+
+      const result = await this.appointmentService.getAllAppointments(page, limit);
+
+      return {
+        status: 'success',
+        message: 'Lấy tất cả lịch hẹn thành công',
+        data: result.data,
+        pagination: result.pagination,
+      };
+    } catch (error) {
+      return handleRpcError('AppointmentController.getAllAppointments', error);
+    }
+  }
 }
