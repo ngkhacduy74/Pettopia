@@ -61,6 +61,18 @@ export class UsersRepository {
     }
   }
 
+  async findOneByEmailWithPassword(email: string): Promise<User | null> {
+    try {
+      const result = await this.userModel
+        .findOne({ 'email.email_address': email })
+        .select('+password')
+        .exec();
+      return result;
+    } catch (err) {
+      throw new Error(err);
+    }
+  }
+
   async checkPhoneExist(phone_number: string): Promise<any> {
     try {
       const result = await this.userModel

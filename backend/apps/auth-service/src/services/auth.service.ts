@@ -12,24 +12,35 @@ import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { v4 as uuidv4 } from 'uuid';
 import { createRpcError } from 'src/common/error.detail';
+import { MailTemplateService } from './mail.template.service';
 @Injectable()
 export class AuthService {
   constructor(
     @Inject('CUSTOMER_SERVICE') private customerClient: ClientProxy,
     private readonly jwtService: JwtService,
+    private readonly mailTemplateService: MailTemplateService,
   ) {}
 
   async login(data: LoginDto): Promise<any> {
     console.log('data customer service', data);
     try {
+      const identifier = data.username;
+      const isEmail =
+        typeof identifier === 'string' &&
+        /^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$/.test(identifier);
+
       const exist_user = await lastValueFrom(
         this.customerClient.send(
-          { cmd: 'getUserByUsername' },
-          { username: data.username },
+          isEmail
+            ? { cmd: 'getUserByEmailForAuth' }
+            : { cmd: 'getUserByUsername' },
+          isEmail
+            ? { email_address: identifier }
+            : { username: identifier },
         ),
       ).catch((error) => {
         console.error(
-          'Error from customerClient[getUserByUsername]:',
+          `Error from customerClient[${isEmail ? 'getUserByEmailForAuth' : 'getUserByUsername'}]:`,
           error.message,
         );
         throw createRpcError(
@@ -47,8 +58,9 @@ export class AuthService {
           'Not Found',
         );
       }
-      console.log('918u1okjle', exist_user);
+  
       const isMatch = await bcrypt.compare(data.password, exist_user.password);
+      console.log('isMatch123132', isMatch);
       if (!isMatch) {
         throw createRpcError(
           HttpStatus.UNAUTHORIZED,
@@ -124,15 +136,12 @@ export class AuthService {
         );
       }
 
-      const salt = await bcrypt.genSalt(10);
-      const hashPass = await bcrypt.hash(data.password, salt);
-
       const newUser = {
         id: uuidv4(),
         fullname: data.fullname,
         gender: data.gender,
         username: data.username,
-        password: hashPass,
+        password: data.password,
         dob: data.dob,
         avatar_url: data.avatar_url,
         email: {
@@ -170,6 +179,18 @@ export class AuthService {
       });
 
       const { password, ...userWithoutPassword } = savedUser;
+
+      // Gửi email chào mừng (kèm username và mật khẩu, nhắc nhở bảo mật)
+      try {
+        await this.mailTemplateService.sendUserWelcomeEmail(
+          userWithoutPassword.email?.email_address || data.email_address,
+          data.fullname,
+          data.username,
+          data.password,
+        );
+      } catch (e) {
+        console.error('Failed to send welcome email:', e?.message || e);
+      }
       const token = this.jwtService.sign(userWithoutPassword);
 
       return {

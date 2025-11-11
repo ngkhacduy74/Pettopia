@@ -127,12 +127,64 @@ export class MailTemplateService {
         <p>Trân trọng,<br>Đội ngũ PetTopia</p>
       </div>
     `;
-
+ console.log("đã chạy được vào mial");
     return this.mailService.sendMail(
       email,
       `Chào mừng ${clinicName} đến với PetTopia`,
       welcomeTemplate,
       MailType.REMIND,
+    );
+  }
+
+  async sendUserWelcomeEmail(
+    email: string,
+    fullName: string,
+    username: string,
+    password: string,
+  ) {
+    const html = `
+      <div style="font-family: Arial, Helvetica, sans-serif; color: #222; line-height: 1.6; max-width: 640px; margin: 0 auto; background: #ffffff; border-radius: 10px; overflow: hidden; box-shadow: 0 6px 20px rgba(0,0,0,0.06);">
+        <div style="background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%); padding: 24px 28px; color: #fff;">
+          <h2 style="margin: 0; font-weight: 700;">Chào mừng đến với Pettopia! 🐾</h2>
+          <p style="margin: 6px 0 0; opacity: 0.95;">Xin chào ${fullName || 'bạn'}, tài khoản của bạn đã được tạo thành công.</p>
+        </div>
+
+        <div style="padding: 24px 28px;">
+          <p>Cảm ơn bạn đã tin tưởng và chọn <strong>Pettopia</strong>. Dưới đây là thông tin đăng nhập của bạn:</p>
+
+          <div style="background: #f6f8ff; border: 1px solid #e4e8ff; border-radius: 8px; padding: 16px 18px; margin: 14px 0;">
+            <p style="margin: 0;"><strong>Tên đăng nhập:</strong> ${username}</p>
+            <p style="margin: 6px 0 0;"><strong>Mật khẩu:</strong> ${password}</p>
+          </div>
+
+          <p style="margin-top: 18px;"><strong>Lưu ý quan trọng:</strong></p>
+          <ul style="padding-left: 18px; margin: 10px 0 0;">
+            <li>Vui lòng <strong>đổi mật khẩu</strong> ngay sau lần đăng nhập đầu tiên.</li>
+            <li><strong>Không chia sẻ</strong> thông tin đăng nhập cho bất kỳ ai.</li>
+            <li>Bật <strong>xác thực email/OTP</strong> (nếu có) để tăng cường bảo mật.</li>
+          </ul>
+
+          <div style="margin-top: 20px;">
+            <a href="${process.env.APP_URL || 'https://pettopia.app'}/login" style="display: inline-block; background: #2575fc; color: #fff; text-decoration: none; padding: 12px 18px; border-radius: 8px; font-weight: 600;">Đăng nhập ngay</a>
+          </div>
+
+          <p style="margin-top: 22px; color: #555;">Nếu bạn không thực hiện đăng ký này, vui lòng bỏ qua email hoặc liên hệ hỗ trợ.</p>
+
+          <p style="margin-top: 20px;">Trân trọng,<br><strong>Đội ngũ Pettopia</strong></p>
+        </div>
+
+        <div style="background: #fafbfc; color: #888; padding: 14px 18px; font-size: 12px; text-align: center; border-top: 1px solid #eee;">
+          Đây là email tự động. Vui lòng không trả lời email này.<br>
+          © ${new Date().getFullYear()} Pettopia. All rights reserved.
+        </div>
+      </div>
+    `;
+
+    return this.mailService.sendMail(
+      email,
+      'Chào mừng bạn đến với Pettopia 🎉',
+      html,
+      MailType.THANK_YOU,
     );
   }
   //   async acceptInvite(

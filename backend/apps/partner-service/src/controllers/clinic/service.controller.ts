@@ -39,18 +39,18 @@ export class ServiceController {
     }
   }
 
-  // @MessagePattern({ cmd: 'getAllService' })
-  // async getAllService(
-  //   @Payload() payload: { page: number; limit: number },
-  // ): Promise<any> {
-  //   try {
-  //     const { page, limit } = payload;
-  //     const result = await this.clinicService.getAllService(page, limit);
-  //     return result;
-  //   } catch (err) {
-  //     handleRpcError('PartnerController.getAllService', err);
-  //   }
-  // }
+  @MessagePattern({ cmd: 'getAllService' })
+  async getAllService(
+    @Payload() payload: { page?: number; limit?: number },
+  ): Promise<any> {
+    try {
+      const { page = 1, limit = 10 } = payload || {};
+      const result = await this.serviceService.getAllService(page, limit);
+      return result;
+    } catch (err) {
+      handleRpcError('ServiceController.getAllService', err);
+    }
+  }
 
   @MessagePattern({ cmd: 'update_service' })
   async updateService(

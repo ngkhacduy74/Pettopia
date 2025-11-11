@@ -206,4 +206,49 @@ export class AppointmentService {
       });
     }
   }
+
+  async getAllAppointments(
+    page: number = 1,
+    limit: number = 10,
+  ): Promise<{
+    status: string;
+    message: string;
+    data: any[];
+    pagination: {
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+    };
+  }> {
+    try {
+      const { data, total } = await this.appointmentRepositories.findAll(
+        page,
+        limit,
+      );
+
+      const totalPages = Math.ceil(total / limit);
+
+      return {
+        status: 'success',
+        message: 'Lấy tất cả lịch hẹn thành công',
+        data,
+        pagination: {
+          total,
+          page,
+          limit,
+          totalPages,
+        },
+      };
+    } catch (error) {
+      if (error instanceof RpcException) {
+        throw error;
+      }
+
+      throw new RpcException({
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        message: error.message || 'Lỗi khi lấy tất cả lịch hẹn',
+      });
+    }
+  }
 }

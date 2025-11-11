@@ -34,6 +34,59 @@ export class ClinicService {
     createClinicFormData: CreateClinicFormDto,
   ): Promise<any> {
     try {
+      // Validate uniqueness constraints prior to creating the form
+      const { email, phone, license_number, representative } =
+        createClinicFormData as any;
+
+      // Ensure provided fields do not duplicate existing clinic forms
+      const [emailTaken, phoneTaken, licenseTaken] = await Promise.all([
+        this.clinicRepositories.existsClinicFormByEmail(email?.email_address),
+        this.clinicRepositories.existsClinicFormByPhone(phone?.phone_number),
+        this.clinicRepositories.existsClinicFormByLicenseNumber(license_number),
+      ]);
+
+      if (emailTaken) {
+        throw createRpcError(
+          HttpStatus.BAD_REQUEST,
+          'Email đã tồn tại trong đơn đăng ký khác',
+          'Bad Request',
+        );
+      }
+
+      if (phoneTaken) {
+        throw createRpcError(
+          HttpStatus.BAD_REQUEST,
+          'Số điện thoại đã tồn tại trong đơn đăng ký khác',
+          'Bad Request',
+        );
+      }
+
+      if (licenseTaken) {
+        throw createRpcError(
+          HttpStatus.BAD_REQUEST,
+          'Số giấy phép phòng khám đã tồn tại',
+          'Bad Request',
+        );
+      }
+
+      // Validate representative responsible licenses do not conflict with existing forms
+      if (representative?.responsible_licenses?.length) {
+        const respLicenses: string[] = representative.responsible_licenses;
+        const checks = await Promise.all(
+          respLicenses.map((lic) =>
+            this.clinicRepositories.existsClinicFormByResponsibleLicense(lic),
+          ),
+        );
+        const anyTaken = checks.some((v) => v);
+        if (anyTaken) {
+          throw createRpcError(
+            HttpStatus.BAD_REQUEST,
+            'Một hoặc nhiều giấy phép hành nghề của người đại diện đã được sử dụng ở đơn khác',
+            'Bad Request',
+          );
+        }
+      }
+
       const result = await this.clinicRepositories
         .createClinicForm(createClinicFormData)
         .catch((error) => {
@@ -206,8 +259,8 @@ export class ClinicService {
 
             console.log('Sending welcome email to:', recipientEmail);
 
-            await this.authService
-              .send(
+            await lastValueFrom(
+              this.authService.send(
                 { cmd: 'sendClinicWelcomeEmail' },
                 {
                   email: recipientEmail,
@@ -216,14 +269,15 @@ export class ClinicService {
                   username: userAccountData.username,
                   password: userAccountData.password,
                 },
-              )
-              .toPromise();
+              ),
+            );
 
             console.log('Welcome email sent successfully');
           } catch (error) {
             console.error('Error sending welcome email:', {
-              message: error.message,
-              stack: error.stack,
+              message: error?.message || error?.toString() || 'Unknown error',
+              stack: error?.stack,
+              error: error,
             });
           }
           console.log('ljkalskdjalsd', userAccountData);

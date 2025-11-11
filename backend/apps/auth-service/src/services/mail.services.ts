@@ -45,6 +45,12 @@ export class MailService {
       log.status = MailStatus.SENT;
       log.sent_at = new Date();
       await log.save();
+
+      return {
+        success: true,
+        message: 'Email sent successfully',
+        mailId: log._id,
+      };
     } catch (error) {
       log.status = MailStatus.FAILED;
       await log.save();

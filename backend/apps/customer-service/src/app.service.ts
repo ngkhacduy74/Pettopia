@@ -78,6 +78,29 @@ console.log("userReopsasd",user)
     }
   }
 
+  async getUserByEmailForAuth(email_address: string): Promise<User> {
+    try {
+      const user = await this.userRepositories.findOneByEmailWithPassword(
+        email_address,
+      );
+      if (!user) {
+        throw new RpcException({
+          status: HttpStatus.NOT_FOUND,
+          message: `Không tìm thấy người dùng với email: ${email_address}`,
+        });
+      }
+      return user as unknown as User;
+    } catch (err) {
+      if (err instanceof RpcException) {
+        throw err;
+      }
+      throw new RpcException({
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        message: err.message || 'Lỗi khi truy vấn người dùng theo email',
+      });
+    }
+  }
+
   async checkPhoneExist(phone_number: string): Promise<boolean> {
     try {
       const exist = await this.userRepositories.checkPhoneExist(phone_number);
