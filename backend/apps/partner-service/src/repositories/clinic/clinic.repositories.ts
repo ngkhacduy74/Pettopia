@@ -41,6 +41,64 @@ export class ClinicsRepository {
       );
     }
   }
+
+  async existsClinicFormByEmail(email_address: string): Promise<boolean> {
+    try {
+      const doc = await this.clinicFormModel
+        .findOne({ 'email.email_address': email_address })
+        .lean()
+        .exec();
+      return !!doc;
+    } catch (err) {
+      throw new InternalServerErrorException(
+        err.message || 'Lỗi kiểm tra trùng email form clinic',
+      );
+    }
+  }
+
+  async existsClinicFormByPhone(phone_number: string): Promise<boolean> {
+    try {
+      const doc = await this.clinicFormModel
+        .findOne({ 'phone.phone_number': phone_number })
+        .lean()
+        .exec();
+      return !!doc;
+    } catch (err) {
+      throw new InternalServerErrorException(
+        err.message || 'Lỗi kiểm tra trùng số điện thoại form clinic',
+      );
+    }
+  }
+
+  async existsClinicFormByLicenseNumber(
+    license_number: string,
+  ): Promise<boolean> {
+    try {
+      const doc = await this.clinicFormModel
+        .findOne({ license_number })
+        .lean()
+        .exec();
+      return !!doc;
+    } catch (err) {
+      throw new InternalServerErrorException(
+        err.message || 'Lỗi kiểm tra trùng số giấy phép form clinic',
+      );
+    }
+  }
+
+  async existsClinicFormByResponsibleLicense(license: string): Promise<boolean> {
+    try {
+      const doc = await this.clinicFormModel
+        .findOne({ 'representative.responsible_licenses': { $in: [license] } })
+        .lean()
+        .exec();
+      return !!doc;
+    } catch (err) {
+      throw new InternalServerErrorException(
+        err.message || 'Lỗi kiểm tra trùng giấy phép hành nghề đại diện',
+      );
+    }
+  }
   async findOneClinicForm(id: string): Promise<any> {
     try {
       const findOne = await this.clinicFormModel
