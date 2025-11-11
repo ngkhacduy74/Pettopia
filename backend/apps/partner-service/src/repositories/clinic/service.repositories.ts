@@ -159,7 +159,7 @@ export class ServiceRepository {
   }> {
     try {
       const skip = (page - 1) * limit;
-      const filter = { clinic_id: clinic_id };
+      const filter = { clinic_id: clinic_id, is_active: true };
 
       const [data, total] = await Promise.all([
         this.serviceModel

@@ -77,11 +77,16 @@ export class AppointmentController {
   }
 
   @MessagePattern({ cmd: 'getAllAppointments' })
-  async getAllAppointments(@Payload() payload: { page?: number; limit?: number }) {
+  async getAllAppointments(
+    @Payload() payload: { page?: number; limit?: number },
+  ) {
     try {
       const { page = 1, limit = 10 } = payload || {};
 
-      const result = await this.appointmentService.getAllAppointments(page, limit);
+      const result = await this.appointmentService.getAllAppointments(
+        page,
+        limit,
+      );
 
       return {
         status: 'success',
