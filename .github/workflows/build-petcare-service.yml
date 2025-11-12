@@ -3,6 +3,7 @@ name: Build and Push Petcare Service
 
 # 1. KHI NÀO CHẠY?
 on:
+  workflow_dispatch: {}
   push:
     branches:
       - test # Chạy khi push lên nhánh 'main'
