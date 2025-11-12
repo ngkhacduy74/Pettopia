@@ -183,10 +183,7 @@ export class VetRepository {
     }
   }
 
-  async addClinicToVet(
-    vetId: string,
-    clinicId: string,
-  ): Promise<VetDocument> {
+  async addClinicToVet(vetId: string, clinicId: string): Promise<VetDocument> {
     try {
       const updatedVet = await this.vetModel
         .findOneAndUpdate(
@@ -212,8 +209,7 @@ export class VetRepository {
       }
 
       throw new InternalServerErrorException(
-        error.message ||
-          'Không thể cập nhật danh sách phòng khám của bác sĩ.',
+        error.message || 'Không thể cập nhật danh sách phòng khám của bác sĩ.',
       );
     }
   }

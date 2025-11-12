@@ -124,7 +124,7 @@ export class MailTemplateService {
         <p>
           <a href="${inviteLink}" 
             style="background-color:#1a73e8;color:#fff;padding:10px 18px;text-decoration:none;border-radius:6px;">
-            ✅ Chấp nhận lời mời
+             Chấp nhận lời mời
           </a>
         </p>
         <p>Nếu bạn không muốn tham gia, hãy bỏ qua email này hoặc chọn từ chối trong ứng dụng.</p>
@@ -201,7 +201,7 @@ export class MailTemplateService {
         <p>Trân trọng,<br>Đội ngũ PetTopia</p>
       </div>
     `;
- console.log("đã chạy được vào mial");
+    console.log('đã chạy được vào mial');
     return this.mailService.sendMail(
       email,
       `Chào mừng ${clinicName} đến với PetTopia`,

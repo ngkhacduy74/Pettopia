@@ -97,4 +97,3 @@ export class ClinicInvitation {
 export type ClinicInvitationDocument = ClinicInvitation & Document;
 export const ClinicInvitationSchema =
   SchemaFactory.createForClass(ClinicInvitation);
-
