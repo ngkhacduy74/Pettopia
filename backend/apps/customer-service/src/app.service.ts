@@ -269,4 +269,44 @@ export class AppService {
       });
     }
   }
+  async updatePasswordByEmail(email: string, newPassword: string): Promise<{ success: boolean }> {
+  try {
+    const user = await this.userRepositories.updatePasswordByEmail(email, newPassword);
+    if (!user) {
+      throw new RpcException({
+        status: HttpStatus.NOT_FOUND,
+        message: `Không tìm thấy người dùng với email: ${email}`,
+      });
+    }
+    return { success: true };
+  } catch (err) {
+    if (err instanceof RpcException) {
+      throw err;
+    }
+    throw new RpcException({
+      status: HttpStatus.INTERNAL_SERVER_ERROR,
+      message: err.message || 'Lỗi khi cập nhật mật khẩu',
+    });
+  }
+}
+async updatePasswordById(id: string, newPassword: string): Promise<{ success: boolean }> {
+  try {
+    const user = await this.userRepositories.updatePasswordById(id, newPassword);
+    if (!user) {
+      throw new RpcException({
+        status: HttpStatus.NOT_FOUND,
+        message: `Không tìm thấy người dùng với id: ${id}`,
+      });
+    }
+    return { success: true };
+  } catch (err) {
+    if (err instanceof RpcException) {
+      throw err;
+    }
+    throw new RpcException({
+      status: HttpStatus.INTERNAL_SERVER_ERROR,
+      message: err.message || 'Lỗi khi cập nhật mật khẩu',
+    });
+  } 
+}
 }

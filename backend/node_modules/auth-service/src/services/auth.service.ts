@@ -13,12 +13,17 @@ import { JwtService } from '@nestjs/jwt';
 import { v4 as uuidv4 } from 'uuid';
 import { createRpcError } from 'src/common/error.detail';
 import axios from 'axios';
+import { ForgotPasswordDto } from 'src/dtos/forgot-password.dto';
+import { ResetPasswordDto } from '../dtos/reset-password.dto';
+import { ChangePasswordDto } from '../dtos/change-password.dto';
+import { OtpService } from './otp.service';  
 @Injectable()
 export class AuthService {
   constructor(
     @Inject('CUSTOMER_SERVICE') private customerClient: ClientProxy,
     @Inject('PARTNER_SERVICE') private partnerService: ClientProxy,
     private readonly jwtService: JwtService,
+    private readonly otpService: OtpService,
   ) {}
 
   async login(data: LoginDto): Promise<any> {
@@ -290,6 +295,131 @@ export class AuthService {
     } catch (error) {
       console.error('Error converting address to location:', error?.message);
       return null;
+    }
+  }
+  async forgotPassword(data: ForgotPasswordDto) {
+    try {
+      const user = await lastValueFrom(
+        this.customerClient.send(
+          { cmd: 'getUserByEmail' },  
+          { email_address: data.email },
+        ),
+      );
+
+      // if (user?.status === false) {
+      //   throw createRpcError(HttpStatus.NOT_FOUND, 'Email không tồn tại', 'Not Found');
+      // }
+
+      await this.otpService.sendEmailOtp(data.email);
+
+      return {
+        status: 'success',
+        message: 'OTP đã được gửi đến email của bạn',
+      };
+    } catch (error) {
+      if (error instanceof RpcException) throw error;
+      throw createRpcError(
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        'Lỗi khi gửi OTP',
+        'Internal Server Error',
+        error.message,
+      );
+    }
+  }
+
+  async resetPassword(data: ResetPasswordDto): Promise<any> {
+    try {
+      // Verify OTP
+      const verifyResult = await this.otpService.verifyEmailOtp(data.email, data.otp);
+      if (!verifyResult.success) {
+        throw createRpcError(
+          HttpStatus.BAD_REQUEST,
+          'OTP không hợp lệ',
+          'Bad Request',
+        );
+      }
+
+      // Hash password mới
+      const salt = await bcrypt.genSalt(10);
+      const hashPass = await bcrypt.hash(data.newPassword, salt);
+
+      // Update password qua customer service
+      const updateResult = await lastValueFrom(
+        this.customerClient.send(
+          { cmd: 'updateUserPassword' },  // Giả định customer service có cmd này, bạn cần implement nếu chưa có
+          { email: data.email, newPassword: hashPass },
+        ),
+      ).catch((error) => {
+        throw createRpcError(
+          HttpStatus.INTERNAL_SERVER_ERROR,
+          'Lỗi khi cập nhật password',
+          'Internal Server Error',
+          error.message,
+        );
+      });
+
+      if (!updateResult || !updateResult.success) {
+        throw createRpcError(
+          HttpStatus.INTERNAL_SERVER_ERROR,
+          'Không thể cập nhật password',
+          'Internal Server Error',
+        );
+      }
+
+      return {
+        status: 'success',
+        message: 'Reset password thành công',
+      };
+    } catch (error) {
+      if (error instanceof RpcException) throw error;
+      throw createRpcError(
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        'Lỗi khi reset password',
+        'Internal Server Error',
+        error.message,
+      );
+    }
+  }
+  async changePassword(data: ChangePasswordDto & { userId: string }) {
+    try {
+      const user = await lastValueFrom(
+        this.customerClient.send(
+          { cmd: 'getUserById' },
+          { id: data.userId },
+        ),
+      );
+
+      if (!user) {
+        throw createRpcError(HttpStatus.NOT_FOUND, 'Người dùng không tồn tại', 'Not Found');
+      }
+
+      const isMatch = await bcrypt.compare(data.oldPassword, user.password);
+      if (!isMatch) {
+        throw createRpcError(HttpStatus.UNAUTHORIZED, 'Mật khẩu cũ không đúng', 'Unauthorized');
+      }
+
+      const salt = await bcrypt.genSalt(10);
+      const hashPass = await bcrypt.hash(data.newPassword, salt);
+
+      await lastValueFrom(
+        this.customerClient.send(
+          { cmd: 'updateUserPasswordById' },
+          { id: data.userId, newPassword: hashPass },
+        ),
+      );
+
+      return {
+        status: 'success',
+        message: 'Đổi mật khẩu thành công',
+      };
+    } catch (error) {
+      if (error instanceof RpcException) throw error;
+      throw createRpcError(
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        'Lỗi khi đổi mật khẩu',
+        'Internal Server Error',
+        error.message,
+      );
     }
   }
 }

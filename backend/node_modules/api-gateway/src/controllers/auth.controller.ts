@@ -17,6 +17,7 @@ import { JwtAuthGuard } from 'src/guard/jwtAuth.guard';
 import { RoleGuard } from 'src/guard/role.guard';
 import { Role, Roles } from 'src/decorators/roles.decorator';
 
+
 @Controller('api/v1/auth')
 export class AuthController {
   constructor(
@@ -105,4 +106,26 @@ export class AuthController {
       throw new RpcException(err);
     }
   }
+  @Post('forgot-password')
+@HttpCode(HttpStatus.OK)
+async forgotPassword(@Body() data: any) {
+  return await lastValueFrom(
+    this.authService.send({ cmd: 'forgot-password' }, data),
+  );
+}
+  @Post('reset-password')
+@HttpCode(HttpStatus.OK)
+async resetPassword(@Body() data: any) {
+  return await lastValueFrom(
+    this.authService.send({ cmd: 'reset-password' }, data),
+  );
+}
+@UseGuards(JwtAuthGuard)
+@Post('change-password')
+@HttpCode(HttpStatus.OK)
+async changePassword(@Body() data: any, @UserToken('id') userId: string) {
+  return await lastValueFrom(
+    this.authService.send({ cmd: 'change-password' }, { ...data, userId }),
+  );
+}
 }
