@@ -182,4 +182,39 @@ export class VetRepository {
       );
     }
   }
+
+  async addClinicToVet(
+    vetId: string,
+    clinicId: string,
+  ): Promise<VetDocument> {
+    try {
+      const updatedVet = await this.vetModel
+        .findOneAndUpdate(
+          { id: vetId },
+          {
+            $addToSet: { clinic_id: clinicId },
+            $set: { updatedAt: new Date() },
+          },
+          { new: true },
+        )
+        .exec();
+
+      if (!updatedVet) {
+        throw new NotFoundException(
+          `Không tìm thấy hồ sơ bác sĩ với id: ${vetId}`,
+        );
+      }
+
+      return updatedVet;
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+
+      throw new InternalServerErrorException(
+        error.message ||
+          'Không thể cập nhật danh sách phòng khám của bác sĩ.',
+      );
+    }
+  }
 }

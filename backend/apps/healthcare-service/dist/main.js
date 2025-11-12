@@ -14,9 +14,7 @@ async function bootstrap() {
     app.use((0, helmet_1.default)());
     app.connectMicroservice({
         transport: microservices_1.Transport.TCP,
-        options: {
-            port: tcp_port,
-        },
+        options: { host: '0.0.0.0', port: tcp_port },
     });
     await app.startAllMicroservices();
     await app.listen(port);

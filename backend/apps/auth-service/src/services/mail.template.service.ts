@@ -94,6 +94,80 @@ export class MailTemplateService {
       expiresAt,
     };
   }
+
+  async sendClinicMemberInvitation(params: {
+    email: string;
+    clinicName: string;
+    role: string;
+    inviteLink: string;
+    expiresAt: string;
+  }) {
+    const { email, clinicName, role, inviteLink, expiresAt } = params;
+
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      throw new BadRequestException('Email lời mời không hợp lệ.');
+    }
+
+    if (!inviteLink) {
+      throw new BadRequestException('Thiếu đường dẫn xác nhận lời mời.');
+    }
+
+    const expiresAtDate = expiresAt ? new Date(expiresAt) : null;
+    const roleLabel = this.translateRole(role);
+
+    const html = `
+      <div style="font-family:Arial,sans-serif;line-height:1.6;color:#333">
+        <h2 style="color:#1a73e8;">📩 Lời mời tham gia phòng khám ${clinicName}</h2>
+        <p>Xin chào,</p>
+        <p>Phòng khám <strong>${clinicName}</strong> đã mời bạn tham gia với vai trò <strong>${roleLabel}</strong>.</p>
+        <p>Vui lòng xác nhận lời mời bằng cách nhấn vào nút dưới đây:</p>
+        <p>
+          <a href="${inviteLink}" 
+            style="background-color:#1a73e8;color:#fff;padding:10px 18px;text-decoration:none;border-radius:6px;">
+            ✅ Chấp nhận lời mời
+          </a>
+        </p>
+        <p>Nếu bạn không muốn tham gia, hãy bỏ qua email này hoặc chọn từ chối trong ứng dụng.</p>
+        ${
+          expiresAtDate
+            ? `<p><i>Liên kết này sẽ hết hạn vào ngày ${expiresAtDate.toLocaleString(
+                'vi-VN',
+              )}.</i></p>`
+            : ''
+        }
+        <p>Trân trọng,<br/>Đội ngũ PetTopia</p>
+      </div>
+    `;
+
+    await this.mailService.sendMail(
+      email,
+      `Lời mời tham gia phòng khám ${clinicName}`,
+      html,
+      MailType.INVITE_VET,
+    );
+
+    return {
+      message: 'Đã gửi email lời mời thành công.',
+    };
+  }
+
+  private translateRole(role: string) {
+    const normalized = (role || '').toLowerCase();
+    switch (normalized) {
+      case 'vet':
+      case 'bác sĩ':
+        return 'Bác sĩ';
+      case 'receptionist':
+      case 'lễ tân':
+        return 'Lễ tân';
+      case 'manager':
+      case 'quản lý':
+        return 'Quản lý';
+      case 'staff':
+      default:
+        return 'Nhân viên';
+    }
+  }
   async sendClinicWelcomeEmail(
     email: string,
     clinicName: string,

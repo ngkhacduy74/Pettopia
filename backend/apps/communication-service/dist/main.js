@@ -6,7 +6,7 @@ const common_1 = require("@nestjs/common");
 const microservices_1 = require("@nestjs/microservices");
 async function bootstrap() {
     const app = await core_1.NestFactory.create(app_module_1.AppModule);
-    const port = process.env.PETCARE_PORT;
+    const port = process.env.COMMUNICATION_PORT;
     const tcp_port = parseInt(process.env.TCP_COMMUNICATION_PORT || '5006', 10);
     app.useGlobalPipes(new common_1.ValidationPipe({
         transform: true,
@@ -17,12 +17,13 @@ async function bootstrap() {
     app.connectMicroservice({
         transport: microservices_1.Transport.TCP,
         options: {
+            host: '0.0.0.0',
             port: tcp_port,
         },
     });
     await app.startAllMicroservices();
-    await app.listen(port);
-    console.log('Pet-service run successfull');
+    await app.listen(3006);
+    console.log('communication-service run successfull ');
 }
 bootstrap();
 //# sourceMappingURL=main.js.map

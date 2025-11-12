@@ -370,4 +370,37 @@ export class ClinicsRepository {
       );
     }
   }
+
+  async addMemberToClinic(
+    clinicId: string,
+    memberId: string,
+  ): Promise<ClinicDocument> {
+    try {
+      const updatedClinic = await this.clinicModel
+        .findOneAndUpdate(
+          { id: clinicId },
+          {
+            $addToSet: { member_ids: memberId },
+            $set: { updatedAt: new Date() },
+          },
+          { new: true },
+        )
+        .exec();
+
+      if (!updatedClinic) {
+        throw new NotFoundException(
+          `Không tìm thấy phòng khám với id: ${clinicId}`,
+        );
+      }
+
+      return updatedClinic;
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new InternalServerErrorException(
+        error.message || 'Không thể cập nhật danh sách thành viên phòng khám.',
+      );
+    }
+  }
 }

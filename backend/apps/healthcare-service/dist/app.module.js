@@ -46,6 +46,9 @@ exports.AppModule = AppModule = __decorate([
                     name: 'CUSTOMER_SERVICE',
                     transport: microservices_1.Transport.TCP,
                     options: {
+                        host: process.env.NODE_ENV === 'production'
+                            ? 'customer-service'
+                            : 'localhost',
                         port: 5002,
                     },
                 },
@@ -53,6 +56,9 @@ exports.AppModule = AppModule = __decorate([
                     name: 'PARTNER_SERVICE',
                     transport: microservices_1.Transport.TCP,
                     options: {
+                        host: process.env.NODE_ENV === 'production'
+                            ? 'partner-service'
+                            : 'localhost',
                         port: 5004,
                     },
                 },
@@ -60,6 +66,9 @@ exports.AppModule = AppModule = __decorate([
                     name: 'AUTH_SERVICE',
                     transport: microservices_1.Transport.TCP,
                     options: {
+                        host: process.env.NODE_ENV === 'production'
+                            ? 'auth-service'
+                            : 'localhost',
                         port: 5001,
                     },
                 },

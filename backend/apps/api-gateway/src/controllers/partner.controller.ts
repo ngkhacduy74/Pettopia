@@ -120,6 +120,48 @@ export class PartnerController {
       ),
     );
   }
+
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.CLINIC)
+  @Post('/clinic/invitations')
+  @HttpCode(HttpStatus.CREATED)
+  async inviteClinicMember(
+    @Body('email') invited_email: string,
+    @Body('role') role: string,
+    @UserToken('clinic_id') clinic_id: string,
+    @UserToken('id') invited_by: string,
+  ) {
+    if (!clinic_id) {
+      throw new RpcException({
+        status: HttpStatus.BAD_REQUEST,
+        message: 'Không xác định được phòng khám.',
+      });
+    }
+    if (!invited_email) {
+      throw new RpcException({
+        status: HttpStatus.BAD_REQUEST,
+        message: 'Email lời mời là bắt buộc.',
+      });
+    }
+
+    if (!role) {
+      throw new RpcException({
+        status: HttpStatus.BAD_REQUEST,
+        message: 'Vai trò lời mời là bắt buộc.',
+      });
+    }
+    return await lastValueFrom(
+      this.partnerService.send(
+        { cmd: 'createClinicMemberInvitation' },
+        {
+          clinic_id,
+          invited_email,
+          role,
+          invited_by,
+        },
+      ),
+    );
+  }
   @UseGuards(JwtAuthGuard)
   @Get('/clinic/:id')
   @HttpCode(HttpStatus.OK)
@@ -204,6 +246,35 @@ export class PartnerController {
     const payload = { id: idClinic, is_active };
     return await lastValueFrom(
       this.partnerService.send({ cmd: 'updateClinicActiveStatus' }, payload),
+    );
+  }
+
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.USER, Role.VET)
+  @Post('/clinic/invitations/:token/accept')
+  @HttpCode(HttpStatus.OK)
+  async acceptClinicInvitation(
+    @Param('token') token: string,
+    @UserToken('id') vet_id: string,
+  ) {
+    return await lastValueFrom(
+      this.partnerService.send(
+        { cmd: 'acceptClinicMemberInvitation' },
+        { token, vet_id },
+      ),
+    );
+  }
+
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.VET)
+  @Post('/clinic/invitations/:token/decline')
+  @HttpCode(HttpStatus.OK)
+  async declineClinicInvitation(@Param('token') token: string) {
+    return await lastValueFrom(
+      this.partnerService.send(
+        { cmd: 'declineClinicMemberInvitation' },
+        { token },
+      ),
     );
   }
 

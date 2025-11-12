@@ -10,6 +10,20 @@ export class MailController {
   async inviteVet(@Payload() data: { email: string; clinic_id: string }) {
     return this.mailService.inviteVet(data.email, data.clinic_id);
   }
+
+  @MessagePattern({ cmd: 'sendClinicMemberInvitation' })
+  async sendClinicMemberInvitation(
+    @Payload()
+    data: {
+      email: string;
+      clinicName: string;
+      role: string;
+      inviteLink: string;
+      expiresAt: string;
+    },
+  ) {
+    return this.mailService.sendClinicMemberInvitation(data);
+  }
   @MessagePattern({ cmd: 'sendClinicVerificationMail' })
   async sendClinicVerificationMail(@Payload() data: { clinic_id: string }) {
     return this.mailService.sendClinicVerificationMail(data.clinic_id);

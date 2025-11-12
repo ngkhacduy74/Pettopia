@@ -15,7 +15,13 @@ const post_repository_1 = require("./repositories/post.repository");
 const post_schemas_1 = require("./schemas/post.schemas");
 const microservices_1 = require("@nestjs/microservices");
 const config_1 = require("@nestjs/config");
+const prometheus_controller_1 = require("./controllers/prometheus.controller");
+const prometheus_service_1 = require("./services/prometheus.service");
+const prometheus_middleware_1 = require("./middleware/prometheus.middleware");
 let AppModule = class AppModule {
+    configure(consumer) {
+        consumer.apply(prometheus_middleware_1.PrometheusMiddleware).forRoutes('*');
+    }
 };
 exports.AppModule = AppModule;
 exports.AppModule = AppModule = __decorate([
@@ -37,18 +43,26 @@ exports.AppModule = AppModule = __decorate([
                     name: 'CUSTOMER_SERVICE',
                     transport: microservices_1.Transport.TCP,
                     options: {
+                        host: process.env.NODE_ENV === 'production'
+                            ? 'customer-service'
+                            : 'localhost',
                         port: 5002,
                     },
                 },
                 {
                     name: 'AUTH_SERVICE',
                     transport: microservices_1.Transport.TCP,
-                    options: { port: 5001 },
+                    options: {
+                        host: process.env.NODE_ENV === 'production'
+                            ? 'auth-service'
+                            : 'localhost',
+                        port: 5001,
+                    },
                 },
             ]),
         ],
-        controllers: [post_controller_1.PostController],
-        providers: [post_service_1.PostService, post_repository_1.PostRepository],
+        controllers: [post_controller_1.PostController, prometheus_controller_1.PrometheusController],
+        providers: [post_service_1.PostService, post_repository_1.PostRepository, prometheus_service_1.PrometheusService],
     })
 ], AppModule);
 //# sourceMappingURL=app.module.js.map

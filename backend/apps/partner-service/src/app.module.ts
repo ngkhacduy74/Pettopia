@@ -39,6 +39,13 @@ import {
 import { PrometheusController } from './controllers/prometheus.controller';
 import { PrometheusService } from './services/prometheus.service';
 import { PrometheusMiddleware } from './middleware/prometheus.middleware';
+import {
+  ClinicInvitation,
+  ClinicInvitationSchema,
+} from './schemas/clinic/clinic-invitation.schema';
+import { ClinicInvitationRepository } from './repositories/clinic/clinic-invitation.repository';
+import { ClinicInvitationController } from './controllers/clinic/invitation.controller';
+import { ClinicInvitationService } from './services/clinic/clinic-invitation.service';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -89,6 +96,7 @@ import { PrometheusMiddleware } from './middleware/prometheus.middleware';
       { name: Service.name, schema: ServiceSchema },
       { name: Vet.name, schema: VetSchema },
       { name: Shift.name, schema: ShiftSchema },
+      { name: ClinicInvitation.name, schema: ClinicInvitationSchema },
     ]),
   ],
   controllers: [
@@ -97,6 +105,7 @@ import { PrometheusMiddleware } from './middleware/prometheus.middleware';
     ShiftController,
     ServiceController,
     PrometheusController,
+    ClinicInvitationController,
   ],
   providers: [
     ClinicService,
@@ -108,6 +117,8 @@ import { PrometheusMiddleware } from './middleware/prometheus.middleware';
     ShiftService,
     ServiceService,
     PrometheusService,
+    ClinicInvitationRepository,
+    ClinicInvitationService,
     {
       provide: APP_PIPE,
       useValue: new ValidationPipe({
