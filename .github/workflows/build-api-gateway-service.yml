@@ -6,7 +6,7 @@ on:
     branches:
       - test
     paths:
-      - "apps/api-gateway/**"
+      - "backend/apps/api-gateway/**"
 
 jobs:
   build-and-push:
@@ -25,9 +25,9 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          context: ./apps/api-gateway
+          context: ./backend/apps/api-gateway
 
-          file: ./apps/api-gateway/Dockerfile
+          file: ./backend/apps/api-gateway/Dockerfile
 
           push: true
 

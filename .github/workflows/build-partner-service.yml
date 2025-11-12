@@ -9,7 +9,7 @@ on:
       - test # Chạy khi push lên nhánh 'main'
     paths:
       # Chỉ chạy khi có thay đổi trong thư mục 'auth-service'
-      - "apps/partner-service/**"
+      - "backend/apps/partner-service/**"
 
 # 2. LÀM CÔNG VIỆC GÌ?
 jobs:
@@ -40,10 +40,10 @@ jobs:
         with:
           # Context: Đường dẫn đến thư mục chứa Dockerfile,
           # tính từ gốc của repo.
-          context: ./apps/partner-service
+          context: ./backend/apps/partner-service
 
           # File: Tên của Dockerfile (nếu tên là 'Dockerfile' thì dòng này không cần)
-          file: ./apps/partner-service/Dockerfile
+          file: ./backend/apps/partner-service/Dockerfile
 
           # Đẩy image này lên Docker Hub
           push: true
