@@ -1,11 +1,12 @@
 name: Build and Push Api-gateway Service
 
 on:
+  workflow_dispatch: {}
   push:
     branches:
       - test
     paths:
-      - "backend/apps/api-gateway/**"
+      - "apps/api-gateway/**"
 
 jobs:
   build-and-push:
@@ -24,9 +25,9 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          context: ./backend/apps/api-gateway
+          context: ./apps/api-gateway
 
-          file: ./backend/apps/api-gateway/Dockerfile
+          file: ./apps/api-gateway/Dockerfile
 
           push: true
 

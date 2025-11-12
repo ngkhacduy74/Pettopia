@@ -8,7 +8,7 @@ on:
       - test # Chạy khi push lên nhánh 'main'
     paths:
       # Chỉ chạy khi có thay đổi trong thư mục 'auth-service'
-      - "backend/apps/petcare-service/**"
+      - "apps/petcare-service/**"
 
 # 2. LÀM CÔNG VIỆC GÌ?
 jobs:
@@ -39,10 +39,10 @@ jobs:
         with:
           # Context: Đường dẫn đến thư mục chứa Dockerfile,
           # tính từ gốc của repo.
-          context: ./backend/apps/petcare-service
+          context: ./apps/petcare-service
 
           # File: Tên của Dockerfile (nếu tên là 'Dockerfile' thì dòng này không cần)
-          file: ./backend/apps/petcare-service/Dockerfile
+          file: ./apps/petcare-service/Dockerfile
 
           # Đẩy image này lên Docker Hub
           push: true

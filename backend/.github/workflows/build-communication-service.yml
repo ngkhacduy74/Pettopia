@@ -3,12 +3,13 @@ name: Build and Push Communication Service
 
 # 1. KHI NÀO CHẠY?
 on:
+  workflow_dispatch: {}
   push:
     branches:
       - test # Chạy khi push lên nhánh 'main'
     paths:
       # Chỉ chạy khi có thay đổi trong thư mục 'auth-service'
-      - "backend/apps/communication-service/**"
+      - "apps/communication-service/**"
 
 # 2. LÀM CÔNG VIỆC GÌ?
 jobs:
@@ -39,10 +40,10 @@ jobs:
         with:
           # Context: Đường dẫn đến thư mục chứa Dockerfile,
           # tính từ gốc của repo.
-          context: ./backend/apps/communication-service
+          context: ./apps/communication-service
 
           # File: Tên của Dockerfile (nếu tên là 'Dockerfile' thì dòng này không cần)
-          file: ./backend/apps/communication-service/Dockerfile
+          file: ./apps/communication-service/Dockerfile
 
           # Đẩy image này lên Docker Hub
           push: true
