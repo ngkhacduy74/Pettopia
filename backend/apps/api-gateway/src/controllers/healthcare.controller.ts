@@ -54,42 +54,128 @@ export class HealthcareController {
   }
 
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles(Role.USER)
+  @Roles(Role.USER, Role.ADMIN, Role.STAFF, Role.CLINIC)
   @Get('/appointments')
   @HttpCode(HttpStatus.OK)
-  async getUserAppointments(
+  async getAppointments(
     @UserToken('id') userId: string,
+    @UserToken('role') role: Role,
+    @UserToken('clinic_id') clinicId: string,
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10,
   ) {
-    if (!userId) {
-      throw new RpcException({
-        status: HttpStatus.BAD_REQUEST,
-        message: 'Thiếu thông tin người dùng',
-      });
-    }
-
     return await lastValueFrom(
       this.healthcareService.send(
-        { cmd: 'getUserAppointments' },
-        { userId, page: Number(page), limit: Number(limit) },
+        { cmd: 'getAppointments' },
+        {
+          role,
+          userId,
+          clinicId,
+          page: Number(page),
+          limit: Number(limit),
+        },
       ),
     );
   }
 
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles(Role.ADMIN, Role.STAFF)
-  @Get('/appointments/all')
+  @Roles(Role.USER, Role.ADMIN, Role.STAFF, Role.CLINIC)
+  @Get('/appointments/:id')
   @HttpCode(HttpStatus.OK)
-  async getAllAppointments(
-    @Query('page') page: number = 1,
-    @Query('limit') limit: number = 10,
+  async getAppointmentById(
+    @Param('id') appointmentId: string,
+    @UserToken('id') userId: string,
+    @UserToken('role') role: Role,
+    @UserToken('clinic_id') clinicId: string,
   ) {
-    return await lastValueFrom(
-      this.healthcareService.send(
-        { cmd: 'getAllAppointments' },
-        { page: Number(page), limit: Number(limit) },
-      ),
-    );
+    try {
+      return await lastValueFrom(
+        this.healthcareService.send(
+          { cmd: 'getAppointmentById' },
+          {
+            appointmentId,
+            role,
+            userId,
+            clinicId,
+          },
+        ),
+      );
+    } catch (error) {
+      if (error instanceof RpcException) {
+        throw error;
+      }
+      throw new RpcException({
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        message: error.message || 'Đã xảy ra lỗi khi lấy thông tin lịch hẹn',
+      });
+    }
+  }
+
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.STAFF, Role.ADMIN)
+  @Patch('/appointments/:id/status')
+  @HttpCode(HttpStatus.OK)
+  async updateAppointmentStatus(
+    @Param('id') appointmentId: string,
+    @UserToken('id') updatedByUserId: string,
+    @Body() updateData: { status: string; cancel_reason?: string },
+  ) {
+    try {
+      return await lastValueFrom(
+        this.healthcareService.send(
+          { cmd: 'updateAppointmentStatus' },
+          {
+            appointmentId,
+            updateData,
+            updatedByUserId,
+          },
+        ),
+      );
+    } catch (error) {
+      if (error instanceof RpcException) {
+        throw error;
+      }
+      throw new RpcException({
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        message: error.message || 'Đã xảy ra lỗi khi cập nhật trạng thái lịch hẹn',
+      });
+    }
+  }
+
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.USER, Role.ADMIN, Role.STAFF, Role.CLINIC)
+  @Patch('/appointments/:id/cancel')
+  @HttpCode(HttpStatus.OK)
+  async cancelAppointment(
+    @Param('id') appointmentId: string,
+    @UserToken('id') cancelledByUserId: string,
+    @UserToken('role') role: Role,
+    @UserToken('clinic_id') clinicId: string,
+    @Body() cancelData: { cancel_reason?: string } = {},
+  ) {
+    try {
+      return await lastValueFrom(
+        this.healthcareService.send(
+          { cmd: 'cancelAppointment' },
+          {
+            appointmentId,
+            cancelledByUserId,
+            role,
+            clinicId,
+            cancelData: {
+              cancel_reason: cancelData?.cancel_reason,
+            },
+          },
+        ),
+      );
+    } catch (error) {
+      if (error instanceof RpcException) {
+        throw error;
+      }
+      throw new RpcException({
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        message: error.message || 'Đã xảy ra lỗi khi hủy lịch hẹn',
+      });
+    }
   }
 }

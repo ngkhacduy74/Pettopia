@@ -155,6 +155,18 @@ export class Appointment {
     maxlength: 500,
   })
   cancel_reason?: string;
+
+  // ID của người hủy lịch hẹn
+  @Prop({
+    type: String,
+    required: false,
+    trim: true,
+    match: [
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+      'cancelled_by phải là UUIDv4 hợp lệ',
+    ],
+  })
+  cancelled_by?: string;
 }
 
 export type AppointmentDocument = Appointment & Document;
