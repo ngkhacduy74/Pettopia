@@ -331,4 +331,19 @@ export class UsersRepository {
     throw new Error(err);
   }
   }
+  async updateProfile(id: string, updateData: Partial<User>): Promise<User | null> {
+  try {
+    const result = await this.userModel
+      .findOneAndUpdate(
+        { id },
+        { $set: updateData },
+        { new: true, runValidators: true }
+      )
+      .exec();
+
+    return result;
+  } catch (err) {
+    throw new Error(err.message || 'Lỗi khi cập nhật hồ sơ người dùng');
+  }
+}
 }

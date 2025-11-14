@@ -143,4 +143,24 @@ export class CustomerController {
       data: result,
     };
   }
+  @UseGuards(JwtAuthGuard, RoleGuard)
+@Roles(Role.ADMIN, Role.USER, Role.STAFF, Role.VET, Role.CLINIC)
+@Patch(':id/profile')
+@HttpCode(HttpStatus.OK)
+async updateUserProfile(
+  @Param('id') id: string,
+  @Body() updateData: any,
+) {
+  const result = await lastValueFrom(
+    this.customerService.send(
+      { cmd: 'updateUserProfile' },
+      { userId: id, data: updateData },
+    ),
+  );
+
+  return {
+    message: 'Cập nhật hồ sơ thành công',
+    data: result,
+  };
+}
 }

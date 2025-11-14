@@ -9,6 +9,7 @@ import { RpcException } from '@nestjs/microservices'; // Chỉ cần RpcExceptio
 import { UsersRepository } from '../repositories/user.repositories';
 import { CreateUserDto } from '../dto/user/create-user.dto';
 import { UserStatus } from '../dto/request/update-user-status.dto';
+import { UpdateProfileDto } from '../dto/user/update-profile.dto';
 import {
   GetAllUsersDto,
   PaginatedUsersResponse,
@@ -302,7 +303,7 @@ export class AppService {
       });
     }
     return { success: true };
-  } catch (err) {
+  } catch (err) { 
     if (err instanceof RpcException) {
       throw err;
     }
@@ -331,5 +332,44 @@ async updatePasswordById(id: string, newPassword: string): Promise<{ success: bo
       message: err.message || 'Lỗi khi cập nhật mật khẩu',
     });
   } 
+}
+async updateProfile(id: string, updateData: UpdateProfileDto): Promise<User> {
+  try {
+    // Kiểm tra user tồn tại
+    const userExists = await this.userRepositories.findOneById(id);
+    if (!userExists) {
+      throw new RpcException({
+        status: HttpStatus.NOT_FOUND,
+        message: `Không tìm thấy người dùng với id: ${id}`,
+      });
+    }
+
+    // Chuẩn bị dữ liệu cập nhật (chỉ lấy các field được phép)
+    const updatePayload: any = { ...updateData };
+
+    // Xử lý phone nếu có
+    if (updateData['phone.phone_number']) {
+      updatePayload['phone.phone_number'] = updateData['phone.phone_number'];
+      delete updatePayload['phone.phone_number']; // xóa key cũ nếu cần
+    }
+
+    const updatedUser = await this.userRepositories.updateProfile(id, updatePayload);
+
+    if (!updatedUser) {
+      throw new RpcException({
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        message: 'Cập nhật hồ sơ thất bại',
+      });
+    }
+
+    return updatedUser;
+  } catch (err) {
+    if (err instanceof RpcException) throw err;
+
+    throw new RpcException({
+      status: HttpStatus.INTERNAL_SERVER_ERROR,
+      message: err.message || 'Lỗi khi cập nhật hồ sơ người dùng',
+    });
+  }
 }
 }
