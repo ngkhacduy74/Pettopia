@@ -6,7 +6,7 @@ on:
   workflow_dispatch: {}
   push:
     branches:
-      - test # Chạy khi push lên nhánh 'main'
+      - main # Chạy khi push lên nhánh 'main'
     paths:
       # Chỉ chạy khi có thay đổi trong thư mục 'auth-service'
       - backend/apps/billing-service/**"
