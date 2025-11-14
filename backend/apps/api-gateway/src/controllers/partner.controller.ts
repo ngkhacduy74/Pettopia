@@ -70,7 +70,7 @@ export class PartnerController {
       ),
     );
   }
-
+  //test
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(Role.ADMIN, Role.STAFF)
   @Get('/service/all/admin')
