@@ -9,7 +9,7 @@ on:
       - main # Chạy khi push lên nhánh 'main'
     paths:
       # Chỉ chạy khi có thay đổi trong thư mục 'auth-service'
-      - backend/apps/billing-service/**"
+      - "backend/apps/billing-service/**"
 
 # 2. LÀM CÔNG VIỆC GÌ?
 jobs:
