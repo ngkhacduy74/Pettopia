@@ -112,7 +112,7 @@ export class HealthcareController {
   }
 
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles(Role.STAFF, Role.ADMIN)
+  @Roles(Role.STAFF, Role.ADMIN, Role.CLINIC)
   @Patch('/appointments/:id/status')
   @HttpCode(HttpStatus.OK)
   async updateAppointmentStatus(
@@ -137,7 +137,8 @@ export class HealthcareController {
       }
       throw new RpcException({
         status: HttpStatus.INTERNAL_SERVER_ERROR,
-        message: error.message || 'Đã xảy ra lỗi khi cập nhật trạng thái lịch hẹn',
+        message:
+          error.message || 'Đã xảy ra lỗi khi cập nhật trạng thái lịch hẹn',
       });
     }
   }
@@ -203,7 +204,8 @@ export class HealthcareController {
       }
       throw new RpcException({
         status: HttpStatus.INTERNAL_SERVER_ERROR,
-        message: error.message || 'Đã xảy ra lỗi khi tạo lịch hẹn hộ khách hàng',
+        message:
+          error.message || 'Đã xảy ra lỗi khi tạo lịch hẹn hộ khách hàng',
       });
     }
   }
