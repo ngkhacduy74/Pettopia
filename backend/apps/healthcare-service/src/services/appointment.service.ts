@@ -1,6 +1,10 @@
 import { HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { ClientProxy, RpcException } from '@nestjs/microservices';
-import { CreateAppointmentDto } from 'src/dto/appointment.dto';
+import {
+  CreateAppointmentDto,
+  UpdateAppointmentStatusDto,
+  CancelAppointmentDto,
+} from 'src/dto/appointment.dto';
 import { AppointmentRepository } from '../repositories/appointment.repositories';
 import {
   AppointmentStatus,
@@ -19,6 +23,19 @@ export class AppointmentService {
     private readonly authService: ClientProxy,
     private readonly appointmentRepositories: AppointmentRepository,
   ) {}
+
+  // Helper function để kiểm tra role (hỗ trợ cả string và array)
+  private hasRole(userRole: string | string[], targetRole: string): boolean {
+    if (Array.isArray(userRole)) {
+      return userRole.some((r) => r === targetRole);
+    }
+    return userRole === targetRole;
+  }
+
+  // Helper function để kiểm tra có phải Admin hoặc Staff không
+  private isAdminOrStaff(userRole: string | string[]): boolean {
+    return this.hasRole(userRole, 'Admin') || this.hasRole(userRole, 'Staff');
+  }
 
   async createAppointment(
     data: CreateAppointmentDto,
@@ -153,8 +170,10 @@ export class AppointmentService {
     }
   }
 
-  async getUserAppointments(
-    userId: string,
+  async getAppointments(
+    role: string | string[],
+    userId?: string,
+    clinicId?: string,
     page: number = 1,
     limit: number = 10,
   ): Promise<{
@@ -169,27 +188,53 @@ export class AppointmentService {
     };
   }> {
     try {
+      let result: { data: any[]; total: number };
+
+      // Phân quyền dựa trên role
+      if (this.hasRole(role, 'User')) {
+        // USER: chỉ xem appointments của chính mình
       if (!userId) {
         throw new RpcException({
           status: HttpStatus.BAD_REQUEST,
           message: 'Thiếu thông tin người dùng',
         });
       }
-
-      const { data, total } = await this.appointmentRepositories.findByUserId(
+        result = await this.appointmentRepositories.findByUserId(
         userId,
         page,
         limit,
       );
+      } else if (this.hasRole(role, 'Clinic')) {
+        // CLINIC: xem appointments của phòng khám mình
+        if (!clinicId) {
+          throw new RpcException({
+            status: HttpStatus.BAD_REQUEST,
+            message: 'Thiếu thông tin phòng khám',
+          });
+        }
+        result = await this.appointmentRepositories.findByClinicId(
+          clinicId,
+          page,
+          limit,
+        );
+      } else if (this.isAdminOrStaff(role)) {
+        // ADMIN/STAFF: xem tất cả appointments
+        result = await this.appointmentRepositories.findAll(page, limit);
+      } else {
+        throw new RpcException({
+          status: HttpStatus.FORBIDDEN,
+          message: 'Không có quyền truy cập',
+        });
+      }
 
-      const totalPages = Math.ceil(total / limit);
+      const totalPages = Math.ceil(result.total / limit);
 
       return {
         status: 'success',
         message: 'Lấy danh sách lịch hẹn thành công',
-        data,
+        data: result.data,
         pagination: {
-          total,
+          total: result.total,
           page,
           limit,
           totalPages,
@@ -207,39 +252,46 @@ export class AppointmentService {
     }
   }
 
-  async getAllAppointments(
-    page: number = 1,
-    limit: number = 10,
-  ): Promise<{
-    status: string;
-    message: string;
-    data: any[];
-    pagination: {
-      total: number;
-      page: number;
-      limit: number;
-      totalPages: number;
-    };
-  }> {
+  async updateAppointmentStatus(
+    appointmentId: string,
+    updateData: UpdateAppointmentStatusDto,
+    updatedByUserId?: string,
+  ): Promise<any> {
     try {
-      const { data, total } = await this.appointmentRepositories.findAll(
-        page,
-        limit,
+      // Kiểm tra appointment có tồn tại không
+      const appointment = await this.appointmentRepositories.findById(
+        appointmentId,
       );
 
-      const totalPages = Math.ceil(total / limit);
+      if (!appointment) {
+        throw new RpcException({
+          status: HttpStatus.NOT_FOUND,
+          message: 'Không tìm thấy lịch hẹn',
+        });
+      }
 
-      return {
-        status: 'success',
-        message: 'Lấy tất cả lịch hẹn thành công',
-        data,
-        pagination: {
-          total,
-          page,
-          limit,
-          totalPages,
-        },
-      };
+      // Nếu cập nhật thành Cancelled và có userId, lưu cancelled_by
+      const cancelledBy =
+        updateData.status === AppointmentStatus.Cancelled && updatedByUserId
+          ? updatedByUserId
+          : undefined;
+
+      // Cập nhật trạng thái
+      const updated = await this.appointmentRepositories.updateStatus(
+        appointmentId,
+        updateData.status,
+        updateData.cancel_reason,
+        cancelledBy,
+      );
+
+      if (!updated) {
+        throw new RpcException({
+          status: HttpStatus.INTERNAL_SERVER_ERROR,
+          message: 'Không thể cập nhật trạng thái lịch hẹn',
+        });
+      }
+
+      return updated;
     } catch (error) {
       if (error instanceof RpcException) {
         throw error;
@@ -247,7 +299,188 @@ export class AppointmentService {
 
       throw new RpcException({
         status: HttpStatus.INTERNAL_SERVER_ERROR,
-        message: error.message || 'Lỗi khi lấy tất cả lịch hẹn',
+        message: error.message || 'Lỗi khi cập nhật trạng thái lịch hẹn',
+      });
+    }
+  }
+
+  async cancelAppointment(
+    appointmentId: string,
+    cancelledByUserId: string,
+    role: string | string[],
+    cancelData: CancelAppointmentDto,
+    clinicId?: string,
+  ): Promise<any> {
+    try {
+      // Kiểm tra appointment có tồn tại không
+      const appointment = await this.appointmentRepositories.findById(
+        appointmentId,
+      );
+
+      if (!appointment) {
+        throw new RpcException({
+          status: HttpStatus.NOT_FOUND,
+          message: 'Không tìm thấy lịch hẹn',
+        });
+      }
+
+      // Phân quyền: kiểm tra ai có quyền hủy
+      if (this.hasRole(role, 'User')) {
+        // USER: chỉ hủy được appointment của chính mình
+        if (appointment.user_id !== cancelledByUserId) {
+          throw new RpcException({
+            status: HttpStatus.FORBIDDEN,
+            message: 'Bạn không có quyền hủy lịch hẹn này',
+          });
+        }
+      } else if (this.hasRole(role, 'Clinic')) {
+        // CLINIC: chỉ hủy được appointment của phòng khám mình
+        if (!clinicId) {
+          throw new RpcException({
+            status: HttpStatus.BAD_REQUEST,
+            message: 'Thiếu thông tin phòng khám',
+          });
+        }
+        if (appointment.clinic_id !== clinicId) {
+          throw new RpcException({
+            status: HttpStatus.FORBIDDEN,
+            message: 'Bạn không có quyền hủy lịch hẹn này',
+          });
+        }
+      } else if (!this.isAdminOrStaff(role)) {
+        // ADMIN/STAFF: hủy được tất cả, các role khác không có quyền
+        throw new RpcException({
+          status: HttpStatus.FORBIDDEN,
+          message: 'Bạn không có quyền hủy lịch hẹn',
+        });
+      }
+
+      // Kiểm tra appointment chưa bị hủy hoặc đã hoàn thành
+      if (appointment.status === AppointmentStatus.Cancelled) {
+        throw new RpcException({
+          status: HttpStatus.BAD_REQUEST,
+          message: 'Lịch hẹn này đã bị hủy trước đó',
+        });
+      }
+
+      if (appointment.status === AppointmentStatus.Completed) {
+        throw new RpcException({
+          status: HttpStatus.BAD_REQUEST,
+          message: 'Không thể hủy lịch hẹn đã hoàn thành',
+        });
+      }
+
+      // Lấy lý do hủy từ cancelData (có thể là string hoặc undefined)
+      const cancelReason = cancelData?.cancel_reason;
+      
+      // Log để debug
+      console.log('Cancel reason:', cancelReason, 'Type:', typeof cancelReason);
+
+      // Nếu status là Confirmed thì bắt buộc phải có lý do hủy
+      if (appointment.status === AppointmentStatus.Confirmed) {
+        if (!cancelReason || cancelReason.trim() === '') {
+          throw new RpcException({
+            status: HttpStatus.BAD_REQUEST,
+            message:
+              'Lịch hẹn đã được xác nhận, vui lòng nhập lý do hủy lịch hẹn',
+          });
+        }
+      }
+
+      // Cập nhật trạng thái thành Cancelled, lưu lý do (nếu có) và id người hủy
+      // Nếu cancelReason là empty string, vẫn lưu (có thể là người dùng muốn xóa lý do cũ)
+      const updated = await this.appointmentRepositories.updateStatus(
+        appointmentId,
+        AppointmentStatus.Cancelled,
+        cancelReason, // Có thể là string, empty string, hoặc undefined
+        cancelledByUserId,
+      );
+
+      if (!updated) {
+        throw new RpcException({
+          status: HttpStatus.INTERNAL_SERVER_ERROR,
+          message: 'Không thể hủy lịch hẹn',
+        });
+      }
+
+      return updated;
+    } catch (error) {
+      if (error instanceof RpcException) {
+        throw error;
+      }
+
+      throw new RpcException({
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        message: error.message || 'Lỗi khi hủy lịch hẹn',
+      });
+    }
+  }
+
+  async getAppointmentById(
+    appointmentId: string,
+    role: string | string[],
+    userId?: string,
+    clinicId?: string,
+  ): Promise<any> {
+    try {
+      // Tìm appointment
+      const appointment = await this.appointmentRepositories.findById(
+        appointmentId,
+      );
+
+      if (!appointment) {
+        throw new RpcException({
+          status: HttpStatus.NOT_FOUND,
+          message: 'Không tìm thấy lịch hẹn',
+        });
+      }
+
+      // Phân quyền dựa trên role
+      if (this.hasRole(role, 'User')) {
+        // USER: chỉ xem appointments của chính mình
+        if (!userId) {
+          throw new RpcException({
+            status: HttpStatus.BAD_REQUEST,
+            message: 'Thiếu thông tin người dùng',
+          });
+        }
+        if (appointment.user_id !== userId) {
+          throw new RpcException({
+            status: HttpStatus.FORBIDDEN,
+            message: 'Bạn không có quyền xem lịch hẹn này',
+          });
+        }
+      } else if (this.hasRole(role, 'Clinic')) {
+        // CLINIC: chỉ xem appointments của phòng khám mình
+        if (!clinicId) {
+          throw new RpcException({
+            status: HttpStatus.BAD_REQUEST,
+            message: 'Thiếu thông tin phòng khám',
+          });
+        }
+        if (appointment.clinic_id !== clinicId) {
+          throw new RpcException({
+            status: HttpStatus.FORBIDDEN,
+            message: 'Bạn không có quyền xem lịch hẹn này',
+          });
+        }
+      } else if (!this.isAdminOrStaff(role)) {
+        // ADMIN/STAFF: xem được tất cả, các role khác không có quyền
+        throw new RpcException({
+          status: HttpStatus.FORBIDDEN,
+          message: 'Không có quyền truy cập',
+        });
+      }
+
+      return appointment;
+    } catch (error) {
+      if (error instanceof RpcException) {
+        throw error;
+      }
+
+      throw new RpcException({
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        message: error.message || 'Lỗi khi lấy thông tin lịch hẹn',
       });
     }
   }

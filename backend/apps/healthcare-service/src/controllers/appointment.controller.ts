@@ -2,7 +2,11 @@ import { Controller, Get, UsePipes, ValidationPipe } from '@nestjs/common';
 import { AppointmentService } from '../services/appointment.service';
 import { MessagePattern, Payload, RpcException } from '@nestjs/microservices';
 import { handleRpcError } from 'src/common/error.detail';
-import { CreateAppointmentDto } from 'src/dto/appointment.dto';
+import {
+  CreateAppointmentDto,
+  UpdateAppointmentStatusDto,
+  CancelAppointmentDto,
+} from 'src/dto/appointment.dto';
 import { HttpStatus } from '@nestjs/common/enums';
 
 @UsePipes(
@@ -45,22 +49,24 @@ export class AppointmentController {
     }
   }
 
-  @MessagePattern({ cmd: 'getUserAppointments' })
-  async getUserAppointments(
-    @Payload() payload: { userId: string; page?: number; limit?: number },
+  @MessagePattern({ cmd: 'getAppointments' })
+  async getAppointments(
+    @Payload()
+    payload: {
+      role: string | string[];
+      userId?: string;
+      clinicId?: string;
+      page?: number;
+      limit?: number;
+    },
   ) {
     try {
-      const { userId, page = 1, limit = 10 } = payload;
+      const { role, userId, clinicId, page = 1, limit = 10 } = payload;
 
-      if (!userId) {
-        throw new RpcException({
-          status: HttpStatus.BAD_REQUEST,
-          message: 'Thiếu thông tin người dùng',
-        });
-      }
-
-      const result = await this.appointmentService.getUserAppointments(
+      const result = await this.appointmentService.getAppointments(
+        role,
         userId,
+        clinicId,
         page,
         limit,
       );
@@ -72,30 +78,146 @@ export class AppointmentController {
         pagination: result.pagination,
       };
     } catch (error) {
-      return handleRpcError('AppointmentController.getUserAppointments', error);
+      return handleRpcError('AppointmentController.getAppointments', error);
     }
   }
 
-  @MessagePattern({ cmd: 'getAllAppointments' })
-  async getAllAppointments(
-    @Payload() payload: { page?: number; limit?: number },
+  @MessagePattern({ cmd: 'updateAppointmentStatus' })
+  async updateAppointmentStatus(
+    @Payload()
+    payload: {
+      appointmentId: string;
+      updateData: UpdateAppointmentStatusDto;
+      updatedByUserId?: string;
+    },
   ) {
     try {
-      const { page = 1, limit = 10 } = payload || {};
+      const { appointmentId, updateData, updatedByUserId } = payload;
 
-      const result = await this.appointmentService.getAllAppointments(
-        page,
-        limit,
+      if (!appointmentId) {
+        throw new RpcException({
+          status: HttpStatus.BAD_REQUEST,
+          message: 'Thiếu thông tin ID lịch hẹn',
+        });
+      }
+
+      const result = await this.appointmentService.updateAppointmentStatus(
+        appointmentId,
+        updateData,
+        updatedByUserId,
       );
 
       return {
         status: 'success',
-        message: 'Lấy tất cả lịch hẹn thành công',
-        data: result.data,
-        pagination: result.pagination,
+        message: 'Cập nhật trạng thái lịch hẹn thành công',
+        data: result,
       };
     } catch (error) {
-      return handleRpcError('AppointmentController.getAllAppointments', error);
+      return handleRpcError(
+        'AppointmentController.updateAppointmentStatus',
+        error,
+      );
+    }
+  }
+
+  @MessagePattern({ cmd: 'cancelAppointment' })
+  async cancelAppointment(
+    @Payload()
+    payload: {
+      appointmentId: string;
+      cancelledByUserId: string;
+      role: string | string[];
+      cancelData: CancelAppointmentDto;
+      clinicId?: string;
+    },
+  ) {
+    try {
+      const {
+        appointmentId,
+        cancelledByUserId,
+        role,
+        cancelData,
+        clinicId,
+      } = payload;
+
+      if (!appointmentId) {
+        throw new RpcException({
+          status: HttpStatus.BAD_REQUEST,
+          message: 'Thiếu thông tin ID lịch hẹn',
+        });
+      }
+
+      if (!cancelledByUserId) {
+        throw new RpcException({
+          status: HttpStatus.BAD_REQUEST,
+          message: 'Thiếu thông tin người hủy',
+        });
+      }
+
+      // Đảm bảo cancelData luôn là object, ngay cả khi undefined
+      const safeCancelData = cancelData || {};
+      
+      // Log để debug
+      console.log('Cancel appointment payload:', {
+        appointmentId,
+        cancelledByUserId,
+        role,
+        cancelData: safeCancelData,
+        clinicId,
+      });
+
+      const result = await this.appointmentService.cancelAppointment(
+        appointmentId,
+        cancelledByUserId,
+        role,
+        safeCancelData,
+        clinicId,
+      );
+
+      return {
+        status: 'success',
+        message: 'Hủy lịch hẹn thành công',
+        data: result,
+      };
+    } catch (error) {
+      return handleRpcError('AppointmentController.cancelAppointment', error);
+    }
+  }
+
+  @MessagePattern({ cmd: 'getAppointmentById' })
+  async getAppointmentById(
+    @Payload()
+    payload: {
+      appointmentId: string;
+      role: string | string[];
+      userId?: string;
+      clinicId?: string;
+    },
+  ) {
+    try {
+      const { appointmentId, role, userId, clinicId } = payload;
+
+      if (!appointmentId) {
+        throw new RpcException({
+          status: HttpStatus.BAD_REQUEST,
+          message: 'Thiếu thông tin ID lịch hẹn',
+        });
+      }
+
+      const result = await this.appointmentService.getAppointmentById(
+        appointmentId,
+        role,
+        userId,
+        clinicId,
+      );
+
+      return {
+        status: 'success',
+        message: 'Lấy thông tin lịch hẹn thành công',
+        data: result,
+      };
+    } catch (error) {
+      return handleRpcError('AppointmentController.getAppointmentById', error);
     }
   }
 }
