@@ -92,4 +92,94 @@ export class MailController {
       formattedAppointmentDetails,
     );
   }
+
+  @MessagePattern({ cmd: 'sendAppointmentStatusUpdate' })
+  async sendAppointmentStatusUpdate(
+    @Payload()
+    data: {
+      email: string;
+      appointmentDetails: {
+        userName: string;
+        appointmentDate: string;
+        appointmentTime: string;
+        clinicName: string;
+        clinicAddress:
+          | string
+          | {
+              description: string;
+              ward: string;
+              district: string;
+              city: string;
+            };
+        services: string[];
+        appointmentId: string;
+        status: string;
+      };
+    },
+  ) {
+    const { appointmentDetails } = data;
+
+    const formattedAppointmentDetails = {
+      ...appointmentDetails,
+      clinicAddress:
+        typeof appointmentDetails.clinicAddress === 'string'
+          ? {
+              description: appointmentDetails.clinicAddress,
+              ward: '',
+              district: '',
+              city: '',
+            }
+          : appointmentDetails.clinicAddress,
+    };
+
+    return this.mailService.sendAppointmentStatusUpdate(
+      data.email,
+      formattedAppointmentDetails,
+    );
+  }
+
+  @MessagePattern({ cmd: 'sendAppointmentCancellation' })
+  async sendAppointmentCancellation(
+    @Payload()
+    data: {
+      email: string;
+      appointmentDetails: {
+        userName: string;
+        appointmentDate: string;
+        appointmentTime: string;
+        clinicName: string;
+        clinicAddress:
+          | string
+          | {
+              description: string;
+              ward: string;
+              district: string;
+              city: string;
+            };
+        services: string[];
+        appointmentId: string;
+        cancelReason: string;
+      };
+    },
+  ) {
+    const { appointmentDetails } = data;
+
+    const formattedAppointmentDetails = {
+      ...appointmentDetails,
+      clinicAddress:
+        typeof appointmentDetails.clinicAddress === 'string'
+          ? {
+              description: appointmentDetails.clinicAddress,
+              ward: '',
+              district: '',
+              city: '',
+            }
+          : appointmentDetails.clinicAddress,
+    };
+
+    return this.mailService.sendAppointmentCancellation(
+      data.email,
+      formattedAppointmentDetails,
+    );
+  }
 }

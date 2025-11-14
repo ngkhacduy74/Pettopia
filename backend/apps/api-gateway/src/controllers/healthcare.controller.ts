@@ -178,4 +178,33 @@ export class HealthcareController {
       });
     }
   }
+
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.CLINIC, Role.STAFF, Role.ADMIN)
+  @Post('/appointment/for-customer')
+  @HttpCode(HttpStatus.CREATED)
+  async createAppointmentForCustomer(
+    @Body() data: any,
+    @UserToken('id') partnerId: string,
+  ) {
+    try {
+      return await lastValueFrom(
+        this.healthcareService.send(
+          { cmd: 'createAppointmentForCustomer' },
+          {
+            data,
+            partner_id: partnerId,
+          },
+        ),
+      );
+    } catch (error) {
+      if (error instanceof RpcException) {
+        throw error;
+      }
+      throw new RpcException({
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        message: error.message || 'Đã xảy ra lỗi khi tạo lịch hẹn hộ khách hàng',
+      });
+    }
+  }
 }

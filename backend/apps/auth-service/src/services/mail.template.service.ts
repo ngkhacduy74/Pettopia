@@ -518,8 +518,8 @@ export class MailTemplateService {
             <h4>Địa điểm:</h4>
             <p>${data.clinicName}</p>
             <p>
-  ${data.clinicAddress.description}, ${data.clinicAddress.ward}, ${data.clinicAddress.district}, ${data.clinicAddress.city}
-</p>
+              ${data.clinicAddress.description}, ${data.clinicAddress.ward}, ${data.clinicAddress.district}, ${data.clinicAddress.city}
+            </p>
             
             <h4>Dịch vụ đã đặt:</h4>
             <ul>
@@ -528,6 +528,295 @@ export class MailTemplateService {
           </div>
 
           <p>Vui lòng đến đúng giờ để được phục vụ tốt nhất. Nếu có bất kỳ thay đổi nào, vui lòng liên hệ với chúng tôi trước ít nhất 2 giờ.</p>
+          
+          <p>Trân trọng,<br>Đội ngũ Pettopia</p>
+          
+          <div class="footer">
+            <p>Đây là email tự động, vui lòng không trả lời email này.</p>
+            <p>© ${new Date().getFullYear()} Pettopia. Tất cả các quyền được bảo lưu.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  async sendAppointmentStatusUpdate(
+    email: string,
+    appointmentDetails: {
+      userName: string;
+      appointmentDate: string;
+      appointmentTime: string;
+      clinicName: string;
+      clinicAddress: {
+        description: string;
+        ward: string;
+        district: string;
+        city: string;
+      };
+      services: string[];
+      appointmentId: string;
+      status: string;
+    },
+  ) {
+    const template =
+      this.getAppointmentStatusUpdateTemplate(appointmentDetails);
+    return this.mailService.sendMail(
+      email,
+      `Cập nhật trạng thái lịch hẹn - ${appointmentDetails.appointmentId}`,
+      template,
+      MailType.REMIND,
+    );
+  }
+
+  async sendAppointmentCancellation(
+    email: string,
+    appointmentDetails: {
+      userName: string;
+      appointmentDate: string;
+      appointmentTime: string;
+      clinicName: string;
+      clinicAddress: {
+        description: string;
+        ward: string;
+        district: string;
+        city: string;
+      };
+      services: string[];
+      appointmentId: string;
+      cancelReason: string;
+    },
+  ) {
+    const template =
+      this.getAppointmentCancellationTemplate(appointmentDetails);
+    return this.mailService.sendMail(
+      email,
+      `Thông báo hủy lịch hẹn - ${appointmentDetails.appointmentId}`,
+      template,
+      MailType.REMIND,
+    );
+  }
+
+  private getAppointmentStatusUpdateTemplate(data: {
+    userName: string;
+    appointmentDate: string;
+    appointmentTime: string;
+    clinicName: string;
+    clinicAddress: {
+      description: string;
+      ward: string;
+      district: string;
+      city: string;
+    };
+    services: string[];
+    appointmentId: string;
+    status: string;
+  }): string {
+    const servicesList = data.services
+      .map((service) => `<li>${service}</li>`)
+      .join('');
+
+    const getStatusColor = (status: string) => {
+      if (status.includes('xác nhận')) return '#2196F3';
+      if (status.includes('hoàn thành')) return '#4CAF50';
+      if (status.includes('hủy')) return '#f44336';
+      return '#FF9800';
+    };
+
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>Cập nhật trạng thái lịch hẹn</title>
+        <style>
+          body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+          }
+          .header {
+            background-color: ${getStatusColor(data.status)};
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 5px 5px 0 0;
+          }
+          .content {
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-top: none;
+            border-radius: 0 0 5px 5px;
+          }
+          .appointment-details {
+            background-color: #f9f9f9;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+          }
+          .status-badge {
+            display: inline-block;
+            background-color: ${getStatusColor(data.status)};
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            margin: 10px 0;
+          }
+          .footer {
+            margin-top: 20px;
+            font-size: 12px;
+            color: #777;
+            text-align: center;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>CẬP NHẬT TRẠNG THÁI LỊCH HẸN</h1>
+        </div>
+        
+        <div class="content">
+          <p>Xin chào <strong>${data.userName}</strong>,</p>
+          
+          <p>Trạng thái lịch hẹn của bạn tại <strong>${data.clinicName}</strong> đã được cập nhật:</p>
+          
+          <div style="text-align: center;">
+            <div class="status-badge">${data.status}</div>
+          </div>
+          
+          <div class="appointment-details">
+            <h3>THÔNG TIN LỊCH HẸN</h3>
+            <p><strong>Mã lịch hẹn:</strong> ${data.appointmentId}</p>
+            <p><strong>Ngày hẹn:</strong> ${data.appointmentDate}</p>
+            <p><strong>Ca khám:</strong> ${data.appointmentTime}</p>
+            
+            <h4>Địa điểm:</h4>
+            <p>${data.clinicName}</p>
+            <p>
+              ${data.clinicAddress.description}, ${data.clinicAddress.ward}, ${data.clinicAddress.district}, ${data.clinicAddress.city}
+            </p>
+            
+            <h4>Dịch vụ:</h4>
+            <ul>
+              ${servicesList}
+            </ul>
+          </div>
+
+          <p>Nếu có bất kỳ câu hỏi nào, vui lòng liên hệ với chúng tôi.</p>
+          
+          <p>Trân trọng,<br>Đội ngũ Pettopia</p>
+          
+          <div class="footer">
+            <p>Đây là email tự động, vui lòng không trả lời email này.</p>
+            <p>© ${new Date().getFullYear()} Pettopia. Tất cả các quyền được bảo lưu.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  private getAppointmentCancellationTemplate(data: {
+    userName: string;
+    appointmentDate: string;
+    appointmentTime: string;
+    clinicName: string;
+    clinicAddress: {
+      description: string;
+      ward: string;
+      district: string;
+      city: string;
+    };
+    services: string[];
+    appointmentId: string;
+    cancelReason: string;
+  }): string {
+    const servicesList = data.services
+      .map((service) => `<li>${service}</li>`)
+      .join('');
+
+    const cancelReasonHtml =
+      data.cancelReason
+        ? `<div style="background-color: #ffebee; border-left: 4px solid #f44336; padding: 15px; margin: 15px 0; border-radius: 3px;"><h4>LÝ DO HỦY:</h4><p>${data.cancelReason}</p></div>`
+        : '';
+
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>Thông báo hủy lịch hẹn</title>
+        <style>
+          body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+          }
+          .header {
+            background-color: #f44336;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 5px 5px 0 0;
+          }
+          .content {
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-top: none;
+            border-radius: 0 0 5px 5px;
+          }
+          .appointment-details {
+            background-color: #f9f9f9;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+          }
+          .footer {
+            margin-top: 20px;
+            font-size: 12px;
+            color: #777;
+            text-align: center;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>⚠️ LỊCH HẸN ĐÃ BỊ HỦY</h1>
+        </div>
+        
+        <div class="content">
+          <p>Xin chào <strong>${data.userName}</strong>,</p>
+          
+          <p>Lịch hẹn của bạn tại <strong>${data.clinicName}</strong> đã bị hủy.</p>
+          
+          <div class="appointment-details">
+            <h3>THÔNG TIN LỊCH HẸN ĐÃ HỦY</h3>
+            <p><strong>Mã lịch hẹn:</strong> ${data.appointmentId}</p>
+            <p><strong>Ngày hẹn:</strong> ${data.appointmentDate}</p>
+            <p><strong>Ca khám:</strong> ${data.appointmentTime}</p>
+            
+            <h4>Địa điểm:</h4>
+            <p>${data.clinicName}</p>
+            <p>
+              ${data.clinicAddress.description}, ${data.clinicAddress.ward}, ${data.clinicAddress.district}, ${data.clinicAddress.city}
+            </p>
+            
+            <h4>Dịch vụ:</h4>
+            <ul>
+              ${servicesList}
+            </ul>
+          </div>
+
+          ${cancelReasonHtml}
+
+          <p>Nếu bạn muốn đặt lịch hẹn khác hoặc có bất kỳ câu hỏi nào, vui lòng liên hệ với chúng tôi.</p>
           
           <p>Trân trọng,<br>Đội ngũ Pettopia</p>
           
