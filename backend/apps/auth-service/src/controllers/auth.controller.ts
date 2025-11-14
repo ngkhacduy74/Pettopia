@@ -30,22 +30,6 @@ export class AuthController {
     const result = await this.otpService.sendEmailOtp(email);
     return result;
   }
-  @MessagePattern({ cmd: 'verifyClinicToken' })
-  async verifyClinicToken(@Payload() data: any) {
-    try {
-      return await this.authService.verifyClinicToken(data.token);
-    } catch (err) {
-      handleRpcError('ClinicController.verifyClinicToken', err);
-    }
-  }
-  @MessagePattern({ cmd: 'convert-location' })
-  async convertLocation(@Payload() address: string) {
-    try {
-      return await this.authService.convertAddressToLocation(address);
-    } catch (err) {
-      handleRpcError('ClinicController.convertLocation', err);
-    }
-  }
   @MessagePattern({ cmd: 'forgot-password' })
   @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
   async forgotPassword(@Payload() data: ForgotPasswordDto) {
