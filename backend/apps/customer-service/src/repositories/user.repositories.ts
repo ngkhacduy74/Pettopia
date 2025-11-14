@@ -307,4 +307,28 @@ export class UsersRepository {
       data,
     };
   }
+  async updatePasswordByEmail(email: string, newPassword: string): Promise<User | null> {
+  try {
+    const result = await this.userModel.findOneAndUpdate(
+      { 'email.email_address': email },
+      { password: newPassword },
+      { new: true },
+    ).exec();
+    return result;
+  } catch (err) {
+    throw new Error(err);
+    }
+  }
+  async updatePasswordById(id: string, newPassword: string): Promise<User | null> {
+  try {
+    const result = await this.userModel.findOneAndUpdate(
+      { id },
+      { password: newPassword },
+      { new: true },
+    ).exec();
+    return result;
+  } catch (err) {
+    throw new Error(err);
+  }
+  }
 }

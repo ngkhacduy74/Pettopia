@@ -5,7 +5,10 @@ import { LoginDto } from '../dtos/login.dto';
 import { RegisterDto } from '../dtos/register.dto';
 import { OtpService } from 'src/services/otp.service';
 import { SendEmailOtpDto } from 'src/dtos/send-mail.dto';
-
+import { handleRpcError } from 'src/common/error.detail';
+import { ForgotPasswordDto } from '../dtos/forgot-password.dto';  
+import { ResetPasswordDto } from '../dtos/reset-password.dto';  
+import { ChangePasswordDto } from '../dtos/change-password.dto';
 @Controller()
 export class AuthController {
   constructor(
@@ -26,5 +29,22 @@ export class AuthController {
     const email = data.email;
     const result = await this.otpService.sendEmailOtp(email);
     return result;
+  }
+  @MessagePattern({ cmd: 'forgot-password' })
+  @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
+  async forgotPassword(@Payload() data: ForgotPasswordDto) {
+    return this.authService.forgotPassword(data);
+  }
+
+  @MessagePattern({ cmd: 'reset-password' })
+  @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
+  async resetPassword(@Payload() data: ResetPasswordDto) {
+    return this.authService.resetPassword(data);
+  }
+
+  @MessagePattern({ cmd: 'change-password' })
+  @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
+  async changePassword(@Payload() data: ChangePasswordDto & { userId: string }) {
+    return this.authService.changePassword(data);
   }
 }
