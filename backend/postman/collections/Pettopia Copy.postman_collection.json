@@ -560,7 +560,7 @@
               }
             },
             "url": {
-              "raw": "http://localhost:3000/api/v1/healthcare/appointments/47159f19-1971-4dce-b21a-bbe9c7baca1a/status",
+              "raw": "http://localhost:3000/api/v1/healthcare/appointments/3d463dea-e135-48f3-b3d7-99c680eae5fa/status",
               "protocol": "http",
               "host": [
                 "localhost"
@@ -571,7 +571,7 @@
                 "v1",
                 "healthcare",
                 "appointments",
-                "47159f19-1971-4dce-b21a-bbe9c7baca1a",
+                "3d463dea-e135-48f3-b3d7-99c680eae5fa",
                 "status"
               ]
             }
