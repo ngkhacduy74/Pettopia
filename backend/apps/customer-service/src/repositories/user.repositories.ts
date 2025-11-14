@@ -21,6 +21,7 @@ export class UsersRepository {
   async findOneById(id: string): Promise<User | null> {
     try {
       const result = await this.userModel.findOne({ id }).lean().exec();
+      console.log("hello1233",result);
       return result;
     } catch (err) {
       throw new Error(err);
@@ -55,6 +56,18 @@ export class UsersRepository {
         message: 'Email đã được sử dụng',
         status: false,
       };
+    } catch (err) {
+      throw new Error(err);
+    }
+  }
+
+  async findOneByEmailWithPassword(email: string): Promise<User | null> {
+    try {
+      const result = await this.userModel
+        .findOne({ 'email.email_address': email })
+        .select('+password')
+        .exec();
+      return result;
     } catch (err) {
       throw new Error(err);
     }

@@ -41,6 +41,64 @@ export class ClinicsRepository {
       );
     }
   }
+
+  async existsClinicFormByEmail(email_address: string): Promise<boolean> {
+    try {
+      const doc = await this.clinicFormModel
+        .findOne({ 'email.email_address': email_address })
+        .lean()
+        .exec();
+      return !!doc;
+    } catch (err) {
+      throw new InternalServerErrorException(
+        err.message || 'Lỗi kiểm tra trùng email form clinic',
+      );
+    }
+  }
+
+  async existsClinicFormByPhone(phone_number: string): Promise<boolean> {
+    try {
+      const doc = await this.clinicFormModel
+        .findOne({ 'phone.phone_number': phone_number })
+        .lean()
+        .exec();
+      return !!doc;
+    } catch (err) {
+      throw new InternalServerErrorException(
+        err.message || 'Lỗi kiểm tra trùng số điện thoại form clinic',
+      );
+    }
+  }
+
+  async existsClinicFormByLicenseNumber(
+    license_number: string,
+  ): Promise<boolean> {
+    try {
+      const doc = await this.clinicFormModel
+        .findOne({ license_number })
+        .lean()
+        .exec();
+      return !!doc;
+    } catch (err) {
+      throw new InternalServerErrorException(
+        err.message || 'Lỗi kiểm tra trùng số giấy phép form clinic',
+      );
+    }
+  }
+
+  async existsClinicFormByResponsibleLicense(license: string): Promise<boolean> {
+    try {
+      const doc = await this.clinicFormModel
+        .findOne({ 'representative.responsible_licenses': { $in: [license] } })
+        .lean()
+        .exec();
+      return !!doc;
+    } catch (err) {
+      throw new InternalServerErrorException(
+        err.message || 'Lỗi kiểm tra trùng giấy phép hành nghề đại diện',
+      );
+    }
+  }
   async findOneClinicForm(id: string): Promise<any> {
     try {
       const findOne = await this.clinicFormModel
@@ -309,6 +367,39 @@ export class ClinicsRepository {
       throw new InternalServerErrorException(
         err.message ||
           `Lỗi cơ sở dữ liệu khi tìm phòng khám với email: ${email}`,
+      );
+    }
+  }
+
+  async addMemberToClinic(
+    clinicId: string,
+    memberId: string,
+  ): Promise<ClinicDocument> {
+    try {
+      const updatedClinic = await this.clinicModel
+        .findOneAndUpdate(
+          { id: clinicId },
+          {
+            $addToSet: { member_ids: memberId },
+            $set: { updatedAt: new Date() },
+          },
+          { new: true },
+        )
+        .exec();
+
+      if (!updatedClinic) {
+        throw new NotFoundException(
+          `Không tìm thấy phòng khám với id: ${clinicId}`,
+        );
+      }
+
+      return updatedClinic;
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new InternalServerErrorException(
+        error.message || 'Không thể cập nhật danh sách thành viên phòng khám.',
       );
     }
   }

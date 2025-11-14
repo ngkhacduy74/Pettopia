@@ -30,7 +30,14 @@ export class PartnerController {
   constructor(
     @Inject('PARTNER_SERVICE') private readonly partnerService: ClientProxy,
   ) {}
-
+  @UseGuards(JwtAuthGuard)
+  @Post('/clinic/register')
+  @HttpCode(HttpStatus.CREATED)
+  async clinicRegister(@Body() data: any, @UserToken('id') user_id: string) {
+    return await lastValueFrom(
+      this.partnerService.send({ cmd: 'registerClinic' }, { ...data, user_id }),
+    );
+  }
   @UseGuards(JwtAuthGuard)
   @Get('/clinic/form')
   @HttpCode(HttpStatus.OK)
@@ -63,14 +70,40 @@ export class PartnerController {
       ),
     );
   }
-  @UseGuards(JwtAuthGuard)
-  @Post('/clinic/register')
-  @HttpCode(HttpStatus.CREATED)
-  async clinicRegister(@Body() data: any, @UserToken('id') user_id: string) {
+  //test
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.ADMIN, Role.STAFF)
+  @Get('/service/all/admin')
+  @HttpCode(HttpStatus.OK)
+  async getAllServicesForAdmin(
+    @Query('page', new ParseIntPipe({ optional: true })) page = 1,
+    @Query('limit', new ParseIntPipe({ optional: true })) limit = 10,
+  ) {
     return await lastValueFrom(
-      this.partnerService.send({ cmd: 'registerClinic' }, { ...data, user_id }),
+      this.partnerService.send({ cmd: 'getAllService' }, { page, limit }),
     );
   }
+
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.ADMIN, Role.STAFF)
+  @Patch('/service/:id/deactivate')
+  @HttpCode(HttpStatus.OK)
+  async deactivateService(@Param('id') id: string) {
+    if (!id) {
+      throw new RpcException({
+        status: HttpStatus.BAD_REQUEST,
+        message: 'Thiếu mã dịch vụ',
+      });
+    }
+
+    return await lastValueFrom(
+      this.partnerService.send(
+        { cmd: 'updateServiceStatus' },
+        { id, is_active: false },
+      ),
+    );
+  }
+
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(Role.CLINIC)
   @Get('/clinic/shift')
@@ -84,6 +117,48 @@ export class PartnerController {
       this.partnerService.send(
         { cmd: 'getClinicShifts' },
         { clinic_id, page, limit },
+      ),
+    );
+  }
+
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.CLINIC)
+  @Post('/clinic/invitations')
+  @HttpCode(HttpStatus.CREATED)
+  async inviteClinicMember(
+    @Body('email') invited_email: string,
+    @Body('role') role: string,
+    @UserToken('clinic_id') clinic_id: string,
+    @UserToken('id') invited_by: string,
+  ) {
+    if (!clinic_id) {
+      throw new RpcException({
+        status: HttpStatus.BAD_REQUEST,
+        message: 'Không xác định được phòng khám.',
+      });
+    }
+    if (!invited_email) {
+      throw new RpcException({
+        status: HttpStatus.BAD_REQUEST,
+        message: 'Email lời mời là bắt buộc.',
+      });
+    }
+
+    if (!role) {
+      throw new RpcException({
+        status: HttpStatus.BAD_REQUEST,
+        message: 'Vai trò lời mời là bắt buộc.',
+      });
+    }
+    return await lastValueFrom(
+      this.partnerService.send(
+        { cmd: 'createClinicMemberInvitation' },
+        {
+          clinic_id,
+          invited_email,
+          role,
+          invited_by,
+        },
       ),
     );
   }
@@ -171,6 +246,35 @@ export class PartnerController {
     const payload = { id: idClinic, is_active };
     return await lastValueFrom(
       this.partnerService.send({ cmd: 'updateClinicActiveStatus' }, payload),
+    );
+  }
+
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.USER, Role.VET)
+  @Post('/clinic/invitations/:token/accept')
+  @HttpCode(HttpStatus.OK)
+  async acceptClinicInvitation(
+    @Param('token') token: string,
+    @UserToken('id') vet_id: string,
+  ) {
+    return await lastValueFrom(
+      this.partnerService.send(
+        { cmd: 'acceptClinicMemberInvitation' },
+        { token, vet_id },
+      ),
+    );
+  }
+
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.VET)
+  @Post('/clinic/invitations/:token/decline')
+  @HttpCode(HttpStatus.OK)
+  async declineClinicInvitation(@Param('token') token: string) {
+    return await lastValueFrom(
+      this.partnerService.send(
+        { cmd: 'declineClinicMemberInvitation' },
+        { token },
+      ),
     );
   }
 
@@ -340,6 +444,8 @@ export class PartnerController {
     );
   }
 
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.USER)
   @Get('/service/:clinic_id')
   @HttpCode(HttpStatus.OK)
   async getServicesByClinicId(@Param('clinic_id') clinic_id: string) {
@@ -349,6 +455,7 @@ export class PartnerController {
   }
 
   @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.ADMIN, Role.STAFF, Role.CLINIC)
   @Get('/service/:id')
   @HttpCode(HttpStatus.OK)
   async getServiceById(@Param('id') id: string) {

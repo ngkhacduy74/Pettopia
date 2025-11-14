@@ -17,7 +17,7 @@ import { UpdateStatusClinicDto } from 'src/dto/clinic/clinic/update-status.dto';
 export class ClinicController {
   constructor(private readonly clinicService: ClinicService) {}
 
-  @MessagePattern({ cmd: 'getAllClinic' })
+  @MessagePattern({ cmd: 'getAllClinicForm' })
   async getAllClinicForm(): Promise<any> {
     try {
       const result = await this.clinicService.findAllClinicForm();

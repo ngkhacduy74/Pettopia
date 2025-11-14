@@ -7,8 +7,10 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
 import { JwtModule } from '@nestjs/jwt';
 import { PetController } from './controllers/petcare.controller';
 import { PartnerController } from './controllers/partner.controller';
+import { AiController } from './controllers/ai.controller';
 import { CommunicationController } from './controllers/communication.controller';
 import { HealthcareController } from './controllers/healthcare.controller';
+import { PaymentController } from './controllers/payment.controller';
 
 @Module({
   imports: [
@@ -20,6 +22,10 @@ import { HealthcareController } from './controllers/healthcare.controller';
         name: 'AUTH_SERVICE',
         transport: Transport.TCP,
         options: {
+          host:
+            process.env.NODE_ENV === 'production'
+              ? 'auth-service'
+              : 'localhost',
           port: 5001,
         },
       },
@@ -27,6 +33,10 @@ import { HealthcareController } from './controllers/healthcare.controller';
         name: 'CUSTOMER_SERVICE',
         transport: Transport.TCP,
         options: {
+          host:
+            process.env.NODE_ENV === 'production'
+              ? 'customer-service'
+              : 'localhost',
           port: 5002,
         },
       },
@@ -34,6 +44,10 @@ import { HealthcareController } from './controllers/healthcare.controller';
         name: 'PETCARE_SERVICE',
         transport: Transport.TCP,
         options: {
+          host:
+            process.env.NODE_ENV === 'production'
+              ? 'petcare-service'
+              : 'localhost',
           port: 5003,
         },
       },
@@ -41,6 +55,10 @@ import { HealthcareController } from './controllers/healthcare.controller';
         name: 'PARTNER_SERVICE',
         transport: Transport.TCP,
         options: {
+          host:
+            process.env.NODE_ENV === 'production'
+              ? 'partner-service'
+              : 'localhost',
           port: 5004,
         },
       },
@@ -48,6 +66,10 @@ import { HealthcareController } from './controllers/healthcare.controller';
         name: 'HEALTHCARE_SERVICE',
         transport: Transport.TCP,
         options: {
+          host:
+            process.env.NODE_ENV === 'production'
+              ? 'healthcare-service'
+              : 'localhost',
           port: 5005,
         },
       },
@@ -55,6 +77,10 @@ import { HealthcareController } from './controllers/healthcare.controller';
         name: 'COMMUNICATION_SERVICE',
         transport: Transport.TCP,
         options: {
+          host:
+            process.env.NODE_ENV === 'production'
+              ? 'communication-service'
+              : 'localhost',
           port: 5006,
         },
       },
@@ -62,6 +88,10 @@ import { HealthcareController } from './controllers/healthcare.controller';
         name: 'BILLING_SERVICE',
         transport: Transport.TCP,
         options: {
+          host:
+            process.env.NODE_ENV === 'production'
+              ? 'billing-service'
+              : 'localhost',
           port: 5007,
         },
       },
@@ -80,6 +110,8 @@ import { HealthcareController } from './controllers/healthcare.controller';
     CustomerController,
     PetController,
     PartnerController,
+    PaymentController,
+    AiController,
     CommunicationController,
     HealthcareController,
   ],

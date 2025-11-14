@@ -6,10 +6,13 @@ import {
   IsDateString,
   IsOptional,
   ValidateIf,
+  IsString,
+  MaxLength,
 } from 'class-validator';
 import {
   AppointmentCreatedBy,
   AppointmentShift,
+  AppointmentStatus,
 } from 'src/schemas/appoinment.schema';
 
 export class CreateAppointmentDto {
@@ -43,4 +46,24 @@ export class CreateAppointmentDto {
     message: 'created_by phải là customer hoặc partner',
   })
   created_by?: AppointmentCreatedBy;
+}
+
+export class UpdateAppointmentStatusDto {
+  @IsEnum(AppointmentStatus, {
+    message:
+      'status phải là một trong các giá trị: Pending_Confirmation, Confirmed, Completed, Cancelled, No_Show',
+  })
+  status: AppointmentStatus;
+
+  @IsOptional()
+  @IsString({ message: 'cancel_reason phải là chuỗi' })
+  @MaxLength(500, { message: 'cancel_reason không được vượt quá 500 ký tự' })
+  cancel_reason?: string;
+}
+
+export class CancelAppointmentDto {
+  @IsOptional()
+  @IsString({ message: 'cancel_reason phải là chuỗi' })
+  @MaxLength(500, { message: 'cancel_reason không được vượt quá 500 ký tự' })
+  cancel_reason?: string;
 }

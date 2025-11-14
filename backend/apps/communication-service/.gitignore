@@ -4,6 +4,7 @@
 /build
 *.tsbuildinfo
 **/*.d.ts
+
 # Logs
 logs
 *.log

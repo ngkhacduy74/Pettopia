@@ -56,4 +56,92 @@ export class AppointmentRepository {
       );
     }
   }
+
+  async findAll(
+    page: number = 1,
+    limit: number = 10,
+  ): Promise<{ data: Appointment[]; total: number }> {
+    try {
+      const skip = (page - 1) * limit;
+      const [data, total] = await Promise.all([
+        this.appointmentModel
+          .find()
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(limit)
+          .lean(),
+        this.appointmentModel.countDocuments(),
+      ]);
+
+      return { data, total };
+    } catch (error) {
+      throw new InternalServerErrorException(
+        error.message || 'Lỗi khi lấy tất cả lịch hẹn',
+      );
+    }
+  }
+
+  async findByClinicId(
+    clinicId: string,
+    page: number = 1,
+    limit: number = 10,
+  ): Promise<{ data: Appointment[]; total: number }> {
+    try {
+      const skip = (page - 1) * limit;
+      const [data, total] = await Promise.all([
+        this.appointmentModel
+          .find({ clinic_id: clinicId })
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(limit)
+          .lean(),
+        this.appointmentModel.countDocuments({ clinic_id: clinicId }),
+      ]);
+
+      return { data, total };
+    } catch (error) {
+      throw new InternalServerErrorException(
+        error.message || 'Lỗi khi lấy danh sách lịch hẹn theo phòng khám',
+      );
+    }
+  }
+
+  async findById(id: string): Promise<Appointment | null> {
+    try {
+      return await this.appointmentModel.findOne({ id }).lean();
+    } catch (error) {
+      throw new InternalServerErrorException(
+        error.message || 'Lỗi khi tìm lịch hẹn',
+      );
+    }
+  }
+
+  async updateStatus(
+    id: string,
+    status: string,
+    cancelReason?: string,
+    cancelledBy?: string,
+  ): Promise<Appointment | null> {
+    try {
+      const updateData: any = { status };
+      
+      if (cancelReason !== undefined && cancelReason !== null) {
+        updateData.cancel_reason = cancelReason;
+      }
+      
+      if (cancelledBy !== undefined && cancelledBy !== null) {
+        updateData.cancelled_by = cancelledBy;
+      }
+
+      const updated = await this.appointmentModel
+        .findOneAndUpdate({ id }, updateData, { new: true })
+        .lean();
+
+      return updated;
+    } catch (error) {
+      throw new InternalServerErrorException(
+        error.message || 'Lỗi khi cập nhật trạng thái lịch hẹn',
+      );
+    }
+  }
 }

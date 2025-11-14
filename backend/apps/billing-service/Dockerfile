@@ -1,34 +1,46 @@
+# -------- BUILD STAGE --------
 FROM node:20-alpine3.22 AS builder
 WORKDIR /usr/src/app
 
-# Copy package files
+# Copy package files trước để cache tốt
 COPY package*.json ./
-RUN npm ci
+
+# Cài full dependencies (dev + prod)
+RUN npm i
 
 # Copy source code
 COPY . .
 
-# Build app to dist
+# Build NestJS → dist
 RUN npm run build
 
+# Loại bỏ devDependencies cho node_modules nhẹ hơn
+RUN npm prune --production
+
+
+# -------- RUN STAGE --------
 FROM node:20-alpine3.22 AS runner
 WORKDIR /usr/src/app
 
-# Set default environment variables
+# Biến môi trường mặc định (port của service này)
 ENV NODE_ENV=production
-ENV PORT=3007  # Default port for billing-service
+ENV PORT=3007
 
-# Copy built artifacts and dependencies from builder
+# Copy dist đã build
 COPY --from=builder /usr/src/app/dist ./dist
+
+# Copy node_modules đã prune (chỉ production)
 COPY --from=builder /usr/src/app/node_modules ./node_modules
+
+# Copy package.json
 COPY --from=builder /usr/src/app/package*.json ./
 
-# Create a non-root user and switch to it
+# Tạo user non-root chuẩn security
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 USER appuser
 
-# Expose the port the app runs on
-EXPOSE $PORT
+# Expose đúng port app chạy
+EXPOSE ${PORT}
 
-# Command to run the application
+# Run app
 CMD ["node", "dist/main.js"]

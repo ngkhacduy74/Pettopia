@@ -79,8 +79,14 @@ export class Service {
     default: true,
   })
   is_active: boolean;
+
+  @Prop({
+    type: String,
+    trim: true,
+    maxlength: [100, 'Tên danh mục không được vượt quá 100 ký tự'],
+  })
+  category?: string;
 }
 
 export type ServiceDocument = Service & Document;
 export const ServiceSchema = SchemaFactory.createForClass(Service);
-ServiceSchema.index({ clinic_id: 1, name: 1 }, { unique: true });

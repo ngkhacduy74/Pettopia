@@ -5,7 +5,7 @@ import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  const port = process.env.PETCARE_PORT;
+  const port = process.env.COMMUNICATION_PORT;
   const tcp_port = parseInt(process.env.TCP_COMMUNICATION_PORT || '5006', 10);
   app.useGlobalPipes(
     new ValidationPipe({
@@ -18,12 +18,13 @@ async function bootstrap() {
   app.connectMicroservice<MicroserviceOptions>({
     transport: Transport.TCP,
     options: {
+      host: '0.0.0.0',
       port: tcp_port,
     },
   });
   await app.startAllMicroservices();
-  await app.listen(port!);
-  console.log('Pet-service run successfull');
+  await app.listen(3006);
+  console.log('communication-service run successfull ');
 }
 
 bootstrap();

@@ -8,12 +8,24 @@ export class MailController {
 
   @MessagePattern({ cmd: 'invite_vet' })
   async inviteVet(@Payload() data: { email: string; clinic_id: string }) {
-    console.log('oqj2eq2', data);
     return this.mailService.inviteVet(data.email, data.clinic_id);
+  }
+
+  @MessagePattern({ cmd: 'sendClinicMemberInvitation' })
+  async sendClinicMemberInvitation(
+    @Payload()
+    data: {
+      email: string;
+      clinicName: string;
+      role: string;
+      inviteLink: string;
+      expiresAt: string;
+    },
+  ) {
+    return this.mailService.sendClinicMemberInvitation(data);
   }
   @MessagePattern({ cmd: 'sendClinicVerificationMail' })
   async sendClinicVerificationMail(@Payload() data: { clinic_id: string }) {
-    console.log('📨 Gửi mail xác minh phòng khám:', data.clinic_id);
     return this.mailService.sendClinicVerificationMail(data.clinic_id);
   }
 
@@ -62,7 +74,6 @@ export class MailController {
   ) {
     const { appointmentDetails } = data;
 
-    // If clinicAddress is a string, convert it to the expected object format
     const formattedAppointmentDetails = {
       ...appointmentDetails,
       clinicAddress:
