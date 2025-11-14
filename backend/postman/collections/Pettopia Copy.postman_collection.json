@@ -1,0 +1,1923 @@
+{
+  "info": {
+    "_postman_id": "d0bd6272-7cb4-4da6-9c6f-5a6b80a9492d",
+    "name": "Pettopia Copy",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "49542768",
+    "_collection_link": "https://nguyenkhacduy07042003-6765475.postman.co/workspace/15b043eb-ea0e-4fd7-861e-aa52f542adb3/collection/49542768-d0bd6272-7cb4-4da6-9c6f-5a6b80a9492d?action=share&source=collection_link&creator=49542768"
+  },
+  "item": [
+    {
+      "name": "auth",
+      "item": [
+        {
+          "name": "register",
+          "id": "5ae0c4ba-8365-487d-911e-4bda9e613010",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"fullname\":\"Nguyễn VIệt Đức\",\r\n    \"gender\":\"male\",\r\n    \"email_address\":\"nvd30022@gmail.com\",\r\n    \"phone_number\":\"0975489030\",\r\n    \"username\":\"nvduc30021\",\r\n    \"password\":\"Khacduy1212**\",\r\n    \"dob\":\"2003-04-07\",\r\n    \"address\": {\r\n        \"city\":\"Hanoi\",\r\n        \"district\":\"Hà đông\",\r\n        \"ward\":\"Mộ lao\",\r\n        \"description\":\"171 khuat duy tien\"\r\n\r\n    }\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/api/v1/auth/register",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "register"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "f28e3d49-eb0b-41b8-a164-ef507fd2e831",
+                "exec": [
+                  "const res = pm.response.json();\r",
+                  "console.log(\"Response body:\", res);\r",
+                  "\r",
+                  "if (res.token) {\r",
+                  "  pm.environment.set(\"token\", res.token);\r",
+                  "  console.log(\"✅ Token đã được lưu vào environment:\", res.token);\r",
+                  "} else {\r",
+                  "  console.warn(\"⚠️ Không tìm thấy token trong response\");\r",
+                  "}\r",
+                  ""
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "id": "955f3ac4-16a6-476b-816d-f3852d33cd2b",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "//Admin , Staff\r\n// {\r\n//     \"username\": \"quynhmai811\",\r\n//     \"password\": \"Khacduy1212**\"\r\n// }\r\n\r\n\r\n//User //Clinic\r\n// {\r\n//     \"username\": \"khacduy07041\",\r\n//     \"password\": \"Khacduy1212**\"\r\n// }\r\n\r\n//User\r\n// {\r\n//     \"username\": \"nvduc3002\",\r\n//     \"password\": \"Khacduy1212**\"\r\n// }\r\n\r\n\r\n\r\n//Clinic \r\n// {\r\n//     \"username\": \"info.petcare12@gmail.com\",\r\n//     \"password\": \"CDbx8$nBTbQj\"\r\n\r\n// }",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/api/v1/auth/login",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "test",
+          "id": "5123c1f5-2f37-43dc-babe-5c7806ac5b8b",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/api/v1/auth/test",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "test"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "invite-vet",
+          "id": "5e9b6b8f-84fe-4173-9f38-bdf07218eff1",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"email\": \"duynkhe170075@fpt.edu.vn\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/api/v1/auth/invite-vet",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "invite-vet"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "sendEmailOtp",
+          "id": "6b16ddb3-f6ff-4bcf-9472-c032e0fbeaaf",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "// {\r\n//     \"email\":\"duynkhe170075@fpt.edu.vn\"\r\n// }\r\n\r\n{\r\n    \"email\":\"onlynanh@gmail.com\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/api/v1/auth/send-otp-email",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "send-otp-email"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "send-clinic-verification",
+          "id": "e6f9e735-6e78-4b11-bc1d-f5d3591ee4d9",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "token",
+                "value": "{{token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"clinic_id_form\":\"da57f9b3-e2e5-4241-a53b-c957f90bb72e\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/api/v1/auth/send-clinic-verification",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "send-clinic-verification"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "verifi clinic token",
+          "id": "71b32ee3-0ac8-47a0-9703-5fd749ead8c7",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/api/v1/auth/verify/clinic?token=42ae117b-789e-40af-b464-107611d6709d",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "verify",
+                "clinic"
+              ],
+              "query": [
+                {
+                  "key": "token",
+                  "value": "42ae117b-789e-40af-b464-107611d6709d"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "convert location",
+          "id": "15dedf8b-6b25-4687-b8ab-9a2d07989958",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"address\":\"Mộ Lao, Hà Đông, Việt Nam\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/api/v1/auth/convert/location",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "convert",
+                "location"
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "id": "1181154c-d53d-4bb3-8d7e-c8361446cdcd"
+    },
+    {
+      "name": "customer",
+      "item": [
+        {
+          "name": "getUserById",
+          "id": "1b28e703-3896-42a6-a96a-eabd99524e92",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/api/v1/customer/",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "api",
+                "v1",
+                "customer",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "add role user",
+          "id": "e475cc74-b995-4cce-a3d8-fd884bed31bc",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "token",
+                "value": "{{token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "\r\n{\r\n  \"role\": \"staff\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/api/v1/customer/9645944f-5eb9-48d4-8604-98d0aeeb5c67/add-role",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "api",
+                "v1",
+                "customer",
+                "9645944f-5eb9-48d4-8604-98d0aeeb5c67",
+                "add-role"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "get all user",
+          "id": "1bd98ace-9975-4113-881b-4f4fd392778d",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "token",
+                "value": "{{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:3000/api/v1/customer?page=1&limit=10&email_address=na",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "api",
+                "v1",
+                "customer"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "email_address",
+                  "value": "na"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "total detail account",
+          "id": "544f5b54-09d6-49c3-8ec6-6cfefb098c1d",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "token",
+                "value": "{{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:3000/api/v1/customer/total/detail",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "api",
+                "v1",
+                "customer",
+                "total",
+                "detail"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "update status",
+          "id": "7c817156-66b8-4885-8283-5e2a3973c688",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "token",
+                "value": "{{token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"status\": \"deactive\"\r\n}\r\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/api/v1/customer/d1ba6756-5e39-48d8-aabb-ea8071ee2e72/status",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "api",
+                "v1",
+                "customer",
+                "d1ba6756-5e39-48d8-aabb-ea8071ee2e72",
+                "status"
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "id": "b4ec5470-7ac0-499c-a506-5a3a262175ac"
+    },
+    {
+      "name": "healthcare",
+      "item": [
+        {
+          "name": "create appointment",
+          "id": "43fee40d-a339-4642-8af1-9615b51d5993",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "token",
+                "value": "{{token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"clinic_id\":\"47108e3e-d687-435f-91af-58aca253afea\",\r\n    \"pet_ids\":[\"675affca-cd71-4cb2-b7f9-25a5a25e349e\"],\r\n    \"service_ids\":[\"57710c8e-b5e4-4d34-bb61-0d6be618b0cf\"],\r\n    \"date\":\"2025-11-20\",\r\n    \"shift_id\":\"670038a5-dfa5-412e-b862-918a6a6a7169\"\r\n\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/api/v1/healthcare/appointment",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "api",
+                "v1",
+                "healthcare",
+                "appointment"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "get appointment",
+          "id": "eff7d4cc-d9b6-4bcc-9893-77ed7b869734",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "token",
+                "value": "{{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:3000/api/v1/healthcare/appointments?page=1&limit=10",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "api",
+                "v1",
+                "healthcare",
+                "appointments"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "detail appointment",
+          "id": "528bc49b-5f15-4ebc-967a-1d8459aeeefa",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "token",
+                "value": "{{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:3000/api/v1/healthcare/appointments/{appointmentId}",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "api",
+                "v1",
+                "healthcare",
+                "appointments",
+                "{appointmentId}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "update status appointment",
+          "id": "9d468ae4-9e9b-427d-bc2d-7afa7486040a",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "token",
+                "value": "{{token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"status\": \"Confirmed\"\r\n // \"cancel_reason\": \"Lý do hủy (nếu có)\" \r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/api/v1/healthcare/appointments/47159f19-1971-4dce-b21a-bbe9c7baca1a/status",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "api",
+                "v1",
+                "healthcare",
+                "appointments",
+                "47159f19-1971-4dce-b21a-bbe9c7baca1a",
+                "status"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "cancel appointmet",
+          "id": "6a84d3eb-0312-4a62-885b-dbaa7db8561b",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "token",
+                "value": "{{token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"status\": \"Confirmed\"\r\n // \"cancel_reason\": \"Lý do hủy (nếu có)\" \r\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3000/api/v1/healthcare/appointments/e10962c7-db96-4950-accd-78c61ead2f90/cancel",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "api",
+                "v1",
+                "healthcare",
+                "appointments",
+                "e10962c7-db96-4950-accd-78c61ead2f90",
+                "cancel"
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "id": "9e6dd8ed-13c3-458a-91e2-c665e8105f68"
+    },
+    {
+      "name": "petcare",
+      "item": [
+        {
+          "name": "createPet",
+          "id": "caecd600-667e-401e-a7ed-72a33f62ac00",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "token",
+                "value": "{{token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"user_id\": \"265b7f9b-a78e-4adf-b251-ff158f15141d\",\r\n    \"name\": \"Milo\",\r\n    \"species\": \"Dog\",\r\n    \"gender\": \"Male\",\r\n    \"color\": \"Golden Brown\",\r\n    \"weight\": 12.5,\r\n    \"dateOfBirth\": \"2023-05-15T00:00:00.000Z\",\r\n    \"breed\": \"Golden Retriever\",\r\n    \"avatar_url\":\"https://hoanghamobile.com/tin-tuc/wp-content/uploads/2024/05/anh-cho-hai-1.jpg\"\r\n    // \"medical_record\":[]\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/api/v1/pet/create",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "api",
+                "v1",
+                "pet",
+                "create"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete",
+          "id": "064a526e-ec1b-4439-8a77-c1941b600c93",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/api/v1/pet/058f159b-3112-43d3-8712-e741aa958a3c",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "api",
+                "v1",
+                "pet",
+                "058f159b-3112-43d3-8712-e741aa958a3c"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "CreatwithCloudinary",
+          "id": "51bd1150-76af-45c4-849d-c972a6f30871",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "user_id",
+                  "value": "1628ed97-590d-4184-847f-94af4264f8d8",
+                  "type": "text"
+                },
+                {
+                  "key": "name",
+                  "value": "Halo",
+                  "type": "text"
+                },
+                {
+                  "key": "species",
+                  "value": "Dog",
+                  "type": "text"
+                },
+                {
+                  "key": "gender",
+                  "value": "Male",
+                  "type": "text"
+                },
+                {
+                  "key": "color",
+                  "value": "Golden",
+                  "type": "text"
+                },
+                {
+                  "key": "weight",
+                  "value": "12",
+                  "type": "text"
+                },
+                {
+                  "key": "dateOfBirth",
+                  "value": "2025-10-10",
+                  "type": "text"
+                },
+                {
+                  "key": "breed",
+                  "value": "Golden",
+                  "type": "text"
+                },
+                {
+                  "key": "avatar",
+                  "type": "file",
+                  "src": "/C:/Users/QuyBao/OneDrive/Pictures/Ảnh chụp màn hình/Ảnh chụp màn hình (40).png"
+                }
+              ]
+            },
+            "url": {
+              "raw": "http://localhost:3000/api/v1/pet/create",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "api",
+                "v1",
+                "pet",
+                "create"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "UpdatePet",
+          "id": "21df71b6-b62c-494c-ac04-957e2472459b",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "avatar",
+                  "type": "file",
+                  "src": "postman-cloud:///1f0ac0cc-0151-4ec0-aa87-1fae95d6cd77"
+                }
+              ]
+            },
+            "url": {
+              "raw": "http://localhost:3000/api/v1/pet/6f5f0a57-bf23-4850-84e5-90f0263871d2",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "api",
+                "v1",
+                "pet",
+                "6f5f0a57-bf23-4850-84e5-90f0263871d2"
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "id": "cb3d989b-3a99-430a-95f6-e70bac77c0d4"
+    },
+    {
+      "name": "billing",
+      "item": [],
+      "id": "82d09756-423c-4005-80a1-46b32bf61cea"
+    },
+    {
+      "name": "communication",
+      "item": [
+        {
+          "name": "New Request",
+          "id": "1377687d-d133-47c7-866a-6d64c3021908",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": ""
+            }
+          },
+          "response": []
+        }
+      ],
+      "id": "1605e771-a218-4e83-8bfe-ce39b4fed6fa"
+    },
+    {
+      "name": "partner",
+      "item": [
+        {
+          "name": "clinic",
+          "item": [
+            {
+              "name": "service",
+              "item": [
+                {
+                  "name": "get all service follow clinic",
+                  "id": "27ea8313-ba71-4a78-b283-57aa0a5833b4",
+                  "protocolProfileBehavior": {
+                    "disableBodyPruning": true
+                  },
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "token",
+                        "value": "{{token}}",
+                        "type": "text"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "http://localhost:3000/api/v1/partner/service/all?page=1&limit=10",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "3000",
+                      "path": [
+                        "api",
+                        "v1",
+                        "partner",
+                        "service",
+                        "all"
+                      ],
+                      "query": [
+                        {
+                          "key": "page",
+                          "value": "1"
+                        },
+                        {
+                          "key": "limit",
+                          "value": "10"
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "create service",
+                  "id": "4ca65cb1-2182-4985-8231-bd49e264df85",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "token",
+                        "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImFkMmMzNDc2LWFjOTYtNDBmZC1iYjFhLTc5Y2E0NmUxYzI2NyIsImZ1bGxuYW1lIjoiVHLhuqduIE5hbSBBbmgiLCJlbWFpbCI6eyJlbWFpbF9hZGRyZXNzIjoib25seW5hbmhAZ21haWwuY29tIiwidmVyaWZpZWQiOmZhbHNlfSwicGhvbmUiOnsicGhvbmVfbnVtYmVyIjoiMDk2NTMyNTkwMyIsInZlcmlmaWVkIjpmYWxzZX0sInVzZXJuYW1lIjoibmhpbXNtbm0iLCJyb2xlIjpbIlVzZXIiLCJTdGFmZiIsIlZldCIsIkNsaW5pYyIsIkFkbWluIl0sImFkZHJlc3MiOnsiY2l0eSI6IlRow6BuaCBwaOG7kSBIw6AgTuG7mWkiLCJkaXN0cmljdCI6IlF14bqtbiBMb25nIEJpw6puIiwid2FyZCI6IlBoxrDhu51uZyBMb25nIEJpw6puIiwiZGVzY3JpcHRpb24iOiJOZ8OhY2ggMTkvMzUzIMSRxrDhu51uZyBCw6F0IEto4buRaSJ9LCJyZXdhcmRfcG9pbnQiOjAsImRvYiI6IjIwMDMtMDktMjVUMDA6MDA6MDAuMDAwWiIsImlzX2FjdGl2ZSI6dHJ1ZSwiY3JlYXRlZEF0IjoiMjAyNS0xMC0yOVQwNDoyMTozMS4wMzZaIiwidXBkYXRlZEF0IjoiMjAyNS0xMC0yOVQwODoxOTowMC44MzdaIiwiaWF0IjoxNzYxNzI3NzIzLCJleHAiOjE3NjE4MTQxMjN9.RqtP3xyTA_cMWCxS5Tgta4HXR8HCs8jD4Z5sQdXFrJQ",
+                        "type": "text"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\r\n   \"name\":\"\",\r\n   \"description\":\"\" \r\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "http://localhost:3000/api/v1/partner/service",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "3000",
+                      "path": [
+                        "api",
+                        "v1",
+                        "partner",
+                        "service"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "get service by id",
+                  "id": "c2c530b9-2d1e-4107-a03f-c04bdbe008f0",
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "http://localhost:3000/api/v1/partner/service/",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "3000",
+                      "path": [
+                        "api",
+                        "v1",
+                        "partner",
+                        "service",
+                        ""
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "delete service",
+                  "id": "9513b85b-2934-42a0-848d-4cdff7fbee91",
+                  "request": {
+                    "method": "DELETE",
+                    "header": [
+                      {
+                        "key": "token",
+                        "value": "{{token}}",
+                        "type": "text"
+                      }
+                    ],
+                    "url": {
+                      "raw": "http://localhost:3000/api/v1/partner/service/aad9adab-c1ba-44bd-8733-3d373fbbdb72",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "3000",
+                      "path": [
+                        "api",
+                        "v1",
+                        "partner",
+                        "service",
+                        "aad9adab-c1ba-44bd-8733-3d373fbbdb72"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "get service by clinic id",
+                  "id": "6f541818-69b4-4b45-93a9-5f97d83a0b41",
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "http://localhost:3000/api/v1/partner/service/47108e3e-d687-435f-91af-58aca253afea",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "3000",
+                      "path": [
+                        "api",
+                        "v1",
+                        "partner",
+                        "service",
+                        "47108e3e-d687-435f-91af-58aca253afea"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "get all service by admin",
+                  "id": "333e9d30-6b74-4b06-b91d-c1bb84f1419a",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "token",
+                        "value": "{{token}}",
+                        "type": "text"
+                      }
+                    ],
+                    "url": {
+                      "raw": "http://localhost:3000/api/v1/partner/service/all/admin",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "3000",
+                      "path": [
+                        "api",
+                        "v1",
+                        "partner",
+                        "service",
+                        "all",
+                        "admin"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "deactive service",
+                  "id": "cffc390a-7a56-42c9-9a57-c5bc3191b952",
+                  "request": {
+                    "method": "PATCH",
+                    "header": [
+                      {
+                        "key": "token",
+                        "value": "{{token}}",
+                        "type": "text"
+                      }
+                    ],
+                    "url": {
+                      "raw": "http://localhost:3000 /api/v1/partner/service/57710c8e-b5e4-4d34-bb61-0d6be618b0cf/deactivate",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "3000 ",
+                      "path": [
+                        "api",
+                        "v1",
+                        "partner",
+                        "service",
+                        "57710c8e-b5e4-4d34-bb61-0d6be618b0cf",
+                        "deactivate"
+                      ]
+                    }
+                  },
+                  "response": []
+                }
+              ],
+              "id": "b09f2f4d-9e2d-4d4f-a7e4-fa108a8d6420"
+            },
+            {
+              "name": "shift",
+              "item": [
+                {
+                  "name": "create shift",
+                  "id": "c995a10a-3de2-4eef-ba3d-34e3f0d22b10",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "token",
+                        "value": "{{token}}",
+                        "type": "text"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\r\n  \"shift\": \"Morning\",\r\n  \"max_slot\": 100,\r\n  \"start_time\": \"08:00\",\r\n  \"end_time\": \"12:00\"\r\n}\r\n// {\r\n//   \"shift\": \"Afternoon\",\r\n//   \"max_slot\": 100,\r\n//   \"start_time\": \"12:01\",\r\n//   \"end_time\": \"17:00\"\r\n// }\r\n// {\r\n//   \"shift\": \"Evening\",\r\n//   \"max_slot\": 100,\r\n//   \"start_time\": \"18:00\",\r\n//   \"end_time\": \"21:30\"\r\n// }",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "http://localhost:3000/api/v1/partner/clinic/shift",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "3000",
+                      "path": [
+                        "api",
+                        "v1",
+                        "partner",
+                        "clinic",
+                        "shift"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "get all shift",
+                  "id": "9e4f68b6-3730-4a76-8da1-9692d4668df8",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "token",
+                        "value": "{{token}}",
+                        "type": "text"
+                      }
+                    ],
+                    "url": {
+                      "raw": "http://localhost:3000/api/v1/partner/clinic/shift?page=1&limit=10",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "3000",
+                      "path": [
+                        "api",
+                        "v1",
+                        "partner",
+                        "clinic",
+                        "shift"
+                      ],
+                      "query": [
+                        {
+                          "key": "page",
+                          "value": "1"
+                        },
+                        {
+                          "key": "limit",
+                          "value": "10"
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "update shift",
+                  "id": "bcb55635-3c38-4cf8-9a34-825f36d301b3",
+                  "request": {
+                    "method": "PUT",
+                    "header": [
+                      {
+                        "key": "token",
+                        "value": "{{token}}",
+                        "type": "text"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\r\n  \"shift\": \"Afternoon\",\r\n  \"max_slot\": 25,\r\n  \"start_time\": \"07:30\",\r\n  \"end_time\": \"11:30\",\r\n  \"is_active\": true\r\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "http://localhost:3000/api/v1/partner/clinic/shift/",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "3000",
+                      "path": [
+                        "api",
+                        "v1",
+                        "partner",
+                        "clinic",
+                        "shift",
+                        ""
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "get ship by clinic",
+                  "id": "34767357-de77-4123-9d63-e09128c29e9e",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "token",
+                        "value": "{{token}}",
+                        "type": "text"
+                      }
+                    ],
+                    "url": {
+                      "raw": "http://localhost:3000/api/v1/partner/clinic/shift/e9f23719-813b-407f-82fe-a1cde2fba1d0",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "3000",
+                      "path": [
+                        "api",
+                        "v1",
+                        "partner",
+                        "clinic",
+                        "shift",
+                        "e9f23719-813b-407f-82fe-a1cde2fba1d0"
+                      ],
+                      "query": [
+                        {
+                          "key": "token",
+                          "value": "{{token}}",
+                          "disabled": true
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "get shift by clinic id",
+                  "id": "3b133b57-848a-41b0-8c2a-c2f648e199f3",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "token",
+                        "value": "{{token}}",
+                        "type": "text"
+                      }
+                    ],
+                    "url": {
+                      "raw": "http://localhost:3000/api/v1/partner/clinic/shift/e9f23719-813b-407f-82fe-a1cde2fba1d0",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "3000",
+                      "path": [
+                        "api",
+                        "v1",
+                        "partner",
+                        "clinic",
+                        "shift",
+                        "e9f23719-813b-407f-82fe-a1cde2fba1d0"
+                      ],
+                      "query": [
+                        {
+                          "key": "token",
+                          "value": "{{token}}",
+                          "disabled": true
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "delete shift",
+                  "id": "930c0378-13f9-45f7-85c1-918620f487b6",
+                  "request": {
+                    "method": "DELETE",
+                    "header": [
+                      {
+                        "key": "token",
+                        "value": "{{token}}",
+                        "type": "text"
+                      }
+                    ],
+                    "url": {
+                      "raw": "http://localhost:3000/api/v1/partner/clinic/shift/e96b5d74-f1d7-46cb-aa19-a7acd9af256e",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "3000",
+                      "path": [
+                        "api",
+                        "v1",
+                        "partner",
+                        "clinic",
+                        "shift",
+                        "e96b5d74-f1d7-46cb-aa19-a7acd9af256e"
+                      ]
+                    }
+                  },
+                  "response": []
+                }
+              ],
+              "id": "3a574ecf-7f21-47c1-aaf2-aac927c9f19a"
+            },
+            {
+              "name": "createClinicForm",
+              "id": "9a4be69b-8d28-40c1-9bc2-50e08432ee60",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "token",
+                    "value": "{{token}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"clinic_name\": \"Phòng khám Thú y PetCare\",\r\n  \"email\": {\r\n    \"email_address\": \"info.petcare@gmail.com\"\r\n  },\r\n  \"phone\": {\r\n    \"phone_number\": \"+84905112232\"\r\n  },\r\n  \"license_number\": \"141/HCM-SNNPTNT\",\r\n  \"address\": {\r\n    \"city\": \"Ho Chi Minh\",\r\n    \"district\": \"District 1\",\r\n    \"ward\": \"Ben Nghe\",\r\n    \"detail\": \"789 Nguyen Hue\"\r\n  },\r\n  \"representative\": {\r\n    \"name\": \"Lê Văn Hùng\",\r\n    \"email\": {\r\n      \"email_address\": \"duynkhe170075@fpt.edu.vn\"\r\n    },\r\n    \"phone\": {\r\n      \"phone_number\": \"0905123156\"\r\n    },\r\n    \"identify_number\": \"079090106278\",\r\n    \"responsible_licenses\": [\"CCHN-TY-00122/SNN-HCM\"],\r\n    \"license_issued_date\": \"2023-01-20\"\r\n  }\r\n}\r\n",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://localhost:3000/api/v1/partner/clinic/register",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "v1",
+                    "partner",
+                    "clinic",
+                    "register"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "getAllClinicForm",
+              "id": "85429c8f-8508-4f55-ac78-fc2e04615fea",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "token",
+                    "value": "{{token}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "http://localhost:3000/api/v1/partner/clinic/form?page=2&limit=5",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "v1",
+                    "partner",
+                    "clinic",
+                    "form"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "2"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "5"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "updateStatusClinicForm",
+              "id": "ac2b72e5-1a41-4b8c-b0b9-71c00703ff60",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "token",
+                    "value": "{{token}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n\"status\": \"approved\",\r\n  \"note\": \"Phòng khám đủ điều kiện hoạt động\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://localhost:3000/api/v1/partner/clinic/status/d00ea5bb-8fb8-4bc2-bfe6-91632f24902d",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "v1",
+                    "partner",
+                    "clinic",
+                    "status",
+                    "d00ea5bb-8fb8-4bc2-bfe6-91632f24902d"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "activeClinic",
+              "id": "c4483a72-dbea-4b74-9907-5103005498d9",
+              "request": {
+                "method": "PATCH",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"is_active\":false\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://localhost:3000/api/v1/partner/clinic/active/5e6e1a38-3bd9-46bf-a3b5-60767d15a28f",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "v1",
+                    "partner",
+                    "clinic",
+                    "active",
+                    "5e6e1a38-3bd9-46bf-a3b5-60767d15a28f"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "findAllClinic",
+              "id": "93ba20b1-e8c0-4490-95df-4f5c18de3e7e",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:3000/api/v1/partner/clinic?page=1&limit=5",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "v1",
+                    "partner",
+                    "clinic"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "5"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "getClinicFormById",
+              "id": "14c5d190-a725-4758-9678-a5ebd5e5b03a",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:3000/api/v1/partner/clinic/form/da6ed44d-e793-4725-911d-4dd6bc043770",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "v1",
+                    "partner",
+                    "clinic",
+                    "form",
+                    "da6ed44d-e793-4725-911d-4dd6bc043770"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "get clinic by id",
+              "id": "750f5f15-3213-4b41-aa9a-1eadae471035",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "token",
+                    "value": "{{token}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "http://localhost:3000/api/v1/partner/clinic/1db5b90b-7021-4f04-ba7d-32a8d55f2b78",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "v1",
+                    "partner",
+                    "clinic",
+                    "1db5b90b-7021-4f04-ba7d-32a8d55f2b78"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "update clinic form",
+              "id": "051dc6cf-cb03-4b17-9bb0-d6e4df93996b",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "token_clinic",
+                    "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkYTU3ZjliMy1lMmU1LTQyNDEtYTUzYi1jOTU3ZjkwYmI3MmUiLCJ0eXBlIjoiY2xpbmljLXVwZGF0ZSIsImlhdCI6MTc2MjA1NTMzNiwiZXhwIjoxNzYyMDU2MjM2fQ.DD8B-NVBD73mXByRR_gqAf05bYXTDTcfFvACHPxgZ1c",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"clinic_name\": \"Phòng khám Thú y PetCare Premium1\",\r\n  \"email\": {\r\n    \"email_address\": \"contact@petcarepremium.vn\"\r\n  },\r\n  \"phone\": {\r\n    \"phone_number\": \"+84901234567\"\r\n  },\r\n  \"address\": {\r\n    \"city\": \"Hồ Chí Minh\",\r\n    \"district\": \"Quận 3\",\r\n    \"ward\": \"Phường 6\",\r\n    \"detail\": \"123 Cách Mạng Tháng 8\"\r\n  },\r\n  \"description\": \"Phòng khám thú y cao cấp, cung cấp dịch vụ chăm sóc, xét nghiệm và tiêm phòng toàn diện cho thú cưng.\",\r\n  \"logo_url\": \"https://cdn.petcarepremium.vn/logo.png\",\r\n  \"website\": \"https://petcarepremium.vn\"\r\n}\r\n",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://localhost:3000/api/v1/partner/verify-clinic/update-form/da57f9b3-e2e5-4241-a53b-c957f90bb72e",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "v1",
+                    "partner",
+                    "verify-clinic",
+                    "update-form",
+                    "da57f9b3-e2e5-4241-a53b-c957f90bb72e"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "clinic invite",
+              "id": "1f0b4ee8-c348-4c2f-bfbc-2a3f646e6a5f",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "token",
+                    "value": "{{token}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"email\":\"duycaduoc0704@gmail.com\",\r\n    \"role\":\"receptionist\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://localhost:3000/api/v1/partner/clinic/invitations",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "v1",
+                    "partner",
+                    "clinic",
+                    "invitations"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ],
+          "id": "c21380a8-f4b9-402a-94e0-6e49771d12bb"
+        },
+        {
+          "name": "vet",
+          "item": [
+            {
+              "name": "createVetForm",
+              "id": "54fc2528-661d-4e15-87fb-81bc2f0b4b31",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "token",
+                    "value": "{{token}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"specialty\": \"Thú y nội khoa\",\r\n  \"subSpecialties\": [\"Chẩn đoán hình ảnh\", \"Phẫu thuật cơ bản\"],\r\n  \"exp\": 5,\r\n  \"bio\": \"Bác sĩ thú y có hơn 5 năm kinh nghiệm trong điều trị thú cưng nhỏ và động vật ngoại lai.\",\r\n  \"social_link\": {\r\n    \"facebook\": \"https://www.facebook.com/bacsi.thuy\",\r\n    \"linkedin\": \"https://www.linkedin.com/in/bacsi-thuy\"\r\n  },\r\n  \"certifications\": [\r\n    {\r\n      \"name\": \"Chứng chỉ hành nghề thú y cấp quốc gia\",\r\n      \"link\": \"https://example.com/certificates/vet-license\"\r\n    },\r\n    {\r\n      \"name\": \"Chứng chỉ đào tạo thú y nâng cao\"\r\n    }\r\n  ],\r\n//   \"clinic_id\": [\"6523ac84c5e91234abcd1234\", \"6523ac84c5e91234abcd5678\"],\r\n  \"license_number\": \"VN-VET-2025-00123\",\r\n  \"license_image_url\": \"https://example.com/uploads/license_123.jpg\"\r\n}\r\n",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://localhost:3000/api/v1/partner/vet/register",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "v1",
+                    "partner",
+                    "vet",
+                    "register"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "update status for vet form",
+              "id": "b953a119-d99c-462f-9933-d907aec7e276",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "token",
+                    "value": "{{token}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"status\":\"approved\",\r\n    \"note\":\"Đơn tạo bác sĩ đã được duyệt\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://localhost:3000/api/v1/partner/vet/status/form/4572e78b-b8a7-48b0-ba28-34f91cb61759",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "v1",
+                    "partner",
+                    "vet",
+                    "status",
+                    "form",
+                    "4572e78b-b8a7-48b0-ba28-34f91cb61759"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "getAllVetForm",
+              "id": "d938beae-b47c-49db-8c9a-97cfe1223a2e",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:3000/api/v1/partner/vet/form?page=1&limit=10",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "v1",
+                    "partner",
+                    "vet",
+                    "form"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "accept invite",
+              "id": "9b0e88c4-4797-4eba-a71f-d6c5e20e24bb",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "token",
+                    "value": "{{token}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "http://localhost:3000/api/v1/partner/clinic/invitations/:token/accept",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "v1",
+                    "partner",
+                    "clinic",
+                    "invitations",
+                    ":token",
+                    "accept"
+                  ],
+                  "variable": [
+                    {
+                      "key": "token",
+                      "value": ""
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "reject invite",
+              "id": "576af20a-73d0-4545-8215-50e176220d6a",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "token",
+                    "value": "{{token}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "http://localhost:3000/api/v1/partner/clinic/invitations/:token/decline",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "v1",
+                    "partner",
+                    "clinic",
+                    "invitations",
+                    ":token",
+                    "decline"
+                  ],
+                  "variable": [
+                    {
+                      "key": "token",
+                      "value": ""
+                    }
+                  ]
+                }
+              },
+              "response": []
+            }
+          ],
+          "id": "4af8efa0-6ab8-4271-9b6f-b9209b6aab53"
+        }
+      ],
+      "id": "4a406e9b-4575-4e81-a1e5-93409db2766c"
+    },
+    {
+      "name": "VietOS",
+      "item": [
+        {
+          "name": "test",
+          "id": "59e52d3a-a582-404b-b127-0bfb3a3b1538",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"orderCode\": \"123456\",\r\n  \"amount\": 5000,\r\n  \"description\": \"Thanh toán\"\r\n}\r\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/api/v1/payments/test",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "api",
+                "v1",
+                "payments",
+                "test"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Tạo QR",
+          "id": "8b246f84-bb9f-4b3f-900b-a374b437f5ad",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"orderId\": \"12345467\",\r\n  \"amount\": 2000,\r\n  \"description\": \"Thanh toán\"\r\n}\r\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/api/v1/payments",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "api",
+                "v1",
+                "payments"
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "id": "e00e00fd-23f8-4107-bc1c-9ae48fb4317d"
+    }
+  ]
+}

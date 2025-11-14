@@ -1,0 +1,17 @@
+apiVersion: 1
+
+datasources:
+  # Nguồn dữ liệu số 1 (Metrics/Biểu đồ)
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090 # Trỏ đến service "prometheus"
+    isDefault: true # Đặt làm mặc định
+    editable: false
+
+  # Nguồn dữ liệu số 2 (Logs)
+  - name: Loki
+    type: loki
+    access: proxy
+    url: http://loki:3100 # Trỏ đến service "loki"
+    editable: false

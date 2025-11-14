@@ -1,0 +1,22 @@
+global:
+  scrape_interval: 15s #
+
+scrape_configs:
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["prometheus:9090"]
+
+  - job_name: "pettopia-services"
+    metrics_path: /metrics
+
+    static_configs:
+      - targets:
+          - "api-gateway-1:3000"
+          - "api-gateway-2:3000"
+          - "auth-service:3001"
+          - "billing-service:3007"
+          - "communication-service:3006"
+          - "customer-service:3002"
+          - "healthcare-service:3005"
+          - "partner-service:3004"
+          - "petcare-service:3003"

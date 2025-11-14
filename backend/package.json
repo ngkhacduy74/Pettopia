@@ -1,0 +1,11 @@
+{
+  "name": "pettopia-backend",
+  "private": true,
+  "scripts": {
+    "start": "concurrently -n gateway,auth,billing,comm,customer,healthcare,partner,petcare -c blue,green,yellow,magenta,cyan,red,white,gray       \"cd apps/api-gateway && npm run start\"       \"cd apps/auth-service && npm run start\"       \"cd apps/billing-service && npm run start\"       \"cd apps/communication-service && npm run start\"       \"cd apps/customer-service && npm run start\"       \"cd apps/healthcare-service && npm run start\"       \"cd apps/partner-service && npm run start\"       \"cd apps/petcare-service && npm run start\"",
+    "start:dev": "concurrently -n gateway,auth,billing,comm,customer,healthcare,partner,petcare -c blue,green,yellow,magenta,cyan,red,white,gray       \"cd apps/api-gateway && npm run start:dev\"       \"cd apps/auth-service && npm run start:dev\"       \"cd apps/billing-service && npm run start:dev\"       \"cd apps/communication-service && npm run start:dev\"       \"cd apps/customer-service && npm run start:dev\"       \"cd apps/healthcare-service && npm run start:dev\"       \"cd apps/partner-service && npm run start:dev\"       \"cd apps/petcare-service && npm run start:dev\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}
