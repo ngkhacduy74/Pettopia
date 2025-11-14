@@ -6,6 +6,7 @@ import {
   CreateAppointmentDto,
   UpdateAppointmentStatusDto,
   CancelAppointmentDto,
+  CreateAppointmentForCustomerDto,
 } from 'src/dto/appointment.dto';
 import { HttpStatus } from '@nestjs/common/enums';
 
@@ -218,6 +219,42 @@ export class AppointmentController {
       };
     } catch (error) {
       return handleRpcError('AppointmentController.getAppointmentById', error);
+    }
+  }
+
+  @MessagePattern({ cmd: 'createAppointmentForCustomer' })
+  async createAppointmentForCustomer(
+    @Payload()
+    payload: {
+      data: CreateAppointmentForCustomerDto;
+      partner_id: string;
+    },
+  ) {
+    try {
+      console.log('createAppointmentForCustomer payload:', {
+        partner_id: payload.partner_id,
+        data: payload.data,
+      });
+
+      const result = await this.appointmentService.createAppointmentForCustomer(
+        payload.data,
+        payload.partner_id,
+      );
+
+      return {
+        status: 'success',
+        message: 'Tạo lịch hẹn hộ khách hàng thành công',
+        data: result,
+      };
+    } catch (error) {
+      console.error('Error in createAppointmentForCustomer controller:', error);
+      console.error('Error details:', {
+        message: error.message,
+        status: error.status,
+        code: error.code,
+        response: error.response,
+      });
+      return handleRpcError('AppointmentController.createAppointmentForCustomer', error);
     }
   }
 }

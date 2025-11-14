@@ -1,14 +1,18 @@
 import { HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { ClientProxy, RpcException } from '@nestjs/microservices';
+import * as uuid from 'uuid';
+import { createRpcError } from 'src/common/error.detail';
 import {
   CreateAppointmentDto,
   UpdateAppointmentStatusDto,
   CancelAppointmentDto,
+  CreateAppointmentForCustomerDto,
 } from 'src/dto/appointment.dto';
 import { AppointmentRepository } from '../repositories/appointment.repositories';
 import {
   AppointmentStatus,
   AppointmentShift,
+  AppointmentCreatedBy,
 } from 'src/schemas/appoinment.schema';
 import { lastValueFrom } from 'rxjs';
 
@@ -35,6 +39,220 @@ export class AppointmentService {
   // Helper function để kiểm tra có phải Admin hoặc Staff không
   private isAdminOrStaff(userRole: string | string[]): boolean {
     return this.hasRole(userRole, 'Admin') || this.hasRole(userRole, 'Staff');
+  }
+
+  // Helper function để gửi email thông báo cập nhật trạng thái lịch hẹn
+  private async sendStatusUpdateEmail(
+    appointment: any,
+    newStatus: string,
+    userEmail: string,
+    userName: string,
+  ): Promise<void> {
+    try {
+      const appointmentDate = new Date(appointment.date);
+      const appointmentDateFormatted = appointmentDate.toLocaleDateString(
+        'vi-VN',
+        {
+          weekday: 'long',
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+        },
+      );
+
+      // Map status sang tiêu đề thân thiện
+      const statusMessages: { [key: string]: string } = {
+        [AppointmentStatus.Confirmed]: 'Lịch hẹn đã được xác nhận',
+        [AppointmentStatus.Completed]: 'Lịch hẹn đã hoàn thành',
+        [AppointmentStatus.Cancelled]: 'Lịch hẹn đã được hủy',
+        [AppointmentStatus.Pending_Confirmation]: 'Lịch hẹn đang chờ xác nhận',
+      };
+
+      const statusMessage = statusMessages[newStatus] || `Trạng thái lịch hẹn: ${newStatus}`;
+
+      // Lấy thông tin clinic
+      let clinicInfo: any = { clinic_name: 'Phòng khám', address: {} };
+      try {
+        const clinic = await lastValueFrom(
+          this.partnerService.send(
+            { cmd: 'getClinicById' },
+            { id: appointment.clinic_id },
+          ),
+        );
+        if (clinic) {
+          clinicInfo = clinic.data || clinic;
+        }
+      } catch (error) {
+        console.error('Không thể lấy thông tin clinic:', error);
+      }
+
+      // Lấy thông tin dịch vụ
+      let serviceNames: string[] = [];
+      try {
+        const services = await lastValueFrom(
+          this.partnerService.send(
+            { cmd: 'validateClinicServices' },
+            { clinic_id: appointment.clinic_id, service_ids: appointment.service_ids },
+          ),
+        );
+        if (services) {
+          serviceNames = services.map((s) => s.name || s.service_name);
+        }
+      } catch (error) {
+        console.error('Không thể lấy thông tin dịch vụ:', error);
+      }
+
+      // Lấy thông tin ca khám
+      let shiftInfo: any = { start_time: '', end_time: '' };
+      try {
+        const shift = await lastValueFrom(
+          this.partnerService.send(
+            { cmd: 'getClinicShiftById' },
+            { clinic_id: appointment.clinic_id, shift_id: appointment.shift },
+          ),
+        );
+        if (shift) {
+          shiftInfo = shift.data || shift;
+        }
+      } catch (error) {
+        console.error('Không thể lấy thông tin ca khám:', error);
+      }
+
+      const clinicAddress = clinicInfo.address
+        ? {
+            description:
+              clinicInfo.address?.detail ||
+              clinicInfo.address?.description ||
+              '',
+            ward: clinicInfo.address?.ward || '',
+            district: clinicInfo.address?.district || '',
+            city: clinicInfo.address?.city || '',
+          }
+        : { description: '', ward: '', district: '', city: '' };
+
+      await lastValueFrom(
+        this.authService.send(
+          { cmd: 'sendAppointmentStatusUpdate' },
+          {
+            email: userEmail,
+            appointmentDetails: {
+              userName: userName,
+              appointmentDate: appointmentDateFormatted,
+              appointmentTime: `${shiftInfo.start_time || ''} - ${shiftInfo.end_time || ''}`,
+              clinicName: clinicInfo.clinic_name || clinicInfo.name || 'Phòng khám',
+              clinicAddress: clinicAddress,
+              services: serviceNames,
+              appointmentId: appointment._id || appointment.id,
+              status: statusMessage,
+            },
+          },
+        ),
+      );
+    } catch (emailError) {
+      console.error('Không thể gửi email cập nhật trạng thái:', emailError);
+    }
+  }
+
+  // Helper function để gửi email thông báo hủy lịch hẹn kèm lý do
+  private async sendCancellationEmail(
+    appointment: any,
+    cancelReason: string,
+    userEmail: string,
+    userName: string,
+  ): Promise<void> {
+    try {
+      const appointmentDate = new Date(appointment.date);
+      const appointmentDateFormatted = appointmentDate.toLocaleDateString(
+        'vi-VN',
+        {
+          weekday: 'long',
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+        },
+      );
+
+      // Lấy thông tin clinic
+      let clinicInfo: any = { clinic_name: 'Phòng khám', address: {} };
+      try {
+        const clinic = await lastValueFrom(
+          this.partnerService.send(
+            { cmd: 'getClinicById' },
+            { id: appointment.clinic_id },
+          ),
+        );
+        if (clinic) {
+          clinicInfo = clinic.data || clinic;
+        }
+      } catch (error) {
+        console.error('Không thể lấy thông tin clinic:', error);
+      }
+
+      // Lấy thông tin dịch vụ
+      let serviceNames: string[] = [];
+      try {
+        const services = await lastValueFrom(
+          this.partnerService.send(
+            { cmd: 'validateClinicServices' },
+            { clinic_id: appointment.clinic_id, service_ids: appointment.service_ids },
+          ),
+        );
+        if (services) {
+          serviceNames = services.map((s) => s.name || s.service_name);
+        }
+      } catch (error) {
+        console.error('Không thể lấy thông tin dịch vụ:', error);
+      }
+
+      // Lấy thông tin ca khám
+      let shiftInfo: any = { start_time: '', end_time: '' };
+      try {
+        const shift = await lastValueFrom(
+          this.partnerService.send(
+            { cmd: 'getClinicShiftById' },
+            { clinic_id: appointment.clinic_id, shift_id: appointment.shift },
+          ),
+        );
+        if (shift) {
+          shiftInfo = shift.data || shift;
+        }
+      } catch (error) {
+        console.error('Không thể lấy thông tin ca khám:', error);
+      }
+
+      const clinicAddress = clinicInfo.address
+        ? {
+            description:
+              clinicInfo.address?.detail ||
+              clinicInfo.address?.description ||
+              '',
+            ward: clinicInfo.address?.ward || '',
+            district: clinicInfo.address?.district || '',
+            city: clinicInfo.address?.city || '',
+          }
+        : { description: '', ward: '', district: '', city: '' };
+
+      await lastValueFrom(
+        this.authService.send(
+          { cmd: 'sendAppointmentCancellation' },
+          {
+            email: userEmail,
+            appointmentDetails: {
+              userName: userName,
+              appointmentDate: appointmentDateFormatted,
+              appointmentTime: `${shiftInfo.start_time || ''} - ${shiftInfo.end_time || ''}`,
+              clinicName: clinicInfo.clinic_name || clinicInfo.name || 'Phòng khám',
+              clinicAddress: clinicAddress,
+              services: serviceNames,
+              appointmentId: appointment._id || appointment.id,
+              cancelReason: cancelReason || 'Không có lý do',
+            },
+          },
+        ),
+      );
+    } catch (emailError) {
+      console.error('Không thể gửi email hủy lịch hẹn:', emailError);
+    }
   }
 
   async createAppointment(
@@ -98,14 +316,43 @@ export class AppointmentService {
       //   });
       // }
 
+      // Lấy thông tin user để xác định role
+      const user = await lastValueFrom(
+        this.customerService.send({ cmd: 'getUserById' }, { id: user_id }),
+      ).catch(() => null);
+
+      if (!user) {
+        throw new RpcException({
+          status: HttpStatus.NOT_FOUND,
+          message: 'Không tìm thấy thông tin người dùng',
+        });
+      }
+
+      // Xác định customer và partner dựa trên role
+      const userRole = user.role || [];
+      const isUserRole = this.hasRole(userRole, 'User');
+      const isPartnerRole =
+        this.hasRole(userRole, 'Clinic') ||
+        this.hasRole(userRole, 'Staff') ||
+        this.hasRole(userRole, 'Admin');
+
       const appointmentDate = new Date(date);
-      const newAppointmentData = {
+      const newAppointmentData: any = {
         ...data,
         user_id,
         date: appointmentDate,
         shift: shift.data.shift,
         status: AppointmentStatus.Pending_Confirmation,
       };
+
+      // Gán customer hoặc partner dựa trên role
+      if (isUserRole) {
+        newAppointmentData.customer = user_id;
+        newAppointmentData.created_by = AppointmentCreatedBy.Customer;
+      } else if (isPartnerRole) {
+        newAppointmentData.partner = user_id;
+        newAppointmentData.created_by = AppointmentCreatedBy.Partner;
+      }
 
       const result =
         await this.appointmentRepositories.create(newAppointmentData);
@@ -193,17 +440,17 @@ export class AppointmentService {
       // Phân quyền dựa trên role
       if (this.hasRole(role, 'User')) {
         // USER: chỉ xem appointments của chính mình
-      if (!userId) {
-        throw new RpcException({
-          status: HttpStatus.BAD_REQUEST,
-          message: 'Thiếu thông tin người dùng',
-        });
-      }
+        if (!userId) {
+          throw new RpcException({
+            status: HttpStatus.BAD_REQUEST,
+            message: 'Thiếu thông tin người dùng',
+          });
+        }
         result = await this.appointmentRepositories.findByUserId(
-        userId,
-        page,
-        limit,
-      );
+          userId,
+          page,
+          limit,
+        );
       } else if (this.hasRole(role, 'Clinic')) {
         // CLINIC: xem appointments của phòng khám mình
         if (!clinicId) {
@@ -259,9 +506,8 @@ export class AppointmentService {
   ): Promise<any> {
     try {
       // Kiểm tra appointment có tồn tại không
-      const appointment = await this.appointmentRepositories.findById(
-        appointmentId,
-      );
+      const appointment =
+        await this.appointmentRepositories.findById(appointmentId);
 
       if (!appointment) {
         throw new RpcException({
@@ -291,6 +537,40 @@ export class AppointmentService {
         });
       }
 
+      // Gửi email thông báo cập nhật trạng thái
+      try {
+        let userEmail: string | undefined;
+        let userName: string = 'Quý khách';
+
+        // Lấy email từ user_id hoặc customer_email
+        if (appointment.user_id) {
+          const user = await lastValueFrom(
+            this.customerService.send(
+              { cmd: 'getUserById' },
+              { id: appointment.user_id },
+            ),
+          ).catch(() => null);
+
+          if (user) {
+            userEmail = user.email?.email_address || user.email;
+            userName = user.full_name || user.username || 'Quý khách';
+          }
+        } else if (appointment.customer_email) {
+          userEmail = appointment.customer_email;
+        }
+
+        if (userEmail) {
+          await this.sendStatusUpdateEmail(
+            appointment,
+            updateData.status,
+            userEmail,
+            userName,
+          );
+        }
+      } catch (emailError) {
+        console.error('Không thể gửi email thông báo cập nhật trạng thái:', emailError);
+      }
+
       return updated;
     } catch (error) {
       if (error instanceof RpcException) {
@@ -313,9 +593,8 @@ export class AppointmentService {
   ): Promise<any> {
     try {
       // Kiểm tra appointment có tồn tại không
-      const appointment = await this.appointmentRepositories.findById(
-        appointmentId,
-      );
+      const appointment =
+        await this.appointmentRepositories.findById(appointmentId);
 
       if (!appointment) {
         throw new RpcException({
@@ -372,7 +651,7 @@ export class AppointmentService {
 
       // Lấy lý do hủy từ cancelData (có thể là string hoặc undefined)
       const cancelReason = cancelData?.cancel_reason;
-      
+
       // Log để debug
       console.log('Cancel reason:', cancelReason, 'Type:', typeof cancelReason);
 
@@ -403,6 +682,40 @@ export class AppointmentService {
         });
       }
 
+      // Gửi email thông báo hủy lịch hẹn kèm lý do
+      try {
+        let userEmail: string | undefined;
+        let userName: string = 'Quý khách';
+
+        // Lấy email từ user_id hoặc customer_email
+        if (appointment.user_id) {
+          const user = await lastValueFrom(
+            this.customerService.send(
+              { cmd: 'getUserById' },
+              { id: appointment.user_id },
+            ),
+          ).catch(() => null);
+
+          if (user) {
+            userEmail = user.email?.email_address || user.email;
+            userName = user.full_name || user.username || 'Quý khách';
+          }
+        } else if (appointment.customer_email) {
+          userEmail = appointment.customer_email;
+        }
+
+        if (userEmail) {
+          await this.sendCancellationEmail(
+            appointment,
+            cancelReason || '',
+            userEmail,
+            userName,
+          );
+        }
+      } catch (emailError) {
+        console.error('Không thể gửi email thông báo hủy lịch hẹn:', emailError);
+      }
+
       return updated;
     } catch (error) {
       if (error instanceof RpcException) {
@@ -424,9 +737,8 @@ export class AppointmentService {
   ): Promise<any> {
     try {
       // Tìm appointment
-      const appointment = await this.appointmentRepositories.findById(
-        appointmentId,
-      );
+      const appointment =
+        await this.appointmentRepositories.findById(appointmentId);
 
       if (!appointment) {
         throw new RpcException({
@@ -482,6 +794,319 @@ export class AppointmentService {
         status: HttpStatus.INTERNAL_SERVER_ERROR,
         message: error.message || 'Lỗi khi lấy thông tin lịch hẹn',
       });
+    }
+  }
+
+  async createAppointmentForCustomer(
+    data: CreateAppointmentForCustomerDto,
+    partner_id: string,
+  ): Promise<any> {
+    const {
+      clinic_id,
+      service_ids,
+      pet_ids,
+      shift_id,
+      date,
+      customer_email,
+      customer_phone,
+    } = data;
+
+    try {
+      // Kiểm tra partner có quyền (phải là Clinic, Staff, hoặc Admin)
+      let partner;
+      try {
+        partner = await lastValueFrom(
+          this.customerService.send({ cmd: 'getUserById' }, { id: partner_id }),
+        );
+      } catch (error) {
+        console.error('Error getting partner info:', error);
+        throw createRpcError(
+          HttpStatus.NOT_FOUND,
+          `Không tìm thấy thông tin partner: ${error.message || 'Lỗi khi lấy thông tin người dùng'}`,
+          'Partner Not Found',
+          { partner_id, originalError: error.message },
+        );
+      }
+
+      if (!partner) {
+        throw createRpcError(
+          HttpStatus.NOT_FOUND,
+          'Không tìm thấy thông tin partner',
+          'Partner Not Found',
+          { partner_id },
+        );
+      }
+
+      const partnerRole = partner.role || [];
+      const isPartnerRole =
+        this.hasRole(partnerRole, 'Clinic') ||
+        this.hasRole(partnerRole, 'Staff') ||
+        this.hasRole(partnerRole, 'Admin');
+
+      if (!isPartnerRole) {
+        throw createRpcError(
+          HttpStatus.FORBIDDEN,
+          'Chỉ có Clinic, Staff hoặc Admin mới có quyền đặt lịch hộ',
+          'Permission Denied',
+          {
+            partner_id,
+            partner_roles: partnerRole,
+          },
+        );
+      }
+
+      // Validate clinic, services, shift
+      let clinic, services, shift;
+      try {
+        [clinic, services, shift] = await Promise.all([
+          lastValueFrom(
+            this.partnerService.send(
+              { cmd: 'getClinicById' },
+              { id: clinic_id },
+            ),
+          ),
+          lastValueFrom(
+            this.partnerService.send(
+              { cmd: 'validateClinicServices' },
+              { clinic_id, service_ids },
+            ),
+          ),
+          lastValueFrom(
+            this.partnerService.send(
+              { cmd: 'getClinicShiftById' },
+              { clinic_id, shift_id },
+            ),
+          ),
+        ]);
+      } catch (error) {
+        console.error('Error validating clinic/services/shift:', error);
+        throw createRpcError(
+          HttpStatus.BAD_REQUEST,
+          `Lỗi khi xác thực thông tin: ${error.message || 'Không thể lấy thông tin phòng khám, dịch vụ hoặc ca khám'}`,
+          'Validation Error',
+          {
+            clinic_id,
+            service_ids,
+            shift_id,
+            originalError: error.message,
+          },
+        );
+      }
+
+      const clinicData = clinic?.data || clinic;
+      if (!clinicData || clinicData.is_active === false) {
+        throw createRpcError(
+          HttpStatus.NOT_FOUND,
+          'Phòng khám không tồn tại hoặc đã ngừng hoạt động',
+          'Clinic Not Found',
+          { clinic_id, clinic_response: clinic },
+        );
+      }
+
+      if (!services || services.length !== service_ids.length) {
+        throw createRpcError(
+          HttpStatus.BAD_REQUEST,
+          'Một hoặc nhiều dịch vụ không tồn tại hoặc không thuộc phòng khám này',
+          'Invalid Services',
+          {
+            clinic_id,
+            requested_service_ids: service_ids,
+            found_services_count: services?.length || 0,
+            services_response: services,
+          },
+        );
+      }
+
+      const shiftData = shift?.data || shift;
+      if (!shiftData) {
+        throw createRpcError(
+          HttpStatus.BAD_REQUEST,
+          'Ca khám không tồn tại hoặc không thuộc phòng khám này',
+          'Shift Not Found',
+          { clinic_id, shift_id, shift_response: shift },
+        );
+      }
+
+      // Tìm user theo email hoặc phone
+      let customerUser: any = null;
+
+      // Thử tìm theo email trước
+      try {
+        const userByEmail = await lastValueFrom(
+          this.customerService.send(
+            { cmd: 'getUserByEmailForAuth' },
+            { email_address: customer_email },
+          ),
+        );
+
+        // getUserByEmailForAuth trả về User object nếu tìm thấy
+        if (userByEmail && userByEmail.id) {
+          customerUser = userByEmail;
+        }
+      } catch (error) {
+        // Không tìm thấy theo email, thử tìm theo phone
+        try {
+          const usersByPhone = await lastValueFrom(
+            this.customerService.send(
+              { cmd: 'getAllUsers' },
+              {
+                page: 1,
+                limit: 1,
+                phone_number: customer_phone,
+              },
+            ),
+          );
+
+          if (
+            usersByPhone &&
+            usersByPhone.items &&
+            usersByPhone.items.length > 0
+          ) {
+            customerUser = usersByPhone.items[0];
+          }
+        } catch (phoneError) {
+          // User không tồn tại, sẽ tạo appointment với email và phone
+          console.log(
+            'User không tồn tại, sẽ tạo appointment với thông tin liên hệ',
+          );
+        }
+      }
+
+      const appointmentDate = new Date(date);
+
+      const newAppointmentData: any = {
+        clinic_id,
+        service_ids,
+        pet_ids,
+        date: appointmentDate,
+        shift: shiftData.shift || shiftData.shift_name,
+        partner: partner_id,
+        created_by: AppointmentCreatedBy.Partner,
+      };
+
+      if (customerUser) {
+        // User đã tồn tại: gán customer và user_id
+        newAppointmentData.user_id = customerUser.id;
+        newAppointmentData.customer = customerUser.id;
+        newAppointmentData.status = AppointmentStatus.Confirmed;
+      } else {
+        // User chưa tồn tại: lưu email và phone, status = Confirmed
+        // Tạo một user_id tạm thời hoặc để null (nhưng schema yêu cầu user_id)
+        // Tạm thời tạo một UUID tạm hoặc sử dụng một giá trị đặc biệt
+        // Tốt nhất là tạo một user_id placeholder hoặc để null nếu có thể
+        // Vì schema yêu cầu user_id, ta sẽ tạo một UUID tạm
+        const tempUserId = uuid.v4();
+        newAppointmentData.user_id = tempUserId; // UUID tạm
+        newAppointmentData.customer_email = customer_email;
+        newAppointmentData.customer_phone = customer_phone;
+        newAppointmentData.status = AppointmentStatus.Confirmed;
+      }
+
+      const result =
+        await this.appointmentRepositories.create(newAppointmentData);
+
+      // Gửi email xác nhận đặt lịch thành công (cho cả user có tài khoản và chưa có tài khoản)
+      try {
+        const appointmentDateFormatted = appointmentDate.toLocaleDateString(
+          'vi-VN',
+          {
+            weekday: 'long',
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+          },
+        );
+
+        // Xác định email và tên người dùng
+        let userEmail: string;
+        let userName: string;
+
+        if (customerUser) {
+          // User đã có tài khoản
+          userEmail = customerUser.email?.email_address || customerUser.email;
+          userName =
+            customerUser.fullname || customerUser.username || 'Quý khách';
+        } else {
+          // User chưa có tài khoản, sử dụng email và tên mặc định
+          userEmail = customer_email;
+          userName = 'Quý khách';
+        }
+
+        // Format địa chỉ clinic để phù hợp với email template
+        const clinicAddress = clinicData.address
+          ? {
+              description:
+                clinicData.address.detail ||
+                clinicData.address.description ||
+                '',
+              ward: clinicData.address.ward || '',
+              district: clinicData.address.district || '',
+              city: clinicData.address.city || '',
+            }
+          : {
+              description: '',
+              ward: '',
+              district: '',
+              city: '',
+            };
+
+        await lastValueFrom(
+          this.authService.send(
+            { cmd: 'sendAppointmentConfirmation' },
+            {
+              email: userEmail,
+              appointmentDetails: {
+                userName: userName,
+                appointmentDate: appointmentDateFormatted,
+                appointmentTime: `${shiftData.start_time || shiftData.startTime} - ${shiftData.end_time || shiftData.endTime}`,
+                clinicName: clinicData.clinic_name || clinicData.name,
+                clinicAddress: clinicAddress,
+                services: services.map((s) => s.name || s.service_name),
+                appointmentId: result.id,
+              },
+            },
+          ),
+        );
+      } catch (emailError) {
+        console.error('Không thể gửi email xác nhận:', emailError);
+      }
+
+      return result;
+    } catch (error) {
+      console.error('Error creating appointment for customer:', error);
+      console.error('Error stack:', error.stack);
+      console.error('Error details:', {
+        message: error.message,
+        code: error.code,
+        status: error.status,
+        response: error.response,
+      });
+
+      if (error.code === 11000) {
+        throw createRpcError(
+          HttpStatus.CONFLICT,
+          'Lịch hẹn bị trùng lặp.',
+          'Duplicate Appointment',
+          { errorCode: error.code },
+        );
+      }
+
+      if (error instanceof RpcException) {
+        throw error;
+      }
+
+      // Báo lỗi chi tiết với thông tin đầy đủ
+      throw createRpcError(
+        error.status || HttpStatus.INTERNAL_SERVER_ERROR,
+        error.message || 'Lỗi không xác định khi tạo lịch hẹn hộ khách hàng',
+        error.name || 'Internal Server Error',
+        {
+          originalError: error.message,
+          stack:
+            process.env.NODE_ENV === 'development' ? error.stack : undefined,
+          code: error.code,
+        },
+      );
     }
   }
 }

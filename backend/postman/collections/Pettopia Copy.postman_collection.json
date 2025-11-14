@@ -1,10 +1,8 @@
 {
   "info": {
-    "_postman_id": "d0bd6272-7cb4-4da6-9c6f-5a6b80a9492d",
+    "_postman_id": "dad1a322-c05d-4823-be2f-6b622a9339c6",
     "name": "Pettopia Copy",
-    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "_exporter_id": "49542768",
-    "_collection_link": "https://nguyenkhacduy07042003-6765475.postman.co/workspace/15b043eb-ea0e-4fd7-861e-aa52f542adb3/collection/49542768-d0bd6272-7cb4-4da6-9c6f-5a6b80a9492d?action=share&source=collection_link&creator=49542768"
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
     {
@@ -12,10 +10,8 @@
       "item": [
         {
           "name": "register",
-          "id": "5ae0c4ba-8365-487d-911e-4bda9e613010",
           "request": {
             "method": "POST",
-            "header": [],
             "body": {
               "mode": "raw",
               "raw": "{\r\n    \"fullname\":\"Nguyễn VIệt Đức\",\r\n    \"gender\":\"male\",\r\n    \"email_address\":\"nvd30022@gmail.com\",\r\n    \"phone_number\":\"0975489030\",\r\n    \"username\":\"nvduc30021\",\r\n    \"password\":\"Khacduy1212**\",\r\n    \"dob\":\"2003-04-07\",\r\n    \"address\": {\r\n        \"city\":\"Hanoi\",\r\n        \"district\":\"Hà đông\",\r\n        \"ward\":\"Mộ lao\",\r\n        \"description\":\"171 khuat duy tien\"\r\n\r\n    }\r\n}",
@@ -39,8 +35,7 @@
                 "register"
               ]
             }
-          },
-          "response": []
+          }
         },
         {
           "name": "login",
@@ -48,7 +43,6 @@
             {
               "listen": "test",
               "script": {
-                "id": "f28e3d49-eb0b-41b8-a164-ef507fd2e831",
                 "exec": [
                   "const res = pm.response.json();\r",
                   "console.log(\"Response body:\", res);\r",
@@ -61,16 +55,21 @@
                   "}\r",
                   ""
                 ],
-                "type": "text/javascript",
-                "packages": {},
-                "requests": {}
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  ""
+                ],
+                "type": "text/javascript"
               }
             }
           ],
-          "id": "955f3ac4-16a6-476b-816d-f3852d33cd2b",
           "request": {
             "method": "POST",
-            "header": [],
             "body": {
               "mode": "raw",
               "raw": "//Admin , Staff\r\n// {\r\n//     \"username\": \"quynhmai811\",\r\n//     \"password\": \"Khacduy1212**\"\r\n// }\r\n\r\n\r\n//User //Clinic\r\n// {\r\n//     \"username\": \"khacduy07041\",\r\n//     \"password\": \"Khacduy1212**\"\r\n// }\r\n\r\n//User\r\n// {\r\n//     \"username\": \"nvduc3002\",\r\n//     \"password\": \"Khacduy1212**\"\r\n// }\r\n\r\n\r\n\r\n//Clinic \r\n// {\r\n//     \"username\": \"info.petcare12@gmail.com\",\r\n//     \"password\": \"CDbx8$nBTbQj\"\r\n\r\n// }",
@@ -94,15 +93,12 @@
                 "login"
               ]
             }
-          },
-          "response": []
+          }
         },
         {
           "name": "test",
-          "id": "5123c1f5-2f37-43dc-babe-5c7806ac5b8b",
           "request": {
             "method": "GET",
-            "header": [],
             "url": {
               "raw": "http://localhost:3000/api/v1/auth/test",
               "protocol": "http",
@@ -117,15 +113,12 @@
                 "test"
               ]
             }
-          },
-          "response": []
+          }
         },
         {
           "name": "invite-vet",
-          "id": "5e9b6b8f-84fe-4173-9f38-bdf07218eff1",
           "request": {
             "method": "POST",
-            "header": [],
             "body": {
               "mode": "raw",
               "raw": "{\r\n    \"email\": \"duynkhe170075@fpt.edu.vn\"\r\n}",
@@ -149,15 +142,12 @@
                 "invite-vet"
               ]
             }
-          },
-          "response": []
+          }
         },
         {
           "name": "sendEmailOtp",
-          "id": "6b16ddb3-f6ff-4bcf-9472-c032e0fbeaaf",
           "request": {
             "method": "POST",
-            "header": [],
             "body": {
               "mode": "raw",
               "raw": "// {\r\n//     \"email\":\"duynkhe170075@fpt.edu.vn\"\r\n// }\r\n\r\n{\r\n    \"email\":\"onlynanh@gmail.com\"\r\n}",
@@ -181,12 +171,10 @@
                 "send-otp-email"
               ]
             }
-          },
-          "response": []
+          }
         },
         {
           "name": "send-clinic-verification",
-          "id": "e6f9e735-6e78-4b11-bc1d-f5d3591ee4d9",
           "request": {
             "method": "POST",
             "header": [
@@ -219,15 +207,12 @@
                 "send-clinic-verification"
               ]
             }
-          },
-          "response": []
+          }
         },
         {
           "name": "verifi clinic token",
-          "id": "71b32ee3-0ac8-47a0-9703-5fd749ead8c7",
           "request": {
             "method": "GET",
-            "header": [],
             "url": {
               "raw": "http://localhost:3000/api/v1/auth/verify/clinic?token=42ae117b-789e-40af-b464-107611d6709d",
               "protocol": "http",
@@ -249,15 +234,12 @@
                 }
               ]
             }
-          },
-          "response": []
+          }
         },
         {
           "name": "convert location",
-          "id": "15dedf8b-6b25-4687-b8ab-9a2d07989958",
           "request": {
             "method": "POST",
-            "header": [],
             "body": {
               "mode": "raw",
               "raw": "{\r\n    \"address\":\"Mộ Lao, Hà Đông, Việt Nam\"\r\n}",
@@ -282,21 +264,17 @@
                 "location"
               ]
             }
-          },
-          "response": []
+          }
         }
-      ],
-      "id": "1181154c-d53d-4bb3-8d7e-c8361446cdcd"
+      ]
     },
     {
       "name": "customer",
       "item": [
         {
           "name": "getUserById",
-          "id": "1b28e703-3896-42a6-a96a-eabd99524e92",
           "request": {
             "method": "GET",
-            "header": [],
             "url": {
               "raw": "http://localhost:3000/api/v1/customer/",
               "protocol": "http",
@@ -311,12 +289,10 @@
                 ""
               ]
             }
-          },
-          "response": []
+          }
         },
         {
           "name": "add role user",
-          "id": "e475cc74-b995-4cce-a3d8-fd884bed31bc",
           "request": {
             "method": "PATCH",
             "header": [
@@ -350,12 +326,10 @@
                 "add-role"
               ]
             }
-          },
-          "response": []
+          }
         },
         {
           "name": "get all user",
-          "id": "1bd98ace-9975-4113-881b-4f4fd392778d",
           "request": {
             "method": "GET",
             "header": [
@@ -392,12 +366,10 @@
                 }
               ]
             }
-          },
-          "response": []
+          }
         },
         {
           "name": "total detail account",
-          "id": "544f5b54-09d6-49c3-8ec6-6cfefb098c1d",
           "request": {
             "method": "GET",
             "header": [
@@ -422,12 +394,10 @@
                 "detail"
               ]
             }
-          },
-          "response": []
+          }
         },
         {
           "name": "update status",
-          "id": "7c817156-66b8-4885-8283-5e2a3973c688",
           "request": {
             "method": "PATCH",
             "header": [
@@ -461,18 +431,15 @@
                 "status"
               ]
             }
-          },
-          "response": []
+          }
         }
-      ],
-      "id": "b4ec5470-7ac0-499c-a506-5a3a262175ac"
+      ]
     },
     {
       "name": "healthcare",
       "item": [
         {
           "name": "create appointment",
-          "id": "43fee40d-a339-4642-8af1-9615b51d5993",
           "request": {
             "method": "POST",
             "header": [
@@ -505,12 +472,10 @@
                 "appointment"
               ]
             }
-          },
-          "response": []
+          }
         },
         {
           "name": "get appointment",
-          "id": "eff7d4cc-d9b6-4bcc-9893-77ed7b869734",
           "request": {
             "method": "GET",
             "header": [
@@ -544,12 +509,10 @@
                 }
               ]
             }
-          },
-          "response": []
+          }
         },
         {
           "name": "detail appointment",
-          "id": "528bc49b-5f15-4ebc-967a-1d8459aeeefa",
           "request": {
             "method": "GET",
             "header": [
@@ -560,7 +523,7 @@
               }
             ],
             "url": {
-              "raw": "http://localhost:3000/api/v1/healthcare/appointments/{appointmentId}",
+              "raw": "http://localhost:3000/api/v1/healthcare/appointments/83adff1c-66cc-4e7d-9822-fe2f2af9b41c",
               "protocol": "http",
               "host": [
                 "localhost"
@@ -571,15 +534,13 @@
                 "v1",
                 "healthcare",
                 "appointments",
-                "{appointmentId}"
+                "83adff1c-66cc-4e7d-9822-fe2f2af9b41c"
               ]
             }
-          },
-          "response": []
+          }
         },
         {
           "name": "update status appointment",
-          "id": "9d468ae4-9e9b-427d-bc2d-7afa7486040a",
           "request": {
             "method": "PATCH",
             "header": [
@@ -614,12 +575,10 @@
                 "status"
               ]
             }
-          },
-          "response": []
+          }
         },
         {
           "name": "cancel appointmet",
-          "id": "6a84d3eb-0312-4a62-885b-dbaa7db8561b",
           "request": {
             "method": "PATCH",
             "header": [
@@ -649,18 +608,53 @@
                 "cancel"
               ]
             }
-          },
-          "response": []
+          }
+        },
+        {
+          "name": "clinic create appointment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "token",
+                "value": "{{token}}",
+                "type": "text",
+                "uuid": "8a29cf71-2108-48f6-bea3-d45b14f4e7bc"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"clinic_id\":\"47108e3e-d687-435f-91af-58aca253afea\",\r\n    \"pet_ids\":[\"675affca-cd71-4cb2-b7f9-25a5a25e349e\"],\r\n    \"service_ids\":[\"57710c8e-b5e4-4d34-bb61-0d6be618b0cf\"],\r\n    \"date\":\"2025-11-20\",\r\n    \"shift_id\":\"670038a5-dfa5-412e-b862-918a6a6a7169\",\r\n\"customer_email\": \"customer@example.com\",\r\n  \"customer_phone\": \"0123456789\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/api/v1/healthcare/appointment/for-customer",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "api",
+                "v1",
+                "healthcare",
+                "appointment",
+                "for-customer"
+              ]
+            }
+          }
         }
-      ],
-      "id": "9e6dd8ed-13c3-458a-91e2-c665e8105f68"
+      ]
     },
     {
       "name": "petcare",
       "item": [
         {
           "name": "createPet",
-          "id": "caecd600-667e-401e-a7ed-72a33f62ac00",
           "request": {
             "method": "POST",
             "header": [
@@ -693,15 +687,12 @@
                 "create"
               ]
             }
-          },
-          "response": []
+          }
         },
         {
           "name": "Delete",
-          "id": "064a526e-ec1b-4439-8a77-c1941b600c93",
           "request": {
             "method": "DELETE",
-            "header": [],
             "url": {
               "raw": "http://localhost:3000/api/v1/pet/058f159b-3112-43d3-8712-e741aa958a3c",
               "protocol": "http",
@@ -716,15 +707,12 @@
                 "058f159b-3112-43d3-8712-e741aa958a3c"
               ]
             }
-          },
-          "response": []
+          }
         },
         {
           "name": "CreatwithCloudinary",
-          "id": "51bd1150-76af-45c4-849d-c972a6f30871",
           "request": {
             "method": "POST",
-            "header": [],
             "body": {
               "mode": "formdata",
               "formdata": [
@@ -789,15 +777,12 @@
                 "create"
               ]
             }
-          },
-          "response": []
+          }
         },
         {
           "name": "UpdatePet",
-          "id": "21df71b6-b62c-494c-ac04-957e2472459b",
           "request": {
             "method": "PATCH",
-            "header": [],
             "body": {
               "mode": "formdata",
               "formdata": [
@@ -822,34 +807,27 @@
                 "6f5f0a57-bf23-4850-84e5-90f0263871d2"
               ]
             }
-          },
-          "response": []
+          }
         }
-      ],
-      "id": "cb3d989b-3a99-430a-95f6-e70bac77c0d4"
+      ]
     },
     {
       "name": "billing",
-      "item": [],
-      "id": "82d09756-423c-4005-80a1-46b32bf61cea"
+      "item": []
     },
     {
       "name": "communication",
       "item": [
         {
           "name": "New Request",
-          "id": "1377687d-d133-47c7-866a-6d64c3021908",
           "request": {
             "method": "GET",
-            "header": [],
             "url": {
               "raw": ""
             }
-          },
-          "response": []
+          }
         }
-      ],
-      "id": "1605e771-a218-4e83-8bfe-ce39b4fed6fa"
+      ]
     },
     {
       "name": "partner",
@@ -862,10 +840,6 @@
               "item": [
                 {
                   "name": "get all service follow clinic",
-                  "id": "27ea8313-ba71-4a78-b283-57aa0a5833b4",
-                  "protocolProfileBehavior": {
-                    "disableBodyPruning": true
-                  },
                   "request": {
                     "method": "GET",
                     "header": [
@@ -909,12 +883,10 @@
                         }
                       ]
                     }
-                  },
-                  "response": []
+                  }
                 },
                 {
                   "name": "create service",
-                  "id": "4ca65cb1-2182-4985-8231-bd49e264df85",
                   "request": {
                     "method": "POST",
                     "header": [
@@ -947,15 +919,12 @@
                         "service"
                       ]
                     }
-                  },
-                  "response": []
+                  }
                 },
                 {
                   "name": "get service by id",
-                  "id": "c2c530b9-2d1e-4107-a03f-c04bdbe008f0",
                   "request": {
                     "method": "GET",
-                    "header": [],
                     "url": {
                       "raw": "http://localhost:3000/api/v1/partner/service/",
                       "protocol": "http",
@@ -971,12 +940,10 @@
                         ""
                       ]
                     }
-                  },
-                  "response": []
+                  }
                 },
                 {
                   "name": "delete service",
-                  "id": "9513b85b-2934-42a0-848d-4cdff7fbee91",
                   "request": {
                     "method": "DELETE",
                     "header": [
@@ -1001,15 +968,12 @@
                         "aad9adab-c1ba-44bd-8733-3d373fbbdb72"
                       ]
                     }
-                  },
-                  "response": []
+                  }
                 },
                 {
                   "name": "get service by clinic id",
-                  "id": "6f541818-69b4-4b45-93a9-5f97d83a0b41",
                   "request": {
                     "method": "GET",
-                    "header": [],
                     "url": {
                       "raw": "http://localhost:3000/api/v1/partner/service/47108e3e-d687-435f-91af-58aca253afea",
                       "protocol": "http",
@@ -1025,12 +989,10 @@
                         "47108e3e-d687-435f-91af-58aca253afea"
                       ]
                     }
-                  },
-                  "response": []
+                  }
                 },
                 {
                   "name": "get all service by admin",
-                  "id": "333e9d30-6b74-4b06-b91d-c1bb84f1419a",
                   "request": {
                     "method": "GET",
                     "header": [
@@ -1056,12 +1018,10 @@
                         "admin"
                       ]
                     }
-                  },
-                  "response": []
+                  }
                 },
                 {
                   "name": "deactive service",
-                  "id": "cffc390a-7a56-42c9-9a57-c5bc3191b952",
                   "request": {
                     "method": "PATCH",
                     "header": [
@@ -1087,18 +1047,15 @@
                         "deactivate"
                       ]
                     }
-                  },
-                  "response": []
+                  }
                 }
-              ],
-              "id": "b09f2f4d-9e2d-4d4f-a7e4-fa108a8d6420"
+              ]
             },
             {
               "name": "shift",
               "item": [
                 {
                   "name": "create shift",
-                  "id": "c995a10a-3de2-4eef-ba3d-34e3f0d22b10",
                   "request": {
                     "method": "POST",
                     "header": [
@@ -1132,12 +1089,10 @@
                         "shift"
                       ]
                     }
-                  },
-                  "response": []
+                  }
                 },
                 {
                   "name": "get all shift",
-                  "id": "9e4f68b6-3730-4a76-8da1-9692d4668df8",
                   "request": {
                     "method": "GET",
                     "header": [
@@ -1172,12 +1127,10 @@
                         }
                       ]
                     }
-                  },
-                  "response": []
+                  }
                 },
                 {
                   "name": "update shift",
-                  "id": "bcb55635-3c38-4cf8-9a34-825f36d301b3",
                   "request": {
                     "method": "PUT",
                     "header": [
@@ -1212,12 +1165,10 @@
                         ""
                       ]
                     }
-                  },
-                  "response": []
+                  }
                 },
                 {
                   "name": "get ship by clinic",
-                  "id": "34767357-de77-4123-9d63-e09128c29e9e",
                   "request": {
                     "method": "GET",
                     "header": [
@@ -1250,12 +1201,10 @@
                         }
                       ]
                     }
-                  },
-                  "response": []
+                  }
                 },
                 {
                   "name": "get shift by clinic id",
-                  "id": "3b133b57-848a-41b0-8c2a-c2f648e199f3",
                   "request": {
                     "method": "GET",
                     "header": [
@@ -1288,12 +1237,10 @@
                         }
                       ]
                     }
-                  },
-                  "response": []
+                  }
                 },
                 {
                   "name": "delete shift",
-                  "id": "930c0378-13f9-45f7-85c1-918620f487b6",
                   "request": {
                     "method": "DELETE",
                     "header": [
@@ -1319,15 +1266,12 @@
                         "e96b5d74-f1d7-46cb-aa19-a7acd9af256e"
                       ]
                     }
-                  },
-                  "response": []
+                  }
                 }
-              ],
-              "id": "3a574ecf-7f21-47c1-aaf2-aac927c9f19a"
+              ]
             },
             {
               "name": "createClinicForm",
-              "id": "9a4be69b-8d28-40c1-9bc2-50e08432ee60",
               "request": {
                 "method": "POST",
                 "header": [
@@ -1361,12 +1305,10 @@
                     "register"
                   ]
                 }
-              },
-              "response": []
+              }
             },
             {
               "name": "getAllClinicForm",
-              "id": "85429c8f-8508-4f55-ac78-fc2e04615fea",
               "request": {
                 "method": "GET",
                 "header": [
@@ -1401,12 +1343,10 @@
                     }
                   ]
                 }
-              },
-              "response": []
+              }
             },
             {
               "name": "updateStatusClinicForm",
-              "id": "ac2b72e5-1a41-4b8c-b0b9-71c00703ff60",
               "request": {
                 "method": "POST",
                 "header": [
@@ -1441,15 +1381,12 @@
                     "d00ea5bb-8fb8-4bc2-bfe6-91632f24902d"
                   ]
                 }
-              },
-              "response": []
+              }
             },
             {
               "name": "activeClinic",
-              "id": "c4483a72-dbea-4b74-9907-5103005498d9",
               "request": {
                 "method": "PATCH",
-                "header": [],
                 "body": {
                   "mode": "raw",
                   "raw": "{\r\n    \"is_active\":false\r\n}",
@@ -1475,15 +1412,12 @@
                     "5e6e1a38-3bd9-46bf-a3b5-60767d15a28f"
                   ]
                 }
-              },
-              "response": []
+              }
             },
             {
               "name": "findAllClinic",
-              "id": "93ba20b1-e8c0-4490-95df-4f5c18de3e7e",
               "request": {
                 "method": "GET",
-                "header": [],
                 "url": {
                   "raw": "http://localhost:3000/api/v1/partner/clinic?page=1&limit=5",
                   "protocol": "http",
@@ -1508,15 +1442,12 @@
                     }
                   ]
                 }
-              },
-              "response": []
+              }
             },
             {
               "name": "getClinicFormById",
-              "id": "14c5d190-a725-4758-9678-a5ebd5e5b03a",
               "request": {
                 "method": "GET",
-                "header": [],
                 "url": {
                   "raw": "http://localhost:3000/api/v1/partner/clinic/form/da6ed44d-e793-4725-911d-4dd6bc043770",
                   "protocol": "http",
@@ -1533,12 +1464,10 @@
                     "da6ed44d-e793-4725-911d-4dd6bc043770"
                   ]
                 }
-              },
-              "response": []
+              }
             },
             {
               "name": "get clinic by id",
-              "id": "750f5f15-3213-4b41-aa9a-1eadae471035",
               "request": {
                 "method": "GET",
                 "header": [
@@ -1563,12 +1492,10 @@
                     "1db5b90b-7021-4f04-ba7d-32a8d55f2b78"
                   ]
                 }
-              },
-              "response": []
+              }
             },
             {
               "name": "update clinic form",
-              "id": "051dc6cf-cb03-4b17-9bb0-d6e4df93996b",
               "request": {
                 "method": "PUT",
                 "header": [
@@ -1603,12 +1530,10 @@
                     "da57f9b3-e2e5-4241-a53b-c957f90bb72e"
                   ]
                 }
-              },
-              "response": []
+              }
             },
             {
               "name": "clinic invite",
-              "id": "1f0b4ee8-c348-4c2f-bfbc-2a3f646e6a5f",
               "request": {
                 "method": "POST",
                 "header": [
@@ -1642,18 +1567,15 @@
                     "invitations"
                   ]
                 }
-              },
-              "response": []
+              }
             }
-          ],
-          "id": "c21380a8-f4b9-402a-94e0-6e49771d12bb"
+          ]
         },
         {
           "name": "vet",
           "item": [
             {
               "name": "createVetForm",
-              "id": "54fc2528-661d-4e15-87fb-81bc2f0b4b31",
               "request": {
                 "method": "POST",
                 "header": [
@@ -1687,12 +1609,10 @@
                     "register"
                   ]
                 }
-              },
-              "response": []
+              }
             },
             {
               "name": "update status for vet form",
-              "id": "b953a119-d99c-462f-9933-d907aec7e276",
               "request": {
                 "method": "PATCH",
                 "header": [
@@ -1728,15 +1648,12 @@
                     "4572e78b-b8a7-48b0-ba28-34f91cb61759"
                   ]
                 }
-              },
-              "response": []
+              }
             },
             {
               "name": "getAllVetForm",
-              "id": "d938beae-b47c-49db-8c9a-97cfe1223a2e",
               "request": {
                 "method": "GET",
-                "header": [],
                 "url": {
                   "raw": "http://localhost:3000/api/v1/partner/vet/form?page=1&limit=10",
                   "protocol": "http",
@@ -1762,12 +1679,10 @@
                     }
                   ]
                 }
-              },
-              "response": []
+              }
             },
             {
               "name": "accept invite",
-              "id": "9b0e88c4-4797-4eba-a71f-d6c5e20e24bb",
               "request": {
                 "method": "POST",
                 "header": [
@@ -1800,12 +1715,10 @@
                     }
                   ]
                 }
-              },
-              "response": []
+              }
             },
             {
               "name": "reject invite",
-              "id": "576af20a-73d0-4545-8215-50e176220d6a",
               "request": {
                 "method": "GET",
                 "header": [
@@ -1838,27 +1751,19 @@
                     }
                   ]
                 }
-              },
-              "response": []
+              }
             }
-          ],
-          "id": "4af8efa0-6ab8-4271-9b6f-b9209b6aab53"
+          ]
         }
-      ],
-      "id": "4a406e9b-4575-4e81-a1e5-93409db2766c"
+      ]
     },
     {
       "name": "VietOS",
       "item": [
         {
           "name": "test",
-          "id": "59e52d3a-a582-404b-b127-0bfb3a3b1538",
-          "protocolProfileBehavior": {
-            "disableBodyPruning": true
-          },
           "request": {
             "method": "GET",
-            "header": [],
             "body": {
               "mode": "raw",
               "raw": "{\r\n  \"orderCode\": \"123456\",\r\n  \"amount\": 5000,\r\n  \"description\": \"Thanh toán\"\r\n}\r\n",
@@ -1882,15 +1787,12 @@
                 "test"
               ]
             }
-          },
-          "response": []
+          }
         },
         {
           "name": "Tạo QR",
-          "id": "8b246f84-bb9f-4b3f-900b-a374b437f5ad",
           "request": {
             "method": "POST",
-            "header": [],
             "body": {
               "mode": "raw",
               "raw": "{\r\n  \"orderId\": \"12345467\",\r\n  \"amount\": 2000,\r\n  \"description\": \"Thanh toán\"\r\n}\r\n",
@@ -1913,11 +1815,9 @@
                 "payments"
               ]
             }
-          },
-          "response": []
+          }
         }
-      ],
-      "id": "e00e00fd-23f8-4107-bc1c-9ae48fb4317d"
+      ]
     }
   ]
 }
