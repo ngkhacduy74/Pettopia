@@ -99,13 +99,21 @@
           "name": "test",
           "request": {
             "method": "GET",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{apikey}}",
+                "type": "text",
+                "uuid": "e100a377-ca49-40a8-9087-a394b2b2b0c1"
+              }
+            ],
             "url": {
-              "raw": "http://localhost:3000/api/v1/auth/test",
+              "raw": "http://localhost:8000/api/v1/auth/test",
               "protocol": "http",
               "host": [
                 "localhost"
               ],
-              "port": "3000",
+              "port": "8000",
               "path": [
                 "api",
                 "v1",
