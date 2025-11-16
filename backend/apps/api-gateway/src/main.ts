@@ -22,7 +22,12 @@ async function bootstrap() {
   );
 
   app.enableCors({
-    origin: ['http://localhost:4001', 'http://localhost:4000'],
+    origin: [
+      'http://localhost:4001',
+      'http://localhost:4000',
+      'https://pettopia-fe.onrender.com',
+      'https://pettopia-user.onrender.com',
+    ],
     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
     credentials: true,
   });
