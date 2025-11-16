@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import { GoogleGenerativeAI, GenerativeModel } from '@google/generative-ai';
+import { ClientsModule, Transport } from '@nestjs/microservices';
 import { GeminiService } from './gemini.service';
 import { GeminiController } from './gemini.controller';
 import { ConversationService } from './conversation.service';
@@ -15,6 +16,30 @@ import {
     ConfigModule,
     MongooseModule.forFeature([
       { name: Conversation.name, schema: ConversationSchema },
+    ]),
+    ClientsModule.register([
+      {
+        name: 'HEALTHCARE_SERVICE',
+        transport: Transport.TCP,
+        options: {
+          host:
+            process.env.NODE_ENV === 'production'
+              ? 'healthcare-service'
+              : 'localhost',
+          port: 5005,
+        },
+      },
+      {
+        name: 'PARTNER_SERVICE',
+        transport: Transport.TCP,
+        options: {
+          host:
+            process.env.NODE_ENV === 'production'
+              ? 'partner-service'
+              : 'localhost',
+          port: 5004,
+        },
+      },
     ]),
   ],
   controllers: [GeminiController],

@@ -23,9 +23,14 @@ export class AiController {
   @Post('/gemini/chat')
   @HttpCode(HttpStatus.OK)
   async createGeminiChatCompletion(@Body() data: any) {
-    return await lastValueFrom(
-      this.billingService.send({ cmd: 'createGeminiChatCompletion' }, data),
-    );
+    try {
+      return await lastValueFrom(
+        this.billingService.send({ cmd: 'createGeminiChatCompletion' }, data),
+      );
+    } catch (error) {
+      console.error('Error in createGeminiChatCompletion:', error);
+      throw error;
+    }
   }
 
   @Get('/gemini/conversation/:conversationId/history')

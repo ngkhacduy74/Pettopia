@@ -2,7 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { json, urlencoded } from 'express';
 import { ValidationPipe } from '@nestjs/common';
-import { MicroserviceOptions, Transport } from '@nestjs/microservices';
+import { MicroserviceOptions, Transport, RpcException } from '@nestjs/microservices';
 
 async function bootstrap() {
   const PORT = process.env.PORT ?? 3020;
@@ -18,6 +18,20 @@ async function bootstrap() {
       whitelist: true,
       forbidNonWhitelisted: true,
       forbidUnknownValues: true,
+      exceptionFactory: (errors) => {
+        // Convert validation errors to RpcException for microservice
+        const messages = errors.map((error) => {
+          const constraints = error.constraints || {};
+          return Object.values(constraints).join(', ');
+        });
+        return new RpcException({
+          statusCode: 400,
+          message: messages.join('; ') || 'Validation failed',
+          error: 'Bad Request',
+          errors: errors,
+          timestamp: new Date().toISOString(),
+        });
+      },
     }),
   );
   
