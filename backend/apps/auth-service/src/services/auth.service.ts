@@ -296,10 +296,10 @@ export class AuthService {
       if (error instanceof RpcException) throw error;
       throw createRpcError(
         HttpStatus.INTERNAL_SERVER_ERROR,
-        'Lỗi khi reset password',
+        'thành lỗi Khi reset password hoặc sai OTP',
         'Internal Server Error',
         error.message,
-      );
+      );  
     }
   }
   async changePassword(data: ChangePasswordDto & { userId: string }) {
