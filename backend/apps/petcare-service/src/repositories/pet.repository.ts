@@ -63,7 +63,7 @@ export class PetRepository {
         cursor = reply.cursor;
         const keys = reply.keys;
         if (keys.length > 0) {
-          await this.redis.del(...keys);
+          await this.redis.del(keys);
         }
       } while (cursor !== '0');
     } catch (err) {
@@ -160,7 +160,12 @@ export class PetRepository {
       }
 
       const [items, total] = await Promise.all([
-        this.petModel.find(filter).sort(sort).skip(skip).limit(safeLimit).exec(),
+        this.petModel
+          .find(filter)
+          .sort(sort)
+          .skip(skip)
+          .limit(safeLimit)
+          .exec(),
         this.petModel.countDocuments(filter).exec(),
       ]);
 
@@ -247,7 +252,9 @@ export class PetRepository {
    * Xóa (Delete): Cần XÓA (invalidate) cache
    */
   async delete(pet_id: string): Promise<Pet | null> {
-    const deletedPet = await this.petModel.findOneAndDelete({ id: pet_id }).exec();
+    const deletedPet = await this.petModel
+      .findOneAndDelete({ id: pet_id })
+      .exec();
 
     // --- PHẦN THÊM VÀO ---
     // 4. Xóa cache
@@ -300,7 +307,9 @@ export class PetRepository {
       }
 
       // 2. Cache Miss -> Tìm trong MongoDB
-      const pets = await this.petModel.find({ 'owner.user_id': user_id }).exec();
+      const pets = await this.petModel
+        .find({ 'owner.user_id': user_id })
+        .exec();
 
       // 3. Lưu vào Redis
       await this.redis.set(cacheKey, JSON.stringify(pets), {

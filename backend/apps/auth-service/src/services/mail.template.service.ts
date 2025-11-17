@@ -829,4 +829,4 @@ export class MailTemplateService {
       </html>
     `;
   }
-}}
+}

@@ -61,10 +61,7 @@ export class AppointmentRepository {
    * Xóa tất cả cache danh sách liên quan đến user hoặc clinic
    * (Dùng SCAN để duyệt an toàn, không làm block Redis)
    */
-  private async invalidateAppointmentLists(
-    userId?: string,
-    clinicId?: string,
-  ) {
+  private async invalidateAppointmentLists(userId?: string, clinicId?: string) {
     // Luôn xóa cache 'all'
     const prefixes = ['appointments:all:*'];
     if (userId) {
@@ -85,7 +82,7 @@ export class AppointmentRepository {
           cursor = reply.cursor;
           const keys = reply.keys;
           if (keys.length > 0) {
-            await this.redis.del(...keys);
+            await this.redis.del(keys);
           }
         } while (cursor !== '0');
       }
@@ -102,7 +99,8 @@ export class AppointmentRepository {
   async create(appointmentData: any): Promise<Appointment> {
     try {
       console.log('appointmentData repository1231231', appointmentData);
-      const newAppointment = await this.appointmentModel.create(appointmentData);
+      const newAppointment =
+        await this.appointmentModel.create(appointmentData);
 
       // --- PHẦN THÊM VÀO ---
       // 4. Xóa cache danh sách
@@ -306,7 +304,10 @@ export class AppointmentRepository {
       // 4. Xóa cache
       if (updated) {
         await this.invalidateSingleAppointmentCache(updated.id);
-        await this.invalidateAppointmentLists(updated.user_id, updated.clinic_id);
+        await this.invalidateAppointmentLists(
+          updated.user_id,
+          updated.clinic_id,
+        );
       }
       // --- KẾT THÚC PHẦN THÊM VÀO ---
 

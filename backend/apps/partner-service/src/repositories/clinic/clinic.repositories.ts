@@ -79,9 +79,7 @@ export class ClinicsRepository {
   /**
    * Xóa cache cho một Clinic Form cụ thể (invalidate)
    */
-  private async invalidateClinicFormCache(
-    form: ClinicRegisterDocument | null,
-  ) {
+  private async invalidateClinicFormCache(form: ClinicRegisterDocument | null) {
     if (!form) return;
     try {
       if (form.id) await this.redis.del(this.getFormKeyById(form.id));
@@ -99,7 +97,9 @@ export class ClinicsRepository {
         await this.redis.del(this.getFormKeyExistsLicense(form.license_number));
       if (form.representative?.responsible_licenses) {
         for (const license of form.representative.responsible_licenses) {
-          await this.redis.del(this.getFormKeyExistsResponsibleLicense(license));
+          await this.redis.del(
+            this.getFormKeyExistsResponsibleLicense(license),
+          );
         }
       }
     } catch (err) {
@@ -137,7 +137,7 @@ export class ClinicsRepository {
         cursor = reply.cursor;
         const keys = reply.keys;
         if (keys.length > 0) {
-          await this.redis.del(...keys);
+          await this.redis.del(keys);
         }
       } while (cursor !== '0');
     } catch (err) {
@@ -253,7 +253,9 @@ export class ClinicsRepository {
     }
   }
 
-  async existsClinicFormByResponsibleLicense(license: string): Promise<boolean> {
+  async existsClinicFormByResponsibleLicense(
+    license: string,
+  ): Promise<boolean> {
     const key = this.getFormKeyExistsResponsibleLicense(license);
     try {
       // 1. Thử lấy từ Redis
@@ -401,10 +403,7 @@ export class ClinicsRepository {
     }
   }
 
-  async updateClinicForm(
-    id: string,
-    dto: UpdateClinicFormDto,
-  ): Promise<any> {
+  async updateClinicForm(id: string, dto: UpdateClinicFormDto): Promise<any> {
     const updatedForm = await this.clinicFormModel.findOneAndUpdate(
       { id: id },
       dto,

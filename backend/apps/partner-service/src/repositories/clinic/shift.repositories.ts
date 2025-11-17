@@ -76,7 +76,7 @@ export class ShiftRepository {
       cursor = reply.cursor;
       const keys = reply.keys;
       if (keys.length > 0) {
-        await this.redis.del(...keys);
+        await this.redis.del(keys);
       }
     } while (cursor !== '0');
   }
@@ -143,7 +143,13 @@ export class ShiftRepository {
 
       // 2. Cache Miss -> Tìm trong MongoDB
       const [data, total] = await Promise.all([
-        this.shiftModel.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit).lean().exec(),
+        this.shiftModel
+          .find(query)
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(limit)
+          .lean()
+          .exec(),
         this.shiftModel.countDocuments(query).exec(),
       ]);
 

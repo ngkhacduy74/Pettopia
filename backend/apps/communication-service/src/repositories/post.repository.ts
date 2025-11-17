@@ -55,7 +55,7 @@ export class PostRepository {
       if (authorId) {
         keysToDel.push(`posts:author:${authorId}`);
       }
-      await this.redis.del(...keysToDel);
+      await this.redis.del(keysToDel);
     } catch (err) {
       console.error('Lỗi khi xóa cache danh sách post:', err);
     }
@@ -182,9 +182,7 @@ export class PostRepository {
     // 4. Xóa cache
     await this.invalidateSinglePostCache(post_id);
     if (deletedPost.author && (deletedPost.author as any).user_id) {
-      await this.invalidatePostListCaches(
-        (deletedPost.author as any).user_id,
-      );
+      await this.invalidatePostListCaches((deletedPost.author as any).user_id);
     } else {
       await this.invalidatePostListCaches();
     }

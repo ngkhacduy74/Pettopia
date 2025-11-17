@@ -60,7 +60,7 @@ export class ServiceRepository {
       cursor = reply.cursor;
       const keys = reply.keys;
       if (keys.length > 0) {
-        await this.redis.del(...keys);
+        await this.redis.del(keys);
       }
     } while (cursor !== '0');
   }

@@ -95,6 +95,8 @@ services:
     ports:
       - "3333:3000"
     env_file: apps/api-gateway/.env
+    depends_on:
+      - redis
     environment:
       - NODE_ENV=production
       - REDIS_HOST=redis
@@ -109,6 +111,8 @@ services:
     image: ${DOCKER_HUB}/pettopia-api-gateway:latest
     container_name: api-gateway-2
     env_file: apps/api-gateway/.env
+    depends_on:
+      - redis
     environment:
       - NODE_ENV=production
       - REDIS_HOST=redis # <--- Thêm dòng này
@@ -123,6 +127,8 @@ services:
     image: ${DOCKER_HUB}/pettopia-auth-service:latest
     container_name: auth-service
     env_file: apps/auth-service/.env
+    depends_on:
+      - redis
     environment:
       - NODE_ENV=production
     networks:
@@ -135,6 +141,8 @@ services:
     image: ${DOCKER_HUB}/pettopia-billing-service:latest
     container_name: billing-service
     env_file: apps/billing-service/.env
+    depends_on:
+      - redis
     environment:
       - NODE_ENV=production
     networks:
@@ -147,6 +155,8 @@ services:
     image: ${DOCKER_HUB}/pettopia-communication-service:latest
     container_name: communication-service
     env_file: apps/communication-service/.env
+    depends_on:
+      - redis
     environment:
       - NODE_ENV=production
     networks:
@@ -159,6 +169,8 @@ services:
     image: ${DOCKER_HUB}/pettopia-customer-service:latest
     container_name: customer-service
     env_file: apps/customer-service/.env
+    depends_on:
+      - redis
     environment:
       - NODE_ENV=production
     networks:
@@ -171,6 +183,8 @@ services:
     image: ${DOCKER_HUB}/pettopia-healthcare-service:latest
     container_name: healthcare-service
     env_file: apps/healthcare-service/.env
+    depends_on:
+      - redis
     environment:
       - NODE_ENV=production
     networks:
@@ -183,6 +197,8 @@ services:
     image: ${DOCKER_HUB}/pettopia-partner-service:latest
     container_name: partner-service
     env_file: apps/partner-service/.env
+    depends_on:
+      - redis
     environment:
       - NODE_ENV=production
     networks:
@@ -195,6 +211,8 @@ services:
     image: ${DOCKER_HUB}/pettopia-petcare-service:latest
     container_name: petcare-service
     env_file: apps/petcare-service/.env
+    depends_on:
+      - redis
     environment:
       - NODE_ENV=production
     networks:
