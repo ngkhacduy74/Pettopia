@@ -53,8 +53,10 @@ services:
     image: pantsel/konga
     container_name: konga-gui
     depends_on:
-      - kong-gateway
-      - konga-db
+      konga-db:
+        condition: service_healthy
+      kong-gateway:
+        condition: service_started
     environment:
       DB_ADAPTER: "postgres"
       DB_HOST: "konga-db"
@@ -79,7 +81,11 @@ services:
       - konga_data:/var/lib/postgresql/data
     networks:
       - pettopia-network
-
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U konga -d konga"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
   api-gateway-1:
     build:
       context: ./apps/api-gateway

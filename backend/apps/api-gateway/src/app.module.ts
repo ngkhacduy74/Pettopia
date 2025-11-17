@@ -26,7 +26,7 @@ import { PaymentController } from './controllers/payment.controller';
             process.env.NODE_ENV === 'production'
               ? 'auth-service'
               : 'localhost',
-          port: 5001,
+          port: parseInt(process.env.TCP_AUTH_PORT ?? '5001', 10),
         },
       },
       {
@@ -37,7 +37,7 @@ import { PaymentController } from './controllers/payment.controller';
             process.env.NODE_ENV === 'production'
               ? 'customer-service'
               : 'localhost',
-          port: 5002,
+          port: parseInt(process.env.TCP_CUSTOMER_PORT ?? '5002', 10),
         },
       },
       {
@@ -48,7 +48,7 @@ import { PaymentController } from './controllers/payment.controller';
             process.env.NODE_ENV === 'production'
               ? 'petcare-service'
               : 'localhost',
-          port: 5003,
+          port: parseInt(process.env.TCP_PET_PORT ?? '5003', 10),
         },
       },
       {
@@ -59,7 +59,7 @@ import { PaymentController } from './controllers/payment.controller';
             process.env.NODE_ENV === 'production'
               ? 'partner-service'
               : 'localhost',
-          port: 5004,
+          port: parseInt(process.env.TCP_PARTNER_PORT ?? '5004', 10),
         },
       },
       {
@@ -70,7 +70,7 @@ import { PaymentController } from './controllers/payment.controller';
             process.env.NODE_ENV === 'production'
               ? 'healthcare-service'
               : 'localhost',
-          port: 5005,
+          port: parseInt(process.env.TCP_HEALTHCARE_PORT ?? '5005', 10),
         },
       },
       {
@@ -81,7 +81,7 @@ import { PaymentController } from './controllers/payment.controller';
             process.env.NODE_ENV === 'production'
               ? 'communication-service'
               : 'localhost',
-          port: 5006,
+          port: parseInt(process.env.TCP_COMMUNICATION_PORT ?? '5006', 10),
         },
       },
       {
@@ -92,7 +92,7 @@ import { PaymentController } from './controllers/payment.controller';
             process.env.NODE_ENV === 'production'
               ? 'billing-service'
               : 'localhost',
-          port: 5007,
+          port: parseInt(process.env.TCP_BILLING_PORT ?? '5007', 10),
         },
       },
     ]),
