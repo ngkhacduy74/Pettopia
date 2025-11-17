@@ -9,6 +9,7 @@ import { Model } from 'mongoose';
 import { User, UserDocument } from '../schemas/user.schema';
 import { CreateUserDto } from 'src/dto/user/create-user.dto';
 import { UserStatus } from 'src/dto/request/update-user-status.dto';
+import redisClient from '../common/redis/redis.module.js';
 import {
   GetAllUsersDto,
   PaginatedUsersResponse,
@@ -16,12 +17,76 @@ import {
 
 @Injectable()
 export class UsersRepository {
-  constructor(@InjectModel(User.name) private userModel: Model<UserDocument>) {}
+  private redis: typeof redisClient;
+  private readonly userCacheTTL = 3600;
+  private readonly totalCacheTTL = 600;
+  constructor(@InjectModel(User.name) private userModel: Model<UserDocument>) {
+    this.redis = redisClient;
+  }
+  private getUserKeyById(id: string): string {
+    return `user:${id}`;
+  }
 
+  /**
+   * Helper tạo key cache cho user bằng Email
+   */
+  private getUserKeyByEmail(email: string): string {
+    return `user:email:${email}`;
+  }
+
+  /**
+   * Helper tạo key cache cho user bằng Username
+   */
+  private getUserKeyByUsername(username: string): string {
+    return `user:username:${username}`;
+  }
+
+  /**
+   * Helper tạo key cache cho user bằng Phone
+   */
+  private getUserKeyByPhone(phone: string): string {
+    return `user:phone:${phone}`;
+  }
+  private async invalidateUserCache(user: UserDocument | User) {
+    if (!user) return;
+
+    // Xóa cache bằng ID
+    if (user.id) {
+      await this.redis.del(this.getUserKeyById(user.id));
+    }
+    // Xóa cache bằng Username
+    if (user.username) {
+      await this.redis.del(this.getUserKeyByUsername(user.username));
+    }
+    // Xóa cache bằng Email
+    // Giả định cấu trúc email
+    const email = (user.email as any)?.email_address || user.email;
+    if (email) {
+      await this.redis.del(this.getUserKeyByEmail(email));
+    }
+    // Xóa cache bằng Phone
+    const phone = (user.phone as any)?.phone_number || user.phone;
+    if (phone) {
+      await this.redis.del(this.getUserKeyByPhone(phone));
+    }
+  }
+  private async invalidateTotalAccountCache() {
+    await this.redis.del('users:total_detail');
+  }
   async findOneById(id: string): Promise<User | null> {
+    const key = this.getUserKeyById(id);
     try {
+      const cachedUser = await this.redis.get(key);
+      if (cachedUser) {
+        return JSON.parse(cachedUser); // Cache Hit
+      }
       const result = await this.userModel.findOne({ id }).lean().exec();
-      console.log("hello1233",result);
+      if (result) {
+        await this.redis.set(key, JSON.stringify(result), {
+          EX: this.userCacheTTL,
+        });
+      }
+
       return result;
     } catch (err) {
       throw new Error(err);
@@ -29,12 +94,21 @@ export class UsersRepository {
   }
 
   async findOneByUsername(username: string): Promise<User | null> {
+    const key = this.getUserKeyByUsername(username);
     try {
+      const cachedUser = await this.redis.get(key);
+      if (cachedUser) {
+        return JSON.parse(cachedUser);
+      }
       const result = await this.userModel
         .findOne({ username: username })
         .select('+password')
         .exec();
-      console.log('result findOneByUsername', result);
+      if (result) {
+        await this.redis.set(key, JSON.stringify(result), {
+          EX: this.userCacheTTL,
+        });
+      }
       return result;
     } catch (err) {
       throw new Error(err);
@@ -42,31 +116,54 @@ export class UsersRepository {
   }
 
   async findUserByEmail(email: string): Promise<any> {
+    const key = this.getUserKeyByEmail(email);
     try {
+      const cachedResult = await this.redis.get(key);
+      if (cachedResult) {
+        return JSON.parse(cachedResult);
+      }
+      
       const result = await this.userModel
         .findOne({ 'email.email_address': email })
         .exec();
-      if (!result) {
-        return {
-          message: 'Email chưa được đăng kí',
-          status: true,
-        };
-      }
-      return {
+      
+      const response = !result ? {
+        message: 'Email chưa được đăng kí',
+        status: true,
+      } : {
         message: 'Email đã được sử dụng',
         status: false,
       };
+      
+      await this.redis.set(key, JSON.stringify(response), {
+        EX: this.userCacheTTL,
+      });
+      
+      return response;
     } catch (err) {
       throw new Error(err);
     }
   }
 
   async findOneByEmailWithPassword(email: string): Promise<User | null> {
+    const key = `user:email:password:${email}`;
     try {
+      const cachedUser = await this.redis.get(key);
+      if (cachedUser) {
+        return JSON.parse(cachedUser);
+      }
+      
       const result = await this.userModel
         .findOne({ 'email.email_address': email })
         .select('+password')
         .exec();
+      
+      if (result) {
+        await this.redis.set(key, JSON.stringify(result), {
+          EX: this.userCacheTTL,
+        });
+      }
+      
       return result;
     } catch (err) {
       throw new Error(err);
@@ -74,20 +171,30 @@ export class UsersRepository {
   }
 
   async checkPhoneExist(phone_number: string): Promise<any> {
+    const key = this.getUserKeyByPhone(phone_number);
     try {
+      const cachedResult = await this.redis.get(key);
+      if (cachedResult) {
+        return JSON.parse(cachedResult);
+      }
+      
       const result = await this.userModel
         .findOne({ 'phone.phone_number': phone_number })
         .exec();
-      if (!result) {
-        return {
-          message: 'Số điện thoại hợp lệ',
-          status: true,
-        };
-      }
-      return {
+      
+      const response = !result ? {
+        message: 'Số điện thoại hợp lệ',
+        status: true,
+      } : {
         message: 'Số điện thoại đã được sử dụng',
         status: false,
       };
+      
+      await this.redis.set(key, JSON.stringify(response), {
+        EX: this.userCacheTTL,
+      });
+      
+      return response;
     } catch (err) {
       throw new Error(err);
     }
@@ -97,6 +204,10 @@ export class UsersRepository {
     try {
       const userDocument = new this.userModel(user);
       const result = await userDocument.save();
+      
+      // Invalidate relevant caches when creating new user
+      await this.invalidateTotalAccountCache();
+      
       return result;
     } catch (err) {
       throw new Error(err);
@@ -108,6 +219,13 @@ export class UsersRepository {
       const result = await this.userModel
         .findOneAndDelete({ id }, { is_active: false })
         .exec();
+      
+      // Invalidate user cache and total account cache when deleting user
+      if (result) {
+        await this.invalidateUserCache(result);
+        await this.invalidateTotalAccountCache();
+      }
+      
       return result;
     } catch (err) {
       throw new Error(err);
@@ -119,6 +237,12 @@ export class UsersRepository {
       const result = await this.userModel
         .findOneAndUpdate({ id: id }, { is_active: isActive }, { new: true })
         .exec();
+      
+      // Invalidate user cache when status changes
+      if (result) {
+        await this.invalidateUserCache(result);
+      }
+      
       return result;
     } catch (err) {
       throw new Error(err.message);
@@ -128,7 +252,12 @@ export class UsersRepository {
   async getAllUsers(
     data: GetAllUsersDto,
   ): Promise<PaginatedUsersResponse<User>> {
+    const cacheKey = `users:all:${JSON.stringify(data)}`;
     try {
+      const cachedData = await this.redis.get(cacheKey);
+        if (cachedData) {
+            return JSON.parse(cachedData); 
+        }
       const {
         page,
         limit,
@@ -209,7 +338,12 @@ export class UsersRepository {
           .exec(),
         this.userModel.countDocuments(query).exec(),
       ]);
-
+await this.redis.set(cacheKey, JSON.stringify({ items,
+        total,
+        page: safePage,
+        limit: safeLimit,}), {
+            EX: this.totalCacheTTL, 
+        });
       return {
         items,
         total,
@@ -236,6 +370,11 @@ export class UsersRepository {
       }
       user.role.push(newRole);
       await user.save();
+      
+      // Invalidate user cache and total account cache when role changes
+      await this.invalidateUserCache(user);
+      await this.invalidateTotalAccountCache();
+      
       return user;
     } catch (err) {
       throw new Error(err.message || 'Lỗi khi thêm role cho user');
@@ -257,6 +396,11 @@ export class UsersRepository {
       }
       user.role.push(newRole);
       await user.save();
+      
+      // Invalidate user cache and total account cache when role changes
+      await this.invalidateUserCache(user);
+      await this.invalidateTotalAccountCache();
+      
       return user;
     } catch (err) {
       throw new Error(err.message || 'Lỗi khi thêm role cho user');
@@ -274,61 +418,108 @@ export class UsersRepository {
 
     user.role = user.role.filter((r) => r !== role);
     await user.save();
+    
+    // Invalidate user cache and total account cache when role changes
+    await this.invalidateUserCache(user);
+    await this.invalidateTotalAccountCache();
+    
     return user;
   }
   async totalDetailAccount(): Promise<any> {
-    const result = await this.userModel.aggregate([
-      { $unwind: '$role' }, // Nếu role là array
-      {
-        $group: {
-          _id: '$role',
-          count: { $sum: 1 },
-        },
-      },
-    ]);
-
-    const data = {
-      user: 0,
-      staff: 0,
-      clinic: 0,
-      vet: 0,
-    };
-
-    result.forEach((item) => {
-      const role = item._id.toLowerCase();
-      if (data.hasOwnProperty(role)) {
-        data[role] = item.count;
+    const cacheKey = 'users:total_detail';
+    try {
+      const cachedResult = await this.redis.get(cacheKey);
+      if (cachedResult) {
+        return JSON.parse(cachedResult);
       }
-    });
+      
+      const result = await this.userModel.aggregate([
+        { $unwind: '$role' }, // Nếu role là array
+        {
+          $group: {
+            _id: '$role',
+            count: { $sum: 1 },
+          },
+        },
+      ]);
 
-    return {
-      status: true,
-      message: 'Đã lấy thành công tổng các account theo role',
-      data,
-    };
-  }
-  async updatePasswordByEmail(email: string, newPassword: string): Promise<User | null> {
-  try {
-    const result = await this.userModel.findOneAndUpdate(
-      { 'email.email_address': email },
-      { password: newPassword },
-      { new: true },
-    ).exec();
-    return result;
-  } catch (err) {
-    throw new Error(err);
+      const data = {
+        user: 0,
+        staff: 0,
+        clinic: 0,
+        vet: 0,
+      };
+
+      result.forEach((item) => {
+        const role = item._id.toLowerCase();
+        if (data.hasOwnProperty(role)) {
+          data[role] = item.count;
+        }
+      });
+
+      const response = {
+        status: true,
+        message: 'Đã lấy thành công tổng các account theo role',
+        data,
+      };
+      
+      // Cache the result with shorter TTL since this is aggregate data
+      await this.redis.set(cacheKey, JSON.stringify(response), {
+        EX: this.totalCacheTTL,
+      });
+
+      return response;
+    } catch (err) {
+      throw new Error(err);
     }
   }
-  async updatePasswordById(id: string, newPassword: string): Promise<User | null> {
-  try {
-    const result = await this.userModel.findOneAndUpdate(
-      { id },
-      { password: newPassword },
-      { new: true },
-    ).exec();
-    return result;
-  } catch (err) {
-    throw new Error(err);
+  async updatePasswordByEmail(
+    email: string,
+    newPassword: string,
+  ): Promise<User | null> {
+    try {
+      const result = await this.userModel
+        .findOneAndUpdate(
+          { 'email.email_address': email },
+          { password: newPassword },
+          { new: true },
+        )
+        .exec();
+      
+      // Invalidate user cache when password changes
+      if (result) {
+        await this.invalidateUserCache(result);
+        // Also invalidate the email:password cache key
+        await this.redis.del(`user:email:password:${email}`);
+      }
+      
+      return result;
+    } catch (err) {
+      throw new Error(err);
+    }
   }
+  async updatePasswordById(
+    id: string,
+    newPassword: string,
+  ): Promise<User | null> {
+    try {
+      const result = await this.userModel
+        .findOneAndUpdate({ id }, { password: newPassword }, { new: true })
+        .exec();
+      
+      // Invalidate user cache when password changes
+      if (result) {
+        await this.invalidateUserCache(result);
+        // Also invalidate the email:password cache key
+        const email = (result.email as any)?.email_address || result.email;
+        if (email) {
+          await this.redis.del(`user:email:password:${email}`);
+        }
+      }
+      
+      return result;
+    } catch (err) {
+      throw new Error(err);
+    }
   }
 }
