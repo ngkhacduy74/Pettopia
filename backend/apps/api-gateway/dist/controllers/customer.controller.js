@@ -19,13 +19,18 @@ const microservices_1 = require("@nestjs/microservices");
 const roles_decorator_1 = require("../decorators/roles.decorator");
 const jwtAuth_guard_1 = require("../guard/jwtAuth.guard");
 const role_guard_1 = require("../guard/role.guard");
+const user_decorator_1 = require("../decorators/user.decorator");
 let CustomerController = class CustomerController {
     customerService;
     constructor(customerService) {
         this.customerService = customerService;
     }
-    async getUserById(id) {
+    async getUserProfile(id) {
         const user = await (0, rxjs_1.lastValueFrom)(this.customerService.send({ cmd: 'getUserById' }, { id }));
+        return user;
+    }
+    async getUserById(idUser) {
+        const user = await (0, rxjs_1.lastValueFrom)(this.customerService.send({ cmd: 'getUserById' }, { id: idUser }));
         return user;
     }
     async deleteUserById(id) {
@@ -77,6 +82,17 @@ let CustomerController = class CustomerController {
 };
 exports.CustomerController = CustomerController;
 __decorate([
+    (0, common_1.UseGuards)(jwtAuth_guard_1.JwtAuthGuard),
+    (0, common_1.Get)('/profile'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    __param(0, (0, user_decorator_1.UserToken)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], CustomerController.prototype, "getUserProfile", null);
+__decorate([
+    (0, common_1.UseGuards)(jwtAuth_guard_1.JwtAuthGuard, role_guard_1.RoleGuard),
+    (0, roles_decorator_1.Roles)(roles_decorator_1.Role.ADMIN, roles_decorator_1.Role.STAFF),
     (0, common_1.Get)(':id'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
     __param(0, (0, common_1.Param)('id')),

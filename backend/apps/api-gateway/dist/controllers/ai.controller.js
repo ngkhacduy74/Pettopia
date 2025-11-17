@@ -22,7 +22,13 @@ let AiController = class AiController {
         this.billingService = billingService;
     }
     async createGeminiChatCompletion(data) {
-        return await (0, rxjs_1.lastValueFrom)(this.billingService.send({ cmd: 'createGeminiChatCompletion' }, data));
+        try {
+            return await (0, rxjs_1.lastValueFrom)(this.billingService.send({ cmd: 'createGeminiChatCompletion' }, data));
+        }
+        catch (error) {
+            console.error('Error in createGeminiChatCompletion:', error);
+            throw error;
+        }
     }
     async getConversationHistory(conversationId, userId) {
         return await (0, rxjs_1.lastValueFrom)(this.billingService.send({ cmd: 'getGeminiConversationHistory' }, { conversationId, userId }));

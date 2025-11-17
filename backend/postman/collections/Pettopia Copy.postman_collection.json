@@ -283,8 +283,16 @@
           "name": "getUserById",
           "request": {
             "method": "GET",
+            "header": [
+              {
+                "key": "token",
+                "value": "{{token}}",
+                "type": "text",
+                "uuid": "a5e60407-d71d-4699-bec7-0532897c685c"
+              }
+            ],
             "url": {
-              "raw": "http://localhost:3000/api/v1/customer/",
+              "raw": "http://localhost:3000/api/v1/customer/6f864f6f-537f-4728-8b35-7f8a8840f415",
               "protocol": "http",
               "host": [
                 "localhost"
@@ -294,7 +302,7 @@
                 "api",
                 "v1",
                 "customer",
-                ""
+                "6f864f6f-537f-4728-8b35-7f8a8840f415"
               ]
             }
           }
@@ -437,6 +445,34 @@
                 "customer",
                 "d1ba6756-5e39-48d8-aabb-ea8071ee2e72",
                 "status"
+              ]
+            }
+          }
+        },
+        {
+          "name": "get user profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "token",
+                "value": "{{token}}",
+                "type": "text",
+                "uuid": "4ebee77a-5301-4709-ab94-9e49d489704d"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:3000/api/v1/customer/profile",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "api",
+                "v1",
+                "customer",
+                "profile"
               ]
             }
           }
