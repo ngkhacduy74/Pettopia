@@ -48,28 +48,46 @@ const customer_port = parseInt(process.env.TCP_CUSTOMER_PORT || '5002', 10);
         uri: configService.get<string>('AUTH_DB_URI'),
       }),
     }),
-    ClientsModule.register([
+    ClientsModule.registerAsync([
       {
         name: 'CUSTOMER_SERVICE',
-        transport: Transport.TCP,
-        options: {
-          host:
-            process.env.NODE_ENV === 'production'
-              ? 'customer-service'
-              : 'localhost',
-          port: 5002,
-        },
+        imports: [ConfigModule],
+        inject: [ConfigService],
+        useFactory: (configService: ConfigService) => ({
+          transport: Transport.RMQ,
+          options: {
+            urls: [
+              configService.get<string>(
+                'RMQ_URL',
+                'amqp://guest:guest@rabbitmq:5672',
+              ),
+            ],
+            queue: 'customer_service_queue',
+            queueOptions: {
+              durable: true,
+            },
+          },
+        }),
       },
       {
         name: 'PARTNER_SERVICE',
-        transport: Transport.TCP,
-        options: {
-          host:
-            process.env.NODE_ENV === 'production'
-              ? 'partner-service'
-              : 'localhost',
-          port: 5004,
-        },
+        imports: [ConfigModule],
+        inject: [ConfigService],
+        useFactory: (configService: ConfigService) => ({
+          transport: Transport.RMQ,
+          options: {
+            urls: [
+              configService.get<string>(
+                'RMQ_URL',
+                'amqp://guest:guest@rabbitmq:5672',
+              ),
+            ],
+            queue: 'partner_service_queue',
+            queueOptions: {
+              durable: true,
+            },
+          },
+        }),
       },
     ]),
     JwtModule.registerAsync({

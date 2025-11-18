@@ -4,11 +4,15 @@ import { ValidationPipe } from '@nestjs/common';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 import { getModelToken } from '@nestjs/mongoose';
 import { User } from './schemas/user.schema';
+import { ConfigService } from '@nestjs/config';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  const port = process.env.CUSTOMER_PORT;
-  const tcp_port = parseInt(process.env.TCP_CUSTOMER_PORT || '5002', 10);
+
+  const configService = app.get(ConfigService);
+
+  const port = configService.get<number>('CUSTOMER_PORT') || 3002;
+
   app.useGlobalPipes(
     new ValidationPipe({
       transform: true,
@@ -18,16 +22,25 @@ async function bootstrap() {
     }),
   );
   app.connectMicroservice<MicroserviceOptions>({
-    transport: Transport.TCP,
+    transport: Transport.RMQ,
     options: {
-      host: '0.0.0.0',
-      port: tcp_port,
+      urls: [
+        configService.get<string>(
+          'RMQ_URL',
+          'amqp://guest:guest@rabbitmq:5672',
+        ),
+      ],
+      queue: 'customer_service_queue',
+      queueOptions: {
+        durable: true,
+      },
     },
   });
+
   const userModel = app.get(getModelToken(User.name));
   await userModel.syncIndexes();
   await app.startAllMicroservices();
-  await app.listen(port!);
+  await app.listen(port);
   console.log('Customer-service run successfull');
 }
 bootstrap();

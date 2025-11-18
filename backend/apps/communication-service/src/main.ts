@@ -2,11 +2,14 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
-
+import { ConfigService } from '@nestjs/config';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  const port = process.env.COMMUNICATION_PORT;
-  const tcp_port = parseInt(process.env.TCP_COMMUNICATION_PORT || '5006', 10);
+
+  const configService = app.get(ConfigService);
+
+  const port = configService.get<number>('COMMUNICATION_PORT') || 3006;
+
   app.useGlobalPipes(
     new ValidationPipe({
       transform: true,
@@ -15,16 +18,27 @@ async function bootstrap() {
       forbidUnknownValues: true,
     }),
   );
+
   app.connectMicroservice<MicroserviceOptions>({
-    transport: Transport.TCP,
+    transport: Transport.RMQ,
     options: {
-      host: '0.0.0.0',
-      port: tcp_port,
+      urls: [
+        configService.get<string>(
+          'RMQ_URL',
+          'amqp://guest:guest@rabbitmq:5672',
+        ),
+      ],
+      queue: 'communication_service_queue',
+      queueOptions: {
+        durable: true,
+      },
     },
   });
+
   await app.startAllMicroservices();
-  await app.listen(3006);
-  console.log('communication-service run successfull ');
+  await app.listen(port);
+
+  console.log(`communication-service run successfull on port ${port}`);
 }
 
 bootstrap();

@@ -96,7 +96,10 @@ services:
       - "3333:3000"
     env_file: apps/api-gateway/.env
     depends_on:
-      - redis
+      redis:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
     environment:
       - NODE_ENV=production
       - REDIS_HOST=redis
@@ -112,7 +115,10 @@ services:
     container_name: api-gateway-2
     env_file: apps/api-gateway/.env
     depends_on:
-      - redis
+      redis:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
     environment:
       - NODE_ENV=production
       - REDIS_HOST=redis # <--- Thêm dòng này
@@ -128,7 +134,10 @@ services:
     container_name: auth-service
     env_file: apps/auth-service/.env
     depends_on:
-      - redis
+      redis:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
     environment:
       - NODE_ENV=production
     networks:
@@ -142,7 +151,10 @@ services:
     container_name: billing-service
     env_file: apps/billing-service/.env
     depends_on:
-      - redis
+      redis:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
     environment:
       - NODE_ENV=production
     networks:
@@ -156,7 +168,10 @@ services:
     container_name: communication-service
     env_file: apps/communication-service/.env
     depends_on:
-      - redis
+      redis:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
     environment:
       - NODE_ENV=production
     networks:
@@ -170,7 +185,10 @@ services:
     container_name: customer-service
     env_file: apps/customer-service/.env
     depends_on:
-      - redis
+      redis:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
     environment:
       - NODE_ENV=production
     networks:
@@ -184,7 +202,10 @@ services:
     container_name: healthcare-service
     env_file: apps/healthcare-service/.env
     depends_on:
-      - redis
+      redis:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
     environment:
       - NODE_ENV=production
     networks:
@@ -198,7 +219,10 @@ services:
     container_name: partner-service
     env_file: apps/partner-service/.env
     depends_on:
-      - redis
+      redis:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
     environment:
       - NODE_ENV=production
     networks:
@@ -212,7 +236,10 @@ services:
     container_name: petcare-service
     env_file: apps/petcare-service/.env
     depends_on:
-      - redis
+      redis:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
     environment:
       - NODE_ENV=production
     networks:
@@ -298,6 +325,20 @@ services:
     networks:
       - pettopia-network
     restart: always
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    container_name: rabbitmq
+    networks:
+      - pettopia-network
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    restart: always
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 networks:
   pettopia-network:
