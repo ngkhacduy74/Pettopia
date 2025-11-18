@@ -99,17 +99,15 @@ export class ClinicInvitationService {
     });
 
     try {
-      await lastValueFrom(
-        this.authService.send(
-          { cmd: 'sendClinicMemberInvitation' },
-          {
-            email: invited_email,
-            clinicName: clinic.clinic_name,
-            role: normalizedRole,
-            inviteLink: `${process.env.APP_URL}/invite/token=${token}/accept`,
-            expiresAt: expiresAt.toISOString(),
-          },
-        ),
+      this.authService.emit(
+        { cmd: 'sendClinicMemberInvitation' },
+        {
+          email: invited_email,
+          clinicName: clinic.clinic_name,
+          role: normalizedRole,
+          inviteLink: `${process.env.APP_URL}/invite/token=${token}/accept`,
+          expiresAt: expiresAt.toLocaleDateString('vi-VN'),
+        },
       );
     } catch (error) {
       await this.clinicInvitationRepository.cancelPendingInvitation(

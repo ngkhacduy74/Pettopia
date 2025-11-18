@@ -2,7 +2,7 @@ import { Controller, Get, UsePipes, ValidationPipe } from '@nestjs/common';
 
 import { ClinicService } from '../../services/clinic/clinic.service';
 
-import { MessagePattern, Payload, RpcException } from '@nestjs/microservices';
+import { MessagePattern, Payload, RpcException, EventPattern } from '@nestjs/microservices';
 import { handleRpcError } from 'src/common/error.detail';
 import { CreateClinicFormDto } from 'src/dto/clinic/clinic/create-clinic-form.dto';
 import { UpdateStatusClinicDto } from 'src/dto/clinic/clinic/update-status.dto';
@@ -26,13 +26,12 @@ export class ClinicController {
       handleRpcError('ClinicController.getAllClinicForm', err);
     }
   }
-  @MessagePattern({ cmd: 'registerClinic' })
-  async createClinicForm(CreateClinicFormData: any): Promise<any> {
+  
+  @EventPattern({ cmd: 'registerClinic' })
+  async createClinicForm(CreateClinicFormData: any) {
     try {
       console.log('registerClinic123', CreateClinicFormData);
-      const result =
-        await this.clinicService.createClinicForm(CreateClinicFormData);
-      return result;
+      await this.clinicService.createClinicForm(CreateClinicFormData);
     } catch (err) {
       handleRpcError('ClinicController.createClinicForm', err);
     }
@@ -48,35 +47,31 @@ export class ClinicController {
     }
   }
 
-  @MessagePattern({ cmd: 'updateStatusClinicForm' })
+  @EventPattern({ cmd: 'updateStatusClinicForm' })
   async updateStatusClinicForm(
     @Payload() updateStatus: UpdateStatusClinicDto,
-  ): Promise<any> {
+  ) {
     try {
-      const result =
-        await this.clinicService.updateStatusClincForm(updateStatus);
-      return {
-        message: 'Cập nhật trạng thái form đăng ký thành công',
-        data: result,
-      };
+      await this.clinicService.updateStatusClincForm(updateStatus);
     } catch (err) {
       handleRpcError('ClinicController.updateStatusClinicForm', err);
     }
   }
-  @MessagePattern({ cmd: 'updateClinicActiveStatus' })
+  
+  @EventPattern({ cmd: 'updateClinicActiveStatus' })
   async updateClinicActiveStatus(
     @Payload() data: { id: string; is_active: boolean },
-  ): Promise<any> {
+  ) {
     try {
-      const result = await this.clinicService.updateClinicActiveStatus(
+      await this.clinicService.updateClinicActiveStatus(
         data.id,
         data.is_active,
       );
-      return result;
     } catch (err) {
       handleRpcError('ClinicController.updateClinicActiveStatus', err);
     }
   }
+  
   @MessagePattern({ cmd: 'findAllClinic' })
   async findAllClinic(
     @Payload() data: { page?: number; limit?: number },
@@ -91,6 +86,7 @@ export class ClinicController {
       handleRpcError('ClinicController.findAllClinic', err);
     }
   }
+  
   @MessagePattern({ cmd: 'getClinicById' })
   async getClinicById(@Payload() data: { id: string }): Promise<any> {
     try {
@@ -100,14 +96,16 @@ export class ClinicController {
       handleRpcError('ClinicController.getClinicById', err);
     }
   }
-  @MessagePattern({ cmd: 'updateClinicFormByMail' })
-  async updateClinicFormByMail(@Payload() data: any): Promise<any> {
+  
+  @EventPattern({ cmd: 'updateClinicFormByMail' })
+  async updateClinicFormByMail(@Payload() data: any) {
     try {
-      return await this.clinicService.updateClinicFormByMail(data);
+      await this.clinicService.updateClinicFormByMail(data);
     } catch (err) {
       handleRpcError('ClinicController.updateClinicFormByMail', err);
     }
   }
+  
   @MessagePattern({ cmd: 'getClinicByVerificationToken' })
   async getClinicByVerificationToken(@Payload() data: any): Promise<any> {
     try {
@@ -124,18 +122,13 @@ export class ClinicController {
       handleRpcError('PartnerController.getClinicByVerificationToken', error);
     }
   }
-  @MessagePattern({ cmd: 'updateClinicForm' })
+  
+  @EventPattern({ cmd: 'updateClinicForm' })
   async updateClinicForm(@Payload() data: any) {
     try {
       const { id, dto } = data;
       console.log('updateClinicForm data:', data);
-      const result = await this.clinicService.updateClinicForm(id, dto);
-
-      return {
-        status: 'success',
-        message: 'Cập nhật thông tin phòng khám thành công',
-        data: result,
-      };
+      await this.clinicService.updateClinicForm(id, dto);
     } catch (err) {
       handleRpcError('ClinicController.updateClinicForm', err);
     }

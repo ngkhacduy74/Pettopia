@@ -29,28 +29,19 @@ export class HealthcareController {
 
   @UseGuards(JwtAuthGuard)
   @Post('/appointment')
-  @HttpCode(HttpStatus.CREATED)
+  @HttpCode(HttpStatus.ACCEPTED)
   async createAppointment(@Body() data: any, @UserToken('id') userId: string) {
-    try {
-      console.log('1928ujkasd');
-      return await lastValueFrom(
-        this.healthcareService.send(
-          { cmd: 'createAppointment' },
-          {
-            data,
-            user_id: userId,
-          },
-        ),
-      );
-    } catch (error) {
-      if (error instanceof RpcException) {
-        throw error;
-      }
-      throw new RpcException({
-        status: HttpStatus.INTERNAL_SERVER_ERROR,
-        message: error.message || 'Đã xảy ra lỗi khi tạo lịch hẹn',
-      });
-    }
+    this.healthcareService.emit(
+      { cmd: 'createAppointment' },
+      {
+        data,
+        user_id: userId,
+      },
+    );
+    return {
+      statusCode: HttpStatus.ACCEPTED,
+      message: 'Yêu cầu tạo lịch hẹn đang được xử lý.',
+    };
   }
 
   @UseGuards(JwtAuthGuard, RoleGuard)
@@ -114,39 +105,30 @@ export class HealthcareController {
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(Role.STAFF, Role.ADMIN, Role.CLINIC)
   @Patch('/appointments/:id/status')
-  @HttpCode(HttpStatus.OK)
+  @HttpCode(HttpStatus.ACCEPTED)
   async updateAppointmentStatus(
     @Param('id') appointmentId: string,
     @UserToken('id') updatedByUserId: string,
     @Body() updateData: { status: string; cancel_reason?: string },
   ) {
-    try {
-      return await lastValueFrom(
-        this.healthcareService.send(
-          { cmd: 'updateAppointmentStatus' },
-          {
-            appointmentId,
-            updateData,
-            updatedByUserId,
-          },
-        ),
-      );
-    } catch (error) {
-      if (error instanceof RpcException) {
-        throw error;
-      }
-      throw new RpcException({
-        status: HttpStatus.INTERNAL_SERVER_ERROR,
-        message:
-          error.message || 'Đã xảy ra lỗi khi cập nhật trạng thái lịch hẹn',
-      });
-    }
+    this.healthcareService.emit(
+      { cmd: 'updateAppointmentStatus' },
+      {
+        appointmentId,
+        updateData,
+        updatedByUserId,
+      },
+    );
+    return {
+      statusCode: HttpStatus.ACCEPTED,
+      message: 'Yêu cầu cập nhật trạng thái lịch hẹn đang được xử lý.',
+    };
   }
 
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(Role.USER, Role.ADMIN, Role.STAFF, Role.CLINIC)
   @Patch('/appointments/:id/cancel')
-  @HttpCode(HttpStatus.OK)
+  @HttpCode(HttpStatus.ACCEPTED)
   async cancelAppointment(
     @Param('id') appointmentId: string,
     @UserToken('id') cancelledByUserId: string,
@@ -154,59 +136,42 @@ export class HealthcareController {
     @UserToken('clinic_id') clinicId: string,
     @Body() cancelData: { cancel_reason?: string } = {},
   ) {
-    try {
-      return await lastValueFrom(
-        this.healthcareService.send(
-          { cmd: 'cancelAppointment' },
-          {
-            appointmentId,
-            cancelledByUserId,
-            role,
-            clinicId,
-            cancelData: {
-              cancel_reason: cancelData?.cancel_reason,
-            },
-          },
-        ),
-      );
-    } catch (error) {
-      if (error instanceof RpcException) {
-        throw error;
-      }
-      throw new RpcException({
-        status: HttpStatus.INTERNAL_SERVER_ERROR,
-        message: error.message || 'Đã xảy ra lỗi khi hủy lịch hẹn',
-      });
-    }
+    this.healthcareService.emit(
+      { cmd: 'cancelAppointment' },
+      {
+        appointmentId,
+        cancelledByUserId,
+        role,
+        clinicId,
+        cancelData: {
+          cancel_reason: cancelData?.cancel_reason,
+        },
+      },
+    );
+    return {
+      statusCode: HttpStatus.ACCEPTED,
+      message: 'Yêu cầu hủy lịch hẹn đang được xử lý.',
+    };
   }
 
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(Role.CLINIC, Role.STAFF, Role.ADMIN)
   @Post('/appointment/for-customer')
-  @HttpCode(HttpStatus.CREATED)
+  @HttpCode(HttpStatus.ACCEPTED)
   async createAppointmentForCustomer(
     @Body() data: any,
     @UserToken('id') partnerId: string,
   ) {
-    try {
-      return await lastValueFrom(
-        this.healthcareService.send(
-          { cmd: 'createAppointmentForCustomer' },
-          {
-            data,
-            partner_id: partnerId,
-          },
-        ),
-      );
-    } catch (error) {
-      if (error instanceof RpcException) {
-        throw error;
-      }
-      throw new RpcException({
-        status: HttpStatus.INTERNAL_SERVER_ERROR,
-        message:
-          error.message || 'Đã xảy ra lỗi khi tạo lịch hẹn hộ khách hàng',
-      });
-    }
+    this.healthcareService.emit(
+      { cmd: 'createAppointmentForCustomer' },
+      {
+        data,
+        partner_id: partnerId,
+      },
+    );
+    return {
+      statusCode: HttpStatus.ACCEPTED,
+      message: 'Yêu cầu tạo lịch hẹn hộ khách hàng đang được xử lý.',
+    };
   }
 }

@@ -1,14 +1,15 @@
 import { Controller, Get, UsePipes, ValidationPipe } from '@nestjs/common';
 import { AuthService } from '../services/auth.service';
-import { MessagePattern, Payload } from '@nestjs/microservices';
+import { MessagePattern, Payload, EventPattern } from '@nestjs/microservices';
 import { LoginDto } from '../dtos/login.dto';
 import { RegisterDto } from '../dtos/register.dto';
 import { OtpService } from 'src/services/otp.service';
 import { SendEmailOtpDto } from 'src/dtos/send-mail.dto';
 import { handleRpcError } from 'src/common/error.detail';
-import { ForgotPasswordDto } from '../dtos/forgot-password.dto';  
-import { ResetPasswordDto } from '../dtos/reset-password.dto';  
+import { ForgotPasswordDto } from '../dtos/forgot-password.dto'; 
+import { ResetPasswordDto } from '../dtos/reset-password.dto'; 
 import { ChangePasswordDto } from '../dtos/change-password.dto';
+
 @Controller()
 export class AuthController {
   constructor(
@@ -20,20 +21,30 @@ export class AuthController {
   login(data: LoginDto) {
     return this.authService.login(data);
   }
+  
   @MessagePattern({ cmd: 'register' })
   register(data: RegisterDto) {
     return this.authService.register(data);
   }
-  @MessagePattern({ cmd: 'send-otp-email' })
+  
+  @EventPattern({ cmd: 'send-otp-email' })
   async sendOtpMail(@Payload() data: SendEmailOtpDto) {
-    const email = data.email;
-    const result = await this.otpService.sendEmailOtp(email);
-    return result;
+    try {
+      const email = data.email;
+      await this.otpService.sendEmailOtp(email);
+    } catch (err) {
+      handleRpcError('AuthController.sendOtpMail', err);
+    }
   }
-  @MessagePattern({ cmd: 'forgot-password' })
+
+  @EventPattern({ cmd: 'forgot-password' })
   @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
   async forgotPassword(@Payload() data: ForgotPasswordDto) {
-    return this.authService.forgotPassword(data);
+    try {
+      await this.authService.forgotPassword(data);
+    } catch (err) {
+      handleRpcError('AuthController.forgotPassword', err);
+    }
   }
 
   @MessagePattern({ cmd: 'reset-password' })

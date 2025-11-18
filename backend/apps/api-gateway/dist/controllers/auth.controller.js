@@ -38,10 +38,18 @@ let AuthController = class AuthController {
         return (0, rxjs_1.lastValueFrom)(this.authService.send({ cmd: 'register' }, data));
     }
     async sendOtpEmail(email) {
-        return await (0, rxjs_1.lastValueFrom)(this.authService.send({ cmd: 'send-otp-email' }, { email }));
+        this.authService.emit({ cmd: 'send-otp-email' }, { email });
+        return {
+            statusCode: common_1.HttpStatus.ACCEPTED,
+            message: 'Yêu cầu gửi mã OTP đã được chấp nhận và đang xử lý.',
+        };
     }
     async sendClinicVerification(clinic_id) {
-        return await (0, rxjs_1.lastValueFrom)(this.authService.send({ cmd: 'sendClinicVerificationMail' }, { clinic_id }));
+        this.authService.emit({ cmd: 'sendClinicVerificationMail' }, { clinic_id });
+        return {
+            statusCode: common_1.HttpStatus.ACCEPTED,
+            message: 'Yêu cầu gửi email xác minh đã được chấp nhận và đang xử lý.',
+        };
     }
     async verifyClinic(token) {
         try {
@@ -60,7 +68,11 @@ let AuthController = class AuthController {
         }
     }
     async forgotPassword(data) {
-        return await (0, rxjs_1.lastValueFrom)(this.authService.send({ cmd: 'forgot-password' }, data));
+        this.authService.emit({ cmd: 'forgot-password' }, data);
+        return {
+            statusCode: common_1.HttpStatus.ACCEPTED,
+            message: 'Yêu cầu đặt lại mật khẩu đã được chấp nhận. Vui lòng kiểm tra email.',
+        };
     }
     async resetPassword(data) {
         return await (0, rxjs_1.lastValueFrom)(this.authService.send({ cmd: 'reset-password' }, data));
@@ -96,7 +108,7 @@ __decorate([
 ], AuthController.prototype, "register", null);
 __decorate([
     (0, common_1.Post)('send-otp-email'),
-    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, common_1.HttpCode)(common_1.HttpStatus.ACCEPTED),
     __param(0, (0, common_1.Body)('email')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
@@ -106,7 +118,7 @@ __decorate([
     (0, common_1.UseGuards)(jwtAuth_guard_1.JwtAuthGuard, role_guard_1.RoleGuard),
     (0, roles_decorator_1.Roles)(roles_decorator_1.Role.ADMIN, roles_decorator_1.Role.STAFF),
     (0, common_1.Post)('send-clinic-verification'),
-    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, common_1.HttpCode)(common_1.HttpStatus.ACCEPTED),
     __param(0, (0, common_1.Body)('clinic_id_form')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
@@ -128,7 +140,7 @@ __decorate([
 ], AuthController.prototype, "convertLocation", null);
 __decorate([
     (0, common_1.Post)('forgot-password'),
-    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, common_1.HttpCode)(common_1.HttpStatus.ACCEPTED),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),

@@ -161,22 +161,20 @@ export class AppointmentService {
         const userEmail = user.email?.email_address || user.email;
         const userName = user.full_name || user.username || 'Quý khách';
 
-        await lastValueFrom(
-          this.authService.send(
-            { cmd: 'sendAppointmentConfirmation' },
-            {
-              email: userEmail,
-              appointmentDetails: {
-                userName: userName,
-                appointmentDate: appointmentDateFormatted,
-                appointmentTime: `${shift.data.start_time} - ${shift.data.end_time}`,
-                clinicName: clinic.data.clinic_name,
-                clinicAddress: clinic.data.address,
-                services: services.map((s) => s.name),
-                appointmentId: result.id,
-              },
+        this.authService.emit(
+          { cmd: 'sendAppointmentConfirmation' },
+          {
+            email: userEmail,
+            appointmentDetails: {
+              userName: userName,
+              appointmentDate: appointmentDateFormatted,
+              appointmentTime: `${shift.data.start_time} - ${shift.data.end_time}`,
+              clinicName: clinic.data.clinic_name,
+              clinicAddress: clinic.data.address,
+              services: services.map((s) => s.name),
+              appointmentId: result.id,
             },
-          ),
+          },
         );
       } catch (emailError) {
         console.error('Không thể gửi email xác nhận:', emailError);
@@ -768,22 +766,20 @@ export class AppointmentService {
               city: '',
             };
 
-        await lastValueFrom(
-          this.authService.send(
-            { cmd: 'sendAppointmentConfirmation' },
-            {
-              email: userEmail,
-              appointmentDetails: {
-                userName: userName,
-                appointmentDate: appointmentDateFormatted,
-                appointmentTime: `${shiftData.start_time || shiftData.startTime} - ${shiftData.end_time || shiftData.endTime}`,
-                clinicName: clinicData.clinic_name || clinicData.name,
-                clinicAddress: clinicAddress,
-                services: services.map((s) => s.name || s.service_name),
-                appointmentId: result.id,
-              },
+        this.authService.emit(
+          { cmd: 'sendAppointmentConfirmation' },
+          {
+            email: userEmail,
+            appointmentDetails: {
+              userName: userName,
+              appointmentDate: appointmentDateFormatted,
+              appointmentTime: `${shiftData.start_time || shiftData.startTime} - ${shiftData.end_time || shiftData.endTime}`,
+              clinicName: clinicData.clinic_name || clinicData.name,
+              clinicAddress: clinicAddress,
+              services: services.map((s) => s.name || s.service_name),
+              appointmentId: result.id,
             },
-          ),
+          },
         );
       } catch (emailError) {
         console.error('Không thể gửi email xác nhận:', emailError);

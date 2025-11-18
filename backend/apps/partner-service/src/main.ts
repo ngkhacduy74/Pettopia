@@ -34,6 +34,6 @@ async function bootstrap() {
   await app.startAllMicroservices();
   await app.listen(port);
 
-  console.log('Partnerr-service run successfull');
+  console.log('Partner-service run successfull');
 }
 bootstrap();

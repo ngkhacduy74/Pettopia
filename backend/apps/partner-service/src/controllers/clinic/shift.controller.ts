@@ -5,11 +5,12 @@ import {
   ValidationPipe,
   HttpStatus,
 } from '@nestjs/common';
-import { MessagePattern, Payload, RpcException } from '@nestjs/microservices';
+import { MessagePattern, Payload, RpcException, EventPattern } from '@nestjs/microservices';
 import { handleRpcError } from 'src/common/error.detail';
 import { CreateClinicShiftDto } from 'src/dto/clinic/shift/create-shift.dto';
 import { UpdateClinicShiftDto } from 'src/dto/clinic/shift/update-shift.dto';
 import { ShiftService } from 'src/services/clinic/shift.service';
+
 @UsePipes(
   new ValidationPipe({
     transform: true,
@@ -47,10 +48,10 @@ export class ShiftController {
     }
   }
 
-  @MessagePattern({ cmd: 'createClinicShift' })
+  @EventPattern({ cmd: 'createClinicShift' })
   async createClinicShift(@Payload() data: CreateClinicShiftDto) {
     try {
-      return await this.shiftService.createClinicShift(data);
+      await this.shiftService.createClinicShift(data);
     } catch (err) {
       handleRpcError('ShiftController.createClinicShift', err);
     }
@@ -68,17 +69,18 @@ export class ShiftController {
     }
   }
 
-  @MessagePattern({ cmd: 'updateClinicShift' })
+  @EventPattern({ cmd: 'updateClinicShift' })
   async updateClinicShift(@Payload() payload: any) {
     try {
       const { id, ...updateData } = payload;
       const dto: UpdateClinicShiftDto = updateData;
 
-      return await this.shiftService.updateClinicShift(id, dto);
+      await this.shiftService.updateClinicShift(id, dto);
     } catch (err) {
       handleRpcError('ShiftController.updateClinicShift', err);
     }
   }
+  
   @MessagePattern({ cmd: 'getShiftsByClinicId' })
   async getShiftsByClinicId(@Payload() data: { clinic_id: string }) {
     try {
@@ -87,7 +89,8 @@ export class ShiftController {
       handleRpcError('ShiftController.getShiftsByClinicId', err);
     }
   }
-  @MessagePattern({ cmd: 'deleteClinicShift' })
+  
+  @EventPattern({ cmd: 'deleteClinicShift' })
   async deleteClinicShift(
     @Payload() payload: { id: string; clinic_id: string },
   ) {
@@ -95,21 +98,21 @@ export class ShiftController {
       if (!payload.id || !payload.clinic_id) {
         throw new RpcException('Thiếu thông tin bắt buộc');
       }
-      return await this.shiftService.deleteShift(payload.id, payload.clinic_id);
+      await this.shiftService.deleteShift(payload.id, payload.clinic_id);
     } catch (err) {
       handleRpcError('ShiftController.deleteClinicShift', err);
     }
   }
-
-  //   @MessagePattern({ cmd: 'updateClinicShiftStatus' })
-  //   async updateClinicShiftStatus(
-  //     @Payload() payload: { id: string; is_active: boolean },
-  //   ) {
-  //     try {
-  //       const { id, is_active } = payload;
-  //       return await this.shiftService.updateClinicShiftStatus(id, is_active);
-  //     } catch (err) {
-  //       handleRpcError('ShiftController.updateClinicShiftStatus', err);
-  //     }
+  
+  // @EventPattern({ cmd: 'updateClinicShiftStatus' })
+  // async updateClinicShiftStatus(
+  //   @Payload() payload: { id: string; is_active: boolean },
+  // ) {
+  //   try {
+  //     const { id, is_active } = payload;
+  //     await this.shiftService.updateClinicShiftStatus(id, is_active);
+  //   } catch (err) {
+  //     handleRpcError('ShiftController.updateClinicShiftStatus', err);
   //   }
+  // }
 }

@@ -1,17 +1,17 @@
 import { Controller } from '@nestjs/common';
-import { MessagePattern, Payload } from '@nestjs/microservices';
+import { MessagePattern, Payload, EventPattern } from '@nestjs/microservices';
 import { MailTemplateService } from '../services/mail.template.service';
 
 @Controller()
 export class MailController {
   constructor(private readonly mailService: MailTemplateService) {}
 
-  @MessagePattern({ cmd: 'invite_vet' })
+  @EventPattern({ cmd: 'invite_vet' })
   async inviteVet(@Payload() data: { email: string; clinic_id: string }) {
-    return this.mailService.inviteVet(data.email, data.clinic_id);
+    await this.mailService.inviteVet(data.email, data.clinic_id);
   }
 
-  @MessagePattern({ cmd: 'sendClinicMemberInvitation' })
+  @EventPattern({ cmd: 'sendClinicMemberInvitation' })
   async sendClinicMemberInvitation(
     @Payload()
     data: {
@@ -22,14 +22,15 @@ export class MailController {
       expiresAt: string;
     },
   ) {
-    return this.mailService.sendClinicMemberInvitation(data);
+    await this.mailService.sendClinicMemberInvitation(data);
   }
-  @MessagePattern({ cmd: 'sendClinicVerificationMail' })
+  
+  @EventPattern({ cmd: 'sendClinicVerificationMail' })
   async sendClinicVerificationMail(@Payload() data: { clinic_id: string }) {
-    return this.mailService.sendClinicVerificationMail(data.clinic_id);
+    await this.mailService.sendClinicVerificationMail(data.clinic_id);
   }
 
-  @MessagePattern({ cmd: 'sendClinicWelcomeEmail' })
+  @EventPattern({ cmd: 'sendClinicWelcomeEmail' })
   async sendClinicWelcomeEmail(
     @Payload()
     data: {
@@ -40,7 +41,7 @@ export class MailController {
       password: string;
     },
   ) {
-    return this.mailService.sendClinicWelcomeEmail(
+    await this.mailService.sendClinicWelcomeEmail(
       data.email,
       data.clinicName,
       data.representativeName,
@@ -49,7 +50,7 @@ export class MailController {
     );
   }
 
-  @MessagePattern({ cmd: 'sendAppointmentConfirmation' })
+  @EventPattern({ cmd: 'sendAppointmentConfirmation' })
   async sendAppointmentConfirmation(
     @Payload()
     data: {
@@ -87,13 +88,13 @@ export class MailController {
           : appointmentDetails.clinicAddress,
     };
 
-    return this.mailService.sendAppointmentConfirmation(
+    await this.mailService.sendAppointmentConfirmation(
       data.email,
       formattedAppointmentDetails,
     );
   }
 
-  @MessagePattern({ cmd: 'sendAppointmentStatusUpdate' })
+  @EventPattern({ cmd: 'sendAppointmentStatusUpdate' })
   async sendAppointmentStatusUpdate(
     @Payload()
     data: {
@@ -132,13 +133,13 @@ export class MailController {
           : appointmentDetails.clinicAddress,
     };
 
-    return this.mailService.sendAppointmentStatusUpdate(
+    await this.mailService.sendAppointmentStatusUpdate(
       data.email,
       formattedAppointmentDetails,
     );
   }
 
-  @MessagePattern({ cmd: 'sendAppointmentCancellation' })
+  @EventPattern({ cmd: 'sendAppointmentCancellation' })
   async sendAppointmentCancellation(
     @Payload()
     data: {
@@ -177,7 +178,7 @@ export class MailController {
           : appointmentDetails.clinicAddress,
     };
 
-    return this.mailService.sendAppointmentCancellation(
+    await this.mailService.sendAppointmentCancellation(
       data.email,
       formattedAppointmentDetails,
     );

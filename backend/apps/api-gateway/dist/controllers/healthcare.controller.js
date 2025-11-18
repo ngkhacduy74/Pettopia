@@ -27,22 +27,14 @@ let HealthcareController = class HealthcareController {
         this.healthcareService = healthcareService;
     }
     async createAppointment(data, userId) {
-        try {
-            console.log('1928ujkasd');
-            return await (0, rxjs_1.lastValueFrom)(this.healthcareService.send({ cmd: 'createAppointment' }, {
-                data,
-                user_id: userId,
-            }));
-        }
-        catch (error) {
-            if (error instanceof microservices_2.RpcException) {
-                throw error;
-            }
-            throw new microservices_2.RpcException({
-                status: common_1.HttpStatus.INTERNAL_SERVER_ERROR,
-                message: error.message || 'Đã xảy ra lỗi khi tạo lịch hẹn',
-            });
-        }
+        this.healthcareService.emit({ cmd: 'createAppointment' }, {
+            data,
+            user_id: userId,
+        });
+        return {
+            statusCode: common_1.HttpStatus.ACCEPTED,
+            message: 'Yêu cầu tạo lịch hẹn đang được xử lý.',
+        };
     }
     async getAppointments(userId, role, clinicId, page = 1, limit = 10) {
         return await (0, rxjs_1.lastValueFrom)(this.healthcareService.send({ cmd: 'getAppointments' }, {
@@ -73,68 +65,47 @@ let HealthcareController = class HealthcareController {
         }
     }
     async updateAppointmentStatus(appointmentId, updatedByUserId, updateData) {
-        try {
-            return await (0, rxjs_1.lastValueFrom)(this.healthcareService.send({ cmd: 'updateAppointmentStatus' }, {
-                appointmentId,
-                updateData,
-                updatedByUserId,
-            }));
-        }
-        catch (error) {
-            if (error instanceof microservices_2.RpcException) {
-                throw error;
-            }
-            throw new microservices_2.RpcException({
-                status: common_1.HttpStatus.INTERNAL_SERVER_ERROR,
-                message: error.message || 'Đã xảy ra lỗi khi cập nhật trạng thái lịch hẹn',
-            });
-        }
+        this.healthcareService.emit({ cmd: 'updateAppointmentStatus' }, {
+            appointmentId,
+            updateData,
+            updatedByUserId,
+        });
+        return {
+            statusCode: common_1.HttpStatus.ACCEPTED,
+            message: 'Yêu cầu cập nhật trạng thái lịch hẹn đang được xử lý.',
+        };
     }
     async cancelAppointment(appointmentId, cancelledByUserId, role, clinicId, cancelData = {}) {
-        try {
-            return await (0, rxjs_1.lastValueFrom)(this.healthcareService.send({ cmd: 'cancelAppointment' }, {
-                appointmentId,
-                cancelledByUserId,
-                role,
-                clinicId,
-                cancelData: {
-                    cancel_reason: cancelData?.cancel_reason,
-                },
-            }));
-        }
-        catch (error) {
-            if (error instanceof microservices_2.RpcException) {
-                throw error;
-            }
-            throw new microservices_2.RpcException({
-                status: common_1.HttpStatus.INTERNAL_SERVER_ERROR,
-                message: error.message || 'Đã xảy ra lỗi khi hủy lịch hẹn',
-            });
-        }
+        this.healthcareService.emit({ cmd: 'cancelAppointment' }, {
+            appointmentId,
+            cancelledByUserId,
+            role,
+            clinicId,
+            cancelData: {
+                cancel_reason: cancelData?.cancel_reason,
+            },
+        });
+        return {
+            statusCode: common_1.HttpStatus.ACCEPTED,
+            message: 'Yêu cầu hủy lịch hẹn đang được xử lý.',
+        };
     }
     async createAppointmentForCustomer(data, partnerId) {
-        try {
-            return await (0, rxjs_1.lastValueFrom)(this.healthcareService.send({ cmd: 'createAppointmentForCustomer' }, {
-                data,
-                partner_id: partnerId,
-            }));
-        }
-        catch (error) {
-            if (error instanceof microservices_2.RpcException) {
-                throw error;
-            }
-            throw new microservices_2.RpcException({
-                status: common_1.HttpStatus.INTERNAL_SERVER_ERROR,
-                message: error.message || 'Đã xảy ra lỗi khi tạo lịch hẹn hộ khách hàng',
-            });
-        }
+        this.healthcareService.emit({ cmd: 'createAppointmentForCustomer' }, {
+            data,
+            partner_id: partnerId,
+        });
+        return {
+            statusCode: common_1.HttpStatus.ACCEPTED,
+            message: 'Yêu cầu tạo lịch hẹn hộ khách hàng đang được xử lý.',
+        };
     }
 };
 exports.HealthcareController = HealthcareController;
 __decorate([
     (0, common_1.UseGuards)(jwtAuth_guard_1.JwtAuthGuard),
     (0, common_1.Post)('/appointment'),
-    (0, common_1.HttpCode)(common_1.HttpStatus.CREATED),
+    (0, common_1.HttpCode)(common_1.HttpStatus.ACCEPTED),
     __param(0, (0, common_1.Body)()),
     __param(1, (0, user_decorator_1.UserToken)('id')),
     __metadata("design:type", Function),
@@ -172,7 +143,7 @@ __decorate([
     (0, common_1.UseGuards)(jwtAuth_guard_1.JwtAuthGuard, role_guard_1.RoleGuard),
     (0, roles_decorator_1.Roles)(roles_decorator_1.Role.STAFF, roles_decorator_1.Role.ADMIN, roles_decorator_1.Role.CLINIC),
     (0, common_1.Patch)('/appointments/:id/status'),
-    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, common_1.HttpCode)(common_1.HttpStatus.ACCEPTED),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, user_decorator_1.UserToken)('id')),
     __param(2, (0, common_1.Body)()),
@@ -184,7 +155,7 @@ __decorate([
     (0, common_1.UseGuards)(jwtAuth_guard_1.JwtAuthGuard, role_guard_1.RoleGuard),
     (0, roles_decorator_1.Roles)(roles_decorator_1.Role.USER, roles_decorator_1.Role.ADMIN, roles_decorator_1.Role.STAFF, roles_decorator_1.Role.CLINIC),
     (0, common_1.Patch)('/appointments/:id/cancel'),
-    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, common_1.HttpCode)(common_1.HttpStatus.ACCEPTED),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, user_decorator_1.UserToken)('id')),
     __param(2, (0, user_decorator_1.UserToken)('role')),
@@ -198,7 +169,7 @@ __decorate([
     (0, common_1.UseGuards)(jwtAuth_guard_1.JwtAuthGuard, role_guard_1.RoleGuard),
     (0, roles_decorator_1.Roles)(roles_decorator_1.Role.CLINIC, roles_decorator_1.Role.STAFF, roles_decorator_1.Role.ADMIN),
     (0, common_1.Post)('/appointment/for-customer'),
-    (0, common_1.HttpCode)(common_1.HttpStatus.CREATED),
+    (0, common_1.HttpCode)(common_1.HttpStatus.ACCEPTED),
     __param(0, (0, common_1.Body)()),
     __param(1, (0, user_decorator_1.UserToken)('id')),
     __metadata("design:type", Function),

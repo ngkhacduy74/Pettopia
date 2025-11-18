@@ -259,17 +259,15 @@ export class ClinicService {
 
             console.log('Sending welcome email to:', recipientEmail);
 
-            await lastValueFrom(
-              this.authService.send(
-                { cmd: 'sendClinicWelcomeEmail' },
-                {
-                  email: recipientEmail,
-                  clinicName: clinicForm.clinic_name,
-                  representativeName: clinicForm.representative.full_name,
-                  username: userAccountData.username,
-                  password: userAccountData.password,
-                },
-              ),
+            this.authService.emit(
+              { cmd: 'sendClinicWelcomeEmail' },
+              {
+                email: recipientEmail,
+                clinicName: clinicForm.clinic_name,
+                representativeName: clinicForm.representative_name,
+                username: userAccountData.username,
+                password: userAccountData.password,
+              },
             );
 
             console.log('Welcome email sent successfully');

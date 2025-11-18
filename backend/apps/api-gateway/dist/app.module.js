@@ -29,76 +29,125 @@ exports.AppModule = AppModule = __decorate([
             config_1.ConfigModule.forRoot({
                 isGlobal: true,
             }),
-            microservices_1.ClientsModule.register([
+            microservices_1.ClientsModule.registerAsync([
                 {
                     name: 'AUTH_SERVICE',
-                    transport: microservices_1.Transport.TCP,
-                    options: {
-                        host: process.env.NODE_ENV === 'production'
-                            ? 'auth-service'
-                            : 'localhost',
-                        port: parseInt(process.env.TCP_AUTH_PORT ?? '5001', 10),
-                    },
+                    imports: [config_1.ConfigModule],
+                    inject: [config_1.ConfigService],
+                    useFactory: (configService) => ({
+                        transport: microservices_1.Transport.RMQ,
+                        options: {
+                            urls: [
+                                configService.get('RMQ_URL', 'amqp://guest:guest@rabbitmq:5672'),
+                            ],
+                            queue: 'auth_service_queue',
+                            queueOptions: {
+                                durable: true,
+                            },
+                        },
+                    }),
                 },
                 {
                     name: 'CUSTOMER_SERVICE',
-                    transport: microservices_1.Transport.TCP,
-                    options: {
-                        host: process.env.NODE_ENV === 'production'
-                            ? 'customer-service'
-                            : 'localhost',
-                        port: parseInt(process.env.TCP_CUSTOMER_PORT ?? '5002', 10),
-                    },
+                    imports: [config_1.ConfigModule],
+                    inject: [config_1.ConfigService],
+                    useFactory: (configService) => ({
+                        transport: microservices_1.Transport.RMQ,
+                        options: {
+                            urls: [
+                                configService.get('RMQ_URL', 'amqp://guest:guest@rabbitmq:5672'),
+                            ],
+                            queue: 'customer_service_queue',
+                            queueOptions: {
+                                durable: true,
+                            },
+                        },
+                    }),
                 },
                 {
                     name: 'PETCARE_SERVICE',
-                    transport: microservices_1.Transport.TCP,
-                    options: {
-                        host: process.env.NODE_ENV === 'production'
-                            ? 'petcare-service'
-                            : 'localhost',
-                        port: parseInt(process.env.TCP_PET_PORT ?? '5003', 10),
-                    },
+                    imports: [config_1.ConfigModule],
+                    inject: [config_1.ConfigService],
+                    useFactory: (configService) => ({
+                        transport: microservices_1.Transport.RMQ,
+                        options: {
+                            urls: [
+                                configService.get('RMQ_URL', 'amqp://guest:guest@rabbitmq:5672'),
+                            ],
+                            queue: 'petcare_service_queue',
+                            queueOptions: {
+                                durable: true,
+                            },
+                        },
+                    }),
                 },
                 {
                     name: 'PARTNER_SERVICE',
-                    transport: microservices_1.Transport.TCP,
-                    options: {
-                        host: process.env.NODE_ENV === 'production'
-                            ? 'partner-service'
-                            : 'localhost',
-                        port: parseInt(process.env.TCP_PARTNER_PORT ?? '5004', 10),
-                    },
+                    imports: [config_1.ConfigModule],
+                    inject: [config_1.ConfigService],
+                    useFactory: (configService) => ({
+                        transport: microservices_1.Transport.RMQ,
+                        options: {
+                            urls: [
+                                configService.get('RMQ_URL', 'amqp://guest:guest@rabbitmq:5672'),
+                            ],
+                            queue: 'partner_service_queue',
+                            queueOptions: {
+                                durable: true,
+                            },
+                        },
+                    }),
                 },
                 {
                     name: 'HEALTHCARE_SERVICE',
-                    transport: microservices_1.Transport.TCP,
-                    options: {
-                        host: process.env.NODE_ENV === 'production'
-                            ? 'healthcare-service'
-                            : 'localhost',
-                        port: parseInt(process.env.TCP_HEALTHCARE_PORT ?? '5005', 10),
-                    },
+                    imports: [config_1.ConfigModule],
+                    inject: [config_1.ConfigService],
+                    useFactory: (configService) => ({
+                        transport: microservices_1.Transport.RMQ,
+                        options: {
+                            urls: [
+                                configService.get('RMQ_URL', 'amqp://guest:guest@rabbitmq:5672'),
+                            ],
+                            queue: 'healthcare_service_queue',
+                            queueOptions: {
+                                durable: true,
+                            },
+                        },
+                    }),
                 },
                 {
                     name: 'COMMUNICATION_SERVICE',
-                    transport: microservices_1.Transport.TCP,
-                    options: {
-                        host: process.env.NODE_ENV === 'production'
-                            ? 'communication-service'
-                            : 'localhost',
-                        port: parseInt(process.env.TCP_COMMUNICATION_PORT ?? '5006', 10),
-                    },
+                    imports: [config_1.ConfigModule],
+                    inject: [config_1.ConfigService],
+                    useFactory: (configService) => ({
+                        transport: microservices_1.Transport.RMQ,
+                        options: {
+                            urls: [
+                                configService.get('RMQ_URL', 'amqp://guest:guest@rabbitmq:5672'),
+                            ],
+                            queue: 'communication_service_queue',
+                            queueOptions: {
+                                durable: true,
+                            },
+                        },
+                    }),
                 },
                 {
                     name: 'BILLING_SERVICE',
-                    transport: microservices_1.Transport.TCP,
-                    options: {
-                        host: process.env.NODE_ENV === 'production'
-                            ? 'billing-service'
-                            : 'localhost',
-                        port: parseInt(process.env.TCP_BILLING_PORT ?? '5007', 10),
-                    },
+                    imports: [config_1.ConfigModule],
+                    inject: [config_1.ConfigService],
+                    useFactory: (configService) => ({
+                        transport: microservices_1.Transport.RMQ,
+                        options: {
+                            urls: [
+                                configService.get('RMQ_URL', 'amqp://guest:guest@rabbitmq:5672'),
+                            ],
+                            queue: 'billing_service_queue',
+                            queueOptions: {
+                                durable: true,
+                            },
+                        },
+                    }),
                 },
             ]),
             jwt_1.JwtModule.registerAsync({

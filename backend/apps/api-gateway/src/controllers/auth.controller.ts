@@ -11,7 +11,6 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { AppService } from '../app.service';
 import { lastValueFrom } from 'rxjs';
 import { ClientProxy, RpcException } from '@nestjs/microservices';
 import { UserToken } from 'src/decorators/user.decorator';
@@ -47,24 +46,28 @@ export class AuthController {
   }
 
   @Post('send-otp-email')
-  @HttpCode(HttpStatus.OK)
+  @HttpCode(HttpStatus.ACCEPTED)
   async sendOtpEmail(@Body('email') email: string) {
-    return await lastValueFrom(
-      this.authService.send({ cmd: 'send-otp-email' }, { email }),
-    );
+    this.authService.emit({ cmd: 'send-otp-email' }, { email });
+    return {
+      statusCode: HttpStatus.ACCEPTED,
+      message: 'Yêu cầu gửi mã OTP đã được chấp nhận và đang xử lý.',
+    };
   }
 
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(Role.ADMIN, Role.STAFF)
   @Post('send-clinic-verification')
-  @HttpCode(HttpStatus.OK)
+  @HttpCode(HttpStatus.ACCEPTED)
   async sendClinicVerification(@Body('clinic_id_form') clinic_id: string) {
-    return await lastValueFrom(
-      this.authService.send(
-        { cmd: 'sendClinicVerificationMail' },
-        { clinic_id },
-      ),
+    this.authService.emit(
+      { cmd: 'sendClinicVerificationMail' },
+      { clinic_id },
     );
+    return {
+      statusCode: HttpStatus.ACCEPTED,
+      message: 'Yêu cầu gửi email xác minh đã được chấp nhận và đang xử lý.',
+    };
   }
 
   @Get('verify/clinic')
@@ -77,6 +80,7 @@ export class AuthController {
       throw new RpcException(error);
     }
   }
+  
   @Post('convert/location')
   async convertLocation(@Body() address: string) {
     try {
@@ -87,26 +91,31 @@ export class AuthController {
       throw new RpcException(err);
     }
   }
+  
   @Post('forgot-password')
-@HttpCode(HttpStatus.OK)
-async forgotPassword(@Body() data: any) {
-  return await lastValueFrom(
-    this.authService.send({ cmd: 'forgot-password' }, data),
-  );
-}
+  @HttpCode(HttpStatus.ACCEPTED)
+  async forgotPassword(@Body() data: any) {
+    this.authService.emit({ cmd: 'forgot-password' }, data);
+    return {
+      statusCode: HttpStatus.ACCEPTED,
+      message: 'Yêu cầu đặt lại mật khẩu đã được chấp nhận. Vui lòng kiểm tra email.',
+    };
+  }
+  
   @Post('reset-password')
-@HttpCode(HttpStatus.OK)
-async resetPassword(@Body() data: any) {
-  return await lastValueFrom(
-    this.authService.send({ cmd: 'reset-password' }, data),
-  );
-}
-@UseGuards(JwtAuthGuard)
-@Post('change-password')
-@HttpCode(HttpStatus.OK)
-async changePassword(@Body() data: any, @UserToken('id') userId: string) {
-  return await lastValueFrom(
-    this.authService.send({ cmd: 'change-password' }, { ...data, userId }),
-  );
-}
+  @HttpCode(HttpStatus.OK)
+  async resetPassword(@Body() data: any) {
+    return await lastValueFrom(
+      this.authService.send({ cmd: 'reset-password' }, data),
+    );
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('change-password')
+  @HttpCode(HttpStatus.OK)
+  async changePassword(@Body() data: any, @UserToken('id') userId: string) {
+    return await lastValueFrom(
+      this.authService.send({ cmd: 'change-password' }, { ...data, userId }),
+    );
+  }
 }
