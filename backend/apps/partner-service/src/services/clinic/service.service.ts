@@ -1,10 +1,11 @@
 import { RpcException } from '@nestjs/microservices';
 import { HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { CreateServiceDto } from 'src/dto/clinic/services/create-service.dto';
-import { ServiceRepository } from 'src/repositories/clinic/service.repositories';
+
 import { ClinicService } from './clinic.service';
 import { ClinicsRepository } from 'src/repositories/clinic/clinic.repositories';
 import { lastValueFrom } from 'rxjs';
+import { ServiceRepository } from 'src/repositories/clinic/service.repositories';
 
 const createRpcError = (
   statusCode: number,

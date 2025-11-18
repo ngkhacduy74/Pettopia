@@ -3,58 +3,61 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Pet, PetDocument } from '../schemas/pet.schema';
 import { CreatePetDto } from '../dto/pet/create-pet.dto';
-// import { UpdatePetDto } from '../dto/pet/update-pet.dto';
 import { GetAllPetsDto } from '../dto/pet/get-all-pets.dto';
 import { PaginatedPetsResponse } from '../dto/pet/paginated-pets-response.dto';
 
-// --- PHẦN THÊM VÀO ---
-// 1. Import Redis client
 import redisClient from '../common/redis/redis.module.js';
-// (Hãy đảm bảo đường dẫn import này chính xác với cấu trúc thư mục của bạn)
-// --- KẾT THÚC PHẦN THÊM VÀO ---
 
 @Injectable()
 export class PetRepository {
-  // --- PHẦN THÊM VÀO ---
-  // 2. Khai báo redis và thời gian cache
   private redis: typeof redisClient;
-  private readonly cacheTTL = 3600; // 1 giờ cho cache 1 thú cưng
-  private readonly listCacheTTL = 600; // 10 phút cho cache danh sách
-  // --- KẾT THÚC PHẦN THÊM VÀO ---
+  private readonly cacheTTL = 3600;
+  private readonly listCacheTTL = 600;
 
   constructor(@InjectModel(Pet.name) private petModel: Model<PetDocument>) {
-    // --- PHẦN THÊM VÀO ---
-    // 3. Khởi tạo redis
     this.redis = redisClient;
-    // --- KẾT THÚC PHẦN THÊM VÀO ---
   }
 
-  // --- PHẦN THÊM VÀO: HÀM HELPER CHO CACHE ---
+  // --- CÁC HÀM HELPER AN TOÀN (SAFE WRAPPERS) ---
+  private async safeGet(key: string): Promise<string | null> {
+    try {
+      if (!this.redis.isOpen) return null;
+      return await this.redis.get(key);
+    } catch (error) {
+      return null;
+    }
+  }
 
-  /**
-   * Lấy key cache cho một thú cưng (pet) đơn lẻ
-   */
+  private async safeSet(key: string, value: string, options?: any) {
+    try {
+      if (!this.redis.isOpen) return;
+      await this.redis.set(key, value, options);
+    } catch (error) {}
+  }
+
+  private async safeDel(keys: string | string[]) {
+    try {
+      if (!this.redis.isOpen) return;
+      await this.redis.del(keys);
+    } catch (error) {}
+  }
+  // --- KẾT THÚC HELPER ---
+
   private getPetKey(id: string): string {
     return `pet:${id}`;
   }
 
-  /**
-   * Xóa cache của một thú cưng đơn lẻ
-   */
   private async invalidateSinglePetCache(petId: string) {
     if (petId) {
-      await this.redis.del(this.getPetKey(petId));
+      await this.safeDel(this.getPetKey(petId));
     }
   }
 
-  /**
-   * Xóa tất cả cache danh sách và số đếm liên quan đến thú cưng
-   * (Dùng SCAN để duyệt an toàn, không làm block Redis)
-   */
   private async invalidatePetListCaches() {
+    if (!this.redis.isOpen) return;
     try {
       let cursor = '0';
-      const matchPattern = 'pets:*'; // Quét tất cả key bắt đầu bằng 'pets:'
+      const matchPattern = 'pets:*';
       do {
         const reply = await this.redis.scan(cursor, {
           MATCH: matchPattern,
@@ -66,16 +69,9 @@ export class PetRepository {
           await this.redis.del(keys);
         }
       } while (cursor !== '0');
-    } catch (err) {
-      console.error('Lỗi khi xóa cache danh sách pet:', err);
-    }
+    } catch (err) {}
   }
 
-  // --- KẾT THÚC PHẦN THÊM VÀO ---
-
-  /**
-   * Ghi (Write): Cần XÓA (invalidate) cache
-   */
   async create(petDataToSave: CreatePetDto | any): Promise<Pet> {
     try {
       const pet = await this.petModel.create(petDataToSave);
@@ -84,10 +80,7 @@ export class PetRepository {
         throw new InternalServerErrorException('Không thể tạo pet trong DB');
       }
 
-      // --- PHẦN THÊM VÀO ---
-      // 4. Xóa cache danh sách
       await this.invalidatePetListCaches();
-      // --- KẾT THÚC PHẦN THÊM VÀO ---
 
       return pet;
     } catch (error) {
@@ -97,46 +90,34 @@ export class PetRepository {
     }
   }
 
-  /**
-   * Đọc (Read): Áp dụng Cache-Aside
-   */
   async findAll(): Promise<Pet[]> {
     const cacheKey = 'pets:all';
     try {
-      // 1. Thử tìm trong Redis
-      const cached = await this.redis.get(cacheKey);
+      const cached = await this.safeGet(cacheKey);
       if (cached) {
-        return JSON.parse(cached); // Cache Hit
+        return JSON.parse(cached);
       }
 
-      // 2. Cache Miss -> Tìm trong MongoDB
       const pets = await this.petModel.find().exec();
 
-      // 3. Lưu vào Redis
-      await this.redis.set(cacheKey, JSON.stringify(pets), {
+      await this.safeSet(cacheKey, JSON.stringify(pets), {
         EX: this.listCacheTTL,
       });
 
       return pets;
     } catch (error) {
-      // Fallback: Nếu Redis lỗi, vẫn lấy từ DB
       return this.petModel.find().exec();
     }
   }
 
-  /**
-   * Đọc (Read): Áp dụng Cache-Aside (cho hàm phức tạp)
-   */
   async getAllPets(data: GetAllPetsDto): Promise<PaginatedPetsResponse<Pet>> {
     const cacheKey = `pets:list:${JSON.stringify(data)}`;
     try {
-      // 1. Thử tìm trong Redis
-      const cached = await this.redis.get(cacheKey);
+      const cached = await this.safeGet(cacheKey);
       if (cached) {
-        return JSON.parse(cached); // Cache Hit
+        return JSON.parse(cached);
       }
 
-      // 2. Cache Miss -> Tìm trong MongoDB
       const { page, limit, search, species, gender, sort_field, sort_order } =
         data;
 
@@ -176,8 +157,7 @@ export class PetRepository {
         limit: safeLimit,
       };
 
-      // 3. Lưu vào Redis
-      await this.redis.set(cacheKey, JSON.stringify(response), {
+      await this.safeSet(cacheKey, JSON.stringify(response), {
         EX: this.listCacheTTL,
       });
 
@@ -187,38 +167,28 @@ export class PetRepository {
     }
   }
 
-  /**
-   * Đọc (Read): Áp dụng Cache-Aside
-   */
   async findById(pet_id: string): Promise<Pet | null> {
     const cacheKey = this.getPetKey(pet_id);
     try {
-      // 1. Thử tìm trong Redis
-      const cached = await this.redis.get(cacheKey);
+      const cached = await this.safeGet(cacheKey);
       if (cached) {
-        return JSON.parse(cached); // Cache Hit
+        return JSON.parse(cached);
       }
 
-      // 2. Cache Miss -> Tìm trong MongoDB
       const pet = await this.petModel.findOne({ id: pet_id }).exec();
 
-      // 3. Lưu vào Redis (nếu tìm thấy)
       if (pet) {
-        await this.redis.set(cacheKey, JSON.stringify(pet), {
+        await this.safeSet(cacheKey, JSON.stringify(pet), {
           EX: this.cacheTTL,
         });
       }
 
       return pet;
     } catch (error) {
-      // Fallback
       return this.petModel.findOne({ id: pet_id }).exec();
     }
   }
 
-  /**
-   * Sửa (Update): Cần XÓA (invalidate) cache
-   */
   async update(pet_id: string, updateData: any): Promise<Pet> {
     try {
       const updatedPet = await this.petModel
@@ -234,11 +204,8 @@ export class PetRepository {
         );
       }
 
-      // --- PHẦN THÊM VÀO ---
-      // 4. Xóa cache
       await this.invalidateSinglePetCache(pet_id);
       await this.invalidatePetListCaches();
-      // --- KẾT THÚC PHẦN THÊM VÀO ---
 
       return updatedPet;
     } catch (error) {
@@ -248,71 +215,52 @@ export class PetRepository {
     }
   }
 
-  /**
-   * Xóa (Delete): Cần XÓA (invalidate) cache
-   */
   async delete(pet_id: string): Promise<Pet | null> {
     const deletedPet = await this.petModel
       .findOneAndDelete({ id: pet_id })
       .exec();
 
-    // --- PHẦN THÊM VÀO ---
-    // 4. Xóa cache
     if (deletedPet) {
       await this.invalidateSinglePetCache(pet_id);
       await this.invalidatePetListCaches();
     }
-    // --- KẾT THÚC PHẦN THÊM VÀO ---
 
     return deletedPet;
   }
 
-  /**
-   * Đọc (Read): Áp dụng Cache-Aside
-   */
   async findBySpecies(species: string): Promise<Pet[]> {
     const cacheKey = `pets:species:${species}`;
     try {
-      // 1. Thử tìm trong Redis
-      const cached = await this.redis.get(cacheKey);
+      const cached = await this.safeGet(cacheKey);
       if (cached) {
-        return JSON.parse(cached); // Cache Hit
+        return JSON.parse(cached);
       }
 
-      // 2. Cache Miss -> Tìm trong MongoDB
       const pets = await this.petModel.find({ species }).exec();
 
-      // 3. Lưu vào Redis
-      await this.redis.set(cacheKey, JSON.stringify(pets), {
+      await this.safeSet(cacheKey, JSON.stringify(pets), {
         EX: this.listCacheTTL,
       });
 
       return pets;
     } catch (error) {
-      // Fallback
       return this.petModel.find({ species }).exec();
     }
   }
 
-  /**
-   * Đọc (Read): Áp dụng Cache-Aside
-   */
   async findByOwnerId(user_id: string): Promise<Pet[]> {
     const cacheKey = `pets:owner:${user_id}`;
     try {
-      // 1. Thử tìm trong Redis
-      const cached = await this.redis.get(cacheKey);
+      const cached = await this.safeGet(cacheKey);
       if (cached) {
-        return JSON.parse(cached); // Cache Hit
+        return JSON.parse(cached);
       }
 
-      // 2. Cache Miss -> Tìm trong MongoDB
       const pets = await this.petModel
         .find({ 'owner.user_id': user_id })
         .exec();
 
-      // 3. Lưu vào Redis
-      await this.redis.set(cacheKey, JSON.stringify(pets), {
+      await this.safeSet(cacheKey, JSON.stringify(pets), {
         EX: this.listCacheTTL,
       });
 
@@ -324,29 +272,22 @@ export class PetRepository {
     }
   }
 
-  /**
-   * Đọc (Read): Áp dụng Cache-Aside
-   */
   async count(): Promise<number> {
     const cacheKey = 'pets:count';
     try {
-      // 1. Thử tìm trong Redis
-      const cached = await this.redis.get(cacheKey);
+      const cached = await this.safeGet(cacheKey);
       if (cached) {
-        return JSON.parse(cached); // Cache Hit
+        return JSON.parse(cached);
       }
 
-      // 2. Cache Miss -> Tìm trong MongoDB
       const count = await this.petModel.countDocuments().exec();
 
-      // 3. Lưu vào Redis
-      await this.redis.set(cacheKey, JSON.stringify(count), {
+      await this.safeSet(cacheKey, JSON.stringify(count), {
         EX: this.listCacheTTL,
       });
 
       return count;
     } catch (error) {
-      // Fallback
       return this.petModel.countDocuments().exec();
     }
   }

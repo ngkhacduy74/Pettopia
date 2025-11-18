@@ -1,68 +1,62 @@
-import {
-  Injectable,
-  InternalServerErrorException,
-  BadRequestException,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 
-import {
-  Appointment,
-  AppointmentDocument,
-  AppointmentSchema,
-} from '../schemas/appoinment.schema';
-import { CreateAppointmentDto } from 'src/dto/appointment.dto';
-
-// --- PHẦN THÊM VÀO ---
-// 1. Import Redis client
+import { Appointment, AppointmentDocument } from '../schemas/appoinment.schema';
 import redisClient from '../common/redis/redis.module.js';
-// (Hãy đảm bảo đường dẫn import này chính xác với cấu trúc thư mục của bạn)
-// --- KẾT THÚC PHẦN THÊM VÀO ---
 
 @Injectable()
 export class AppointmentRepository {
-  // --- PHẦN THÊM VÀO ---
-  // 2. Khai báo redis và thời gian cache
   private redis: typeof redisClient;
-  private readonly cacheTTL = 3600; // 1 giờ cho cache 1 lịch hẹn
-  private readonly listCacheTTL = 600; // 10 phút cho cache danh sách
-  // --- KẾT THÚC PHẦN THÊM VÀO ---
+  private readonly cacheTTL = 3600;
+  private readonly listCacheTTL = 600;
 
   constructor(
     @InjectModel(Appointment.name)
     private appointmentModel: Model<AppointmentDocument>,
   ) {
-    // --- PHẦN THÊM VÀO ---
-    // 3. Khởi tạo redis
     this.redis = redisClient;
-    // --- KẾT THÚC PHẦN THÊM VÀO ---
   }
 
-  // --- PHẦN THÊM VÀO: HÀM HELPER CHO CACHE ---
+  // --- CÁC HÀM HELPER AN TOÀN (SAFE WRAPPERS) ---
+  private async safeGet(key: string): Promise<string | null> {
+    try {
+      if (!this.redis.isOpen) return null;
+      return await this.redis.get(key);
+    } catch (error) {
+      return null;
+    }
+  }
 
-  /**
-   * Lấy key cache cho một lịch hẹn đơn lẻ
-   */
+  private async safeSet(key: string, value: string, options?: any) {
+    try {
+      if (!this.redis.isOpen) return;
+      await this.redis.set(key, value, options);
+    } catch (error) {}
+  }
+
+  private async safeDel(keys: string | string[]) {
+    try {
+      if (!this.redis.isOpen) return;
+      await this.redis.del(keys);
+    } catch (error) {}
+  }
+  // --- KẾT THÚC HELPER ---
+
   private getAppointmentKey(id: string): string {
     return `appointment:${id}`;
   }
 
-  /**
-   * Xóa cache của một lịch hẹn đơn lẻ
-   */
   private async invalidateSingleAppointmentCache(id: string) {
     if (id) {
-      await this.redis.del(this.getAppointmentKey(id));
+      await this.safeDel(this.getAppointmentKey(id));
     }
   }
 
-  /**
-   * Xóa tất cả cache danh sách liên quan đến user hoặc clinic
-   * (Dùng SCAN để duyệt an toàn, không làm block Redis)
-   */
   private async invalidateAppointmentLists(userId?: string, clinicId?: string) {
-    // Luôn xóa cache 'all'
+    // Nếu Redis chưa kết nối thì bỏ qua ngay lập tức để tránh lỗi SCAN
+    if (!this.redis.isOpen) return;
+
     const prefixes = ['appointments:all:*'];
     if (userId) {
       prefixes.push(`appointments:user:${userId}:*`);
@@ -87,28 +81,20 @@ export class AppointmentRepository {
         } while (cursor !== '0');
       }
     } catch (err) {
-      console.error('Lỗi khi xóa cache danh sách lịch hẹn:', err);
+      // Log lỗi nhưng không throw để flow chính vẫn chạy
+      console.error('Lỗi khi invalidating appointment lists:', err);
     }
   }
 
-  // --- KẾT THÚC PHẦN THÊM VÀO ---
-
-  /**
-   * Ghi (Write): Cần XÓA (invalidate) cache
-   */
   async create(appointmentData: any): Promise<Appointment> {
     try {
-      console.log('appointmentData repository1231231', appointmentData);
       const newAppointment =
         await this.appointmentModel.create(appointmentData);
 
-      // --- PHẦN THÊM VÀO ---
-      // 4. Xóa cache danh sách
       await this.invalidateAppointmentLists(
         newAppointment.user_id,
         newAppointment.clinic_id,
       );
-      // --- KẾT THÚC PHẦN THÊM VÀO ---
 
       return newAppointment;
     } catch (error) {
@@ -118,9 +104,6 @@ export class AppointmentRepository {
     }
   }
 
-  /**
-   * Đọc (Read): Áp dụng Cache-Aside
-   */
   async findByUserId(
     userId: string,
     page: number = 1,
@@ -128,13 +111,11 @@ export class AppointmentRepository {
   ): Promise<{ data: Appointment[]; total: number }> {
     const cacheKey = `appointments:user:${userId}:${page}:${limit}`;
     try {
-      // 1. Thử tìm trong Redis
-      const cached = await this.redis.get(cacheKey);
+      const cached = await this.safeGet(cacheKey);
       if (cached) {
-        return JSON.parse(cached); // Cache Hit
+        return JSON.parse(cached);
       }
 
-      // 2. Cache Miss -> Tìm trong MongoDB
       const skip = (page - 1) * limit;
       const [data, total] = await Promise.all([
         this.appointmentModel
@@ -148,8 +129,7 @@ export class AppointmentRepository {
 
       const response = { data, total };
 
-      // 3. Lưu vào Redis
-      await this.redis.set(cacheKey, JSON.stringify(response), {
+      await this.safeSet(cacheKey, JSON.stringify(response), {
         EX: this.listCacheTTL,
       });
 
@@ -161,22 +141,17 @@ export class AppointmentRepository {
     }
   }
 
-  /**
-   * Đọc (Read): Áp dụng Cache-Aside
-   */
   async findAll(
     page: number = 1,
     limit: number = 10,
   ): Promise<{ data: Appointment[]; total: number }> {
     const cacheKey = `appointments:all:${page}:${limit}`;
     try {
-      // 1. Thử tìm trong Redis
-      const cached = await this.redis.get(cacheKey);
+      const cached = await this.safeGet(cacheKey);
       if (cached) {
-        return JSON.parse(cached); // Cache Hit
+        return JSON.parse(cached);
       }
 
-      // 2. Cache Miss -> Tìm trong MongoDB
       const skip = (page - 1) * limit;
       const [data, total] = await Promise.all([
         this.appointmentModel
@@ -190,8 +165,7 @@ export class AppointmentRepository {
 
       const response = { data, total };
 
-      // 3. Lưu vào Redis
-      await this.redis.set(cacheKey, JSON.stringify(response), {
+      await this.safeSet(cacheKey, JSON.stringify(response), {
         EX: this.listCacheTTL,
       });
 
@@ -203,9 +177,6 @@ export class AppointmentRepository {
     }
   }
 
-  /**
-   * Đọc (Read): Áp dụng Cache-Aside
-   */
   async findByClinicId(
     clinicId: string,
     page: number = 1,
@@ -213,13 +184,11 @@ export class AppointmentRepository {
   ): Promise<{ data: Appointment[]; total: number }> {
     const cacheKey = `appointments:clinic:${clinicId}:${page}:${limit}`;
     try {
-      // 1. Thử tìm trong Redis
-      const cached = await this.redis.get(cacheKey);
+      const cached = await this.safeGet(cacheKey);
       if (cached) {
-        return JSON.parse(cached); // Cache Hit
+        return JSON.parse(cached);
       }
 
-      // 2. Cache Miss -> Tìm trong MongoDB
       const skip = (page - 1) * limit;
       const [data, total] = await Promise.all([
         this.appointmentModel
@@ -233,8 +202,7 @@ export class AppointmentRepository {
 
       const response = { data, total };
 
-      // 3. Lưu vào Redis
-      await this.redis.set(cacheKey, JSON.stringify(response), {
+      await this.safeSet(cacheKey, JSON.stringify(response), {
         EX: this.listCacheTTL,
       });
 
@@ -246,24 +214,18 @@ export class AppointmentRepository {
     }
   }
 
-  /**
-   * Đọc (Read): Áp dụng Cache-Aside
-   */
   async findById(id: string): Promise<Appointment | null> {
     const cacheKey = this.getAppointmentKey(id);
     try {
-      // 1. Thử tìm trong Redis
-      const cached = await this.redis.get(cacheKey);
+      const cached = await this.safeGet(cacheKey);
       if (cached) {
-        return JSON.parse(cached); // Cache Hit
+        return JSON.parse(cached);
       }
 
-      // 2. Cache Miss -> Tìm trong MongoDB
       const appointment = await this.appointmentModel.findOne({ id }).lean();
 
-      // 3. Lưu vào Redis (nếu tìm thấy)
       if (appointment) {
-        await this.redis.set(cacheKey, JSON.stringify(appointment), {
+        await this.safeSet(cacheKey, JSON.stringify(appointment), {
           EX: this.cacheTTL,
         });
       }
@@ -276,9 +238,6 @@ export class AppointmentRepository {
     }
   }
 
-  /**
-   * Sửa (Update): Cần XÓA (invalidate) cache
-   */
   async updateStatus(
     id: string,
     status: string,
@@ -300,8 +259,6 @@ export class AppointmentRepository {
         .findOneAndUpdate({ id }, updateData, { new: true })
         .lean();
 
-      // --- PHẦN THÊM VÀO ---
-      // 4. Xóa cache
       if (updated) {
         await this.invalidateSingleAppointmentCache(updated.id);
         await this.invalidateAppointmentLists(
@@ -309,7 +266,6 @@ export class AppointmentRepository {
           updated.clinic_id,
         );
       }
-      // --- KẾT THÚC PHẦN THÊM VÀO ---
 
       return updated;
     } catch (error) {

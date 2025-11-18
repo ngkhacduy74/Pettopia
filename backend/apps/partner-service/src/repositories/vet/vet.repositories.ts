@@ -1,4 +1,3 @@
-// src/users/users.repository.ts
 import {
   BadRequestException,
   Injectable,
@@ -7,18 +6,9 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { CreateClinicFormDto } from 'src/dto/clinic/clinic/create-clinic-form.dto';
-import { CreateClinicDto } from 'src/dto/clinic/clinic/create-clinic.dto';
-import { UpdateStatusClinicDto } from 'src/dto/clinic/clinic/update-status.dto';
 import { CreateVetDto } from 'src/dto/vet/create-vet.dto';
 import { UpdateStatusVetDto } from 'src/dto/vet/update-vet-form';
 import { VetRegisterDto } from 'src/dto/vet/vet-register-form';
-import {
-  Clinic_Register,
-  ClinicRegisterDocument,
-  RegisterStatus,
-} from 'src/schemas/clinic/clinic-register.schema';
-import { Clinic, ClinicDocument } from 'src/schemas/clinic/clinic.schema';
 import {
   Vet_Register,
   VetRegisterDocument,
@@ -26,25 +16,119 @@ import {
 import { Vet, VetDocument } from 'src/schemas/vet/vet.schema';
 import { v4 as uuidv4 } from 'uuid';
 
+import redisClient from '../../common/redis/redis.module.js';
+import { RegisterStatus } from 'src/schemas/clinic/clinic-register.schema.js';
+
 @Injectable()
 export class VetRepository {
+  private redis: typeof redisClient;
+  private readonly cacheTTL = 3600;
+  private readonly listCacheTTL = 600;
+
   constructor(
     @InjectModel(Vet_Register.name)
     private vetFormModel: Model<VetRegisterDocument>,
     @InjectModel(Vet.name)
     private vetModel: Model<VetDocument>,
-  ) {}
-  async findVetById(user_id: string): Promise<any | null> {
+  ) {
+    this.redis = redisClient;
+  }
+
+  // --- CÁC HÀM HELPER AN TOÀN (SAFE WRAPPERS) ---
+  private async safeGet(key: string): Promise<string | null> {
     try {
+      if (!this.redis.isOpen) return null;
+      return await this.redis.get(key);
+    } catch (error) {
+      return null;
+    }
+  }
+
+  private async safeSet(key: string, value: string, options?: any) {
+    try {
+      if (!this.redis.isOpen) return;
+      await this.redis.set(key, value, options);
+    } catch (error) {}
+  }
+
+  private async safeDel(keys: string | string[]) {
+    try {
+      if (!this.redis.isOpen) return;
+      await this.redis.del(keys);
+    } catch (error) {}
+  }
+  // --- KẾT THÚC HELPER ---
+
+  private getVetKey(id: string): string {
+    return `vet:${id}`;
+  }
+
+  private getVetFormKey(id: string): string {
+    return `vetform:${id}`;
+  }
+
+  private getVetFormLicenseKey(license: string): string {
+    return `vetform:license:${license}`;
+  }
+
+  private async invalidateVetCache(id: string) {
+    if (id) {
+      await this.safeDel(this.getVetKey(id));
+    }
+  }
+
+  private async invalidateVetFormCache(form: VetRegisterDocument | any) {
+    if (!form) return;
+    const keysToDelete: string[] = [];
+
+    if (form.id) keysToDelete.push(this.getVetFormKey(form.id));
+    if (form.license_number)
+      keysToDelete.push(this.getVetFormLicenseKey(form.license_number));
+
+    if (keysToDelete.length > 0) {
+      await this.safeDel(keysToDelete);
+    }
+  }
+
+  private async invalidateVetFormListCache() {
+    if (!this.redis.isOpen) return;
+    try {
+      await this.safeDel('vetforms:count');
+      let cursor = '0';
+      do {
+        const reply = await this.redis.scan(cursor, {
+          MATCH: 'vetforms:list:*',
+          COUNT: 100,
+        });
+        cursor = reply.cursor;
+        const keys = reply.keys;
+        if (keys.length > 0) {
+          await this.redis.del(keys);
+        }
+      } while (cursor !== '0');
+    } catch (err) {}
+  }
+
+  async findVetById(user_id: string): Promise<any | null> {
+    const cacheKey = this.getVetKey(user_id);
+    try {
+      const cached = await this.safeGet(cacheKey);
+      if (cached) {
+        return JSON.parse(cached);
+      }
+
       const vet = await this.vetModel.findOne({ id: user_id }).exec();
 
       if (!vet) {
         return null;
       }
 
+      await this.safeSet(cacheKey, JSON.stringify(vet), {
+        EX: this.cacheTTL,
+      });
+
       return vet;
     } catch (err) {
-      console.error(' Lỗi khi tìm bác sĩ theo user_id:', err.message);
       throw new InternalServerErrorException(
         'Không thể truy vấn thông tin bác sĩ',
       );
@@ -52,11 +136,22 @@ export class VetRepository {
   }
 
   async findOneVetByFormId(formId: string): Promise<VetDocument | null> {
+    const cacheKey = `vet:form:${formId}`;
     try {
+      const cached = await this.safeGet(cacheKey);
+      if (cached) {
+        return JSON.parse(cached);
+      }
+
       const vet = await this.vetModel.findOne({ vet_form_id: formId }).exec();
+
+      if (vet) {
+        await this.safeSet(cacheKey, JSON.stringify(vet), {
+          EX: this.cacheTTL,
+        });
+      }
       return vet;
     } catch (err) {
-      console.error('Lỗi khi tìm bác sĩ theo vet_form_id:', err.message);
       throw new InternalServerErrorException('Không thể truy vấn bác sĩ.');
     }
   }
@@ -68,9 +163,12 @@ export class VetRepository {
         ...vetRegisterData,
         user_id: user_id,
       });
-      return await newVet.save();
+      const result = await newVet.save();
+
+      await this.invalidateVetFormListCache();
+
+      return result;
     } catch (err) {
-      console.error('Lỗi khi tạo Vet:', err.message);
       throw new InternalServerErrorException('Không thể tạo bác sĩ mới');
     }
   }
@@ -83,7 +181,6 @@ export class VetRepository {
 
       return await newVet.save();
     } catch (err) {
-      console.error('Lỗi khi tạo bác sĩ:', err.message);
       throw new InternalServerErrorException('Không thể tạo bác sĩ mới');
     }
   }
@@ -91,11 +188,9 @@ export class VetRepository {
   async updateVetFormStatus(body: UpdateStatusVetDto): Promise<any> {
     try {
       const { id, status, note, review_by } = body;
-      console.log('[updateVetFormStatus] Payload nhận được:', body);
       const vetForm = await this.vetFormModel.findOne({ id: id }).exec();
-      console.log('Tìm thấy hồ sơ bác sĩ để cập nhật:', id, vetForm);
+
       if (!vetForm) {
-        console.warn(' Không tìm thấy hồ sơ bác sĩ.');
         return null;
       }
 
@@ -104,32 +199,66 @@ export class VetRepository {
       vetForm.review_by = review_by;
 
       const updatedVetForm = await vetForm.save();
-      console.log('Đã cập nhật trạng thái hồ sơ bác sĩ:', updatedVetForm.id);
+
+      await this.invalidateVetFormCache(updatedVetForm);
+      await this.invalidateVetFormListCache();
 
       return updatedVetForm;
     } catch (err) {
-      console.error('Lỗi khi cập nhật trạng thái hồ sơ bác sĩ:', err.message);
       throw new InternalServerErrorException(
         'Không thể cập nhật trạng thái hồ sơ bác sĩ.',
       );
     }
   }
+
   async findAllVetForms(
     skip: number,
     limit: number,
     filter: any = {},
   ): Promise<any[]> {
-    return this.vetFormModel
-      .find(filter)
-      .skip(skip)
-      .limit(limit)
-      .sort({ createdAt: -1 })
-      .lean()
-      .exec();
+    const cacheKey = `vetforms:list:${JSON.stringify(filter)}:${skip}:${limit}`;
+    try {
+      const cached = await this.safeGet(cacheKey);
+      if (cached) {
+        return JSON.parse(cached);
+      }
+
+      const result = await this.vetFormModel
+        .find(filter)
+        .skip(skip)
+        .limit(limit)
+        .sort({ createdAt: -1 })
+        .lean()
+        .exec();
+
+      await this.safeSet(cacheKey, JSON.stringify(result), {
+        EX: this.listCacheTTL,
+      });
+
+      return result;
+    } catch (err) {
+      throw new InternalServerErrorException('Lỗi khi lấy danh sách form');
+    }
   }
 
   async countVetForms(filter: any = {}): Promise<number> {
-    return this.vetFormModel.countDocuments(filter).exec();
+    const cacheKey = `vetforms:count:${JSON.stringify(filter)}`;
+    try {
+      const cached = await this.safeGet(cacheKey);
+      if (cached) {
+        return JSON.parse(cached);
+      }
+
+      const count = await this.vetFormModel.countDocuments(filter).exec();
+
+      await this.safeSet(cacheKey, JSON.stringify(count), {
+        EX: this.listCacheTTL,
+      });
+
+      return count;
+    } catch (err) {
+      throw new InternalServerErrorException('Lỗi khi đếm form');
+    }
   }
 
   async rollBackStatusVetForm(
@@ -140,9 +269,6 @@ export class VetRepository {
       const vetForm = await this.vetFormModel.findOne({ id }).exec();
 
       if (!vetForm) {
-        console.warn(
-          `[partner] Không tìm thấy hồ sơ bác sĩ để rollback (id: ${id}).`,
-        );
         return null;
       }
       vetForm.status = previousStatus;
@@ -150,32 +276,41 @@ export class VetRepository {
 
       const savedForm = await vetForm.save();
 
-      console.log(
-        `[partner] Đã rollback trạng thái hồ sơ bác sĩ ${id} về ${previousStatus}`,
-      );
+      await this.invalidateVetFormCache(savedForm);
+      await this.invalidateVetFormListCache();
+
       return savedForm;
     } catch (err) {
-      console.error(
-        '[partner] Lỗi khi rollback trạng thái hồ sơ bác sĩ:',
-        err.message,
-      );
       throw new InternalServerErrorException(
         'Không thể rollback trạng thái hồ sơ bác sĩ.',
       );
     }
   }
+
   async findVetFormByLicenseNumber(license_number: string): Promise<any> {
     if (!license_number || typeof license_number !== 'string') {
       throw new BadRequestException('Số giấy phép hành nghề không hợp lệ.');
     }
 
+    const cacheKey = this.getVetFormLicenseKey(license_number);
     try {
+      const cached = await this.safeGet(cacheKey);
+      if (cached) {
+        return JSON.parse(cached);
+      }
+
       const existingForm = await this.vetFormModel
         .findOne({ license_number })
         .lean()
         .exec();
 
-      return existingForm || null;
+      const result = existingForm || null;
+
+      await this.safeSet(cacheKey, JSON.stringify(result), {
+        EX: this.cacheTTL,
+      });
+
+      return result;
     } catch {
       throw new InternalServerErrorException(
         'Không thể kiểm tra số giấy phép hành nghề.',
@@ -201,6 +336,8 @@ export class VetRepository {
           `Không tìm thấy hồ sơ bác sĩ với id: ${vetId}`,
         );
       }
+
+      await this.invalidateVetCache(vetId);
 
       return updatedVet;
     } catch (error) {
