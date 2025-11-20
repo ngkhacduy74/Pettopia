@@ -97,7 +97,7 @@ export class Appointment {
 
   @Prop({
     type: [String],
-    required: true,
+    required: false,
     trim: true,
     validate: {
       validator: function (values: string[]) {
@@ -108,7 +108,7 @@ export class Appointment {
       message: 'Tất cả pet_id phải là UUIDv4 hợp lệ',
     },
   })
-  pet_ids: string[];
+  pet_ids?: string[];
 
   // Phòng khám
   @Prop({
@@ -145,13 +145,9 @@ export class Appointment {
         ],
       },
     ],
-    required: true,
-    validate: {
-      validator: (value: string[]) => value.length > 0,
-      message: 'service_ids không được là mảng rỗng.',
-    },
+    required: false,
   })
-  service_ids: string[];
+  service_ids?: string[];
   @Prop({
     type: Date,
     required: true,
@@ -207,6 +203,7 @@ export class Appointment {
     ],
   })
   cancelled_by?: string;
+  toObject: any;
 }
 
 export type AppointmentDocument = Appointment & Document;

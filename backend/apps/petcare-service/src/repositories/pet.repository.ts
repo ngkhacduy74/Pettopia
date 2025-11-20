@@ -189,6 +189,20 @@ export class PetRepository {
     }
   }
 
+  async findByIds(pet_ids: string[]): Promise<Pet[]> {
+    if (!pet_ids || pet_ids.length === 0) {
+      return [];
+    }
+
+    try {
+      const pets = await this.petModel.find({ id: { $in: pet_ids } }).exec();
+      return pets;
+    } catch (error) {
+      console.error('Error finding pets by IDs:', error);
+      return [];
+    }
+  }
+
   async update(pet_id: string, updateData: any): Promise<Pet> {
     try {
       const updatedPet = await this.petModel

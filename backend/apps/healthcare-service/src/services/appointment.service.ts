@@ -23,6 +23,8 @@ export class AppointmentService {
     private readonly partnerService: ClientProxy,
     @Inject('CUSTOMER_SERVICE')
     private readonly customerService: ClientProxy,
+    @Inject('PETCARE_SERVICE')
+    private readonly petcareService: ClientProxy,
     @Inject('AUTH_SERVICE')
     private readonly authService: ClientProxy,
     private readonly appointmentRepositories: AppointmentRepository,
@@ -46,18 +48,37 @@ export class AppointmentService {
     user_id: string,
   ): Promise<any> {
     const { clinic_id, service_ids, pet_ids, shift_id, date } = data;
+    const appointmentDate = new Date(date);
+    const now = new Date();
+    const appointmentDateStart = new Date(appointmentDate).setHours(0, 0, 0, 0);
+    const todayStart = new Date(now).setHours(0, 0, 0, 0);
+
+    if (appointmentDateStart < todayStart) {
+      throw new RpcException({
+        status: HttpStatus.BAD_REQUEST,
+        message:
+          'Bạn chỉ có thể đặt lịch hẹn trong ngày hiện tại hoặc tương lai',
+      });
+    }
+
+    const hasServices = Array.isArray(service_ids) && service_ids.length > 0;
 
     try {
       const [clinic, services, shift] = await Promise.all([
         lastValueFrom(
           this.partnerService.send({ cmd: 'getClinicById' }, { id: clinic_id }),
         ),
-        lastValueFrom(
-          this.partnerService.send(
-            { cmd: 'validateClinicServices' },
-            { clinic_id, service_ids },
-          ),
-        ),
+        // --- 2. GỌI SERVICE VALIDATE ---
+        // Hàm này bên Partner Service cần query: find({ _id: { $in: service_ids }, clinic_id: clinic_id })
+        hasServices
+          ? lastValueFrom(
+              this.partnerService.send(
+                { cmd: 'validateClinicServices' },
+                { clinic_id, service_ids },
+              ),
+            )
+          : Promise.resolve([]),
+        // Lấy thông tin ca khám
         lastValueFrom(
           this.partnerService.send(
             { cmd: 'getClinicShiftById' },
@@ -66,6 +87,7 @@ export class AppointmentService {
         ),
       ]);
 
+      // Validate Clinic
       if (!clinic || clinic.is_active === false) {
         throw new RpcException({
           status: HttpStatus.NOT_FOUND,
@@ -73,16 +95,16 @@ export class AppointmentService {
         });
       }
 
-      if (!services || services.length !== service_ids.length) {
-        throw new RpcException({
-          status: HttpStatus.BAD_REQUEST,
-          message:
-            'Một hoặc nhiều dịch vụ không tồn tại hoặc không thuộc phòng khám này',
-        });
+      if (hasServices) {
+        if (!services || services.length !== service_ids.length) {
+          throw new RpcException({
+            status: HttpStatus.BAD_REQUEST,
+            message: 'Dịch vụ không hợp lệ hoặc không thuộc phòng khám này',
+          });
+        }
       }
-      console.log('oluhya98u129e', shift);
-      console.log('98123ihahsd', services);
 
+      // Validate Shift
       if (!shift) {
         throw new RpcException({
           status: HttpStatus.BAD_REQUEST,
@@ -90,19 +112,6 @@ export class AppointmentService {
         });
       }
 
-      // // 5. Verify pets belong to user
-      // const pets = await lastValueFrom(
-      //   this.customerService.send({ cmd: 'getUserPets' }, { pet_ids, user_id }),
-      // );
-
-      // if (pets.length !== pet_ids.length) {
-      //   throw new RpcException({
-      //     status: HttpStatus.FORBIDDEN,
-      //     message: 'Một hoặc nhiều thú cưng không tồn tại hoặc không thuộc quyền sở hữu của bạn',
-      //   });
-      // }
-
-      // Lấy thông tin user để xác định role
       const user = await lastValueFrom(
         this.customerService.send({ cmd: 'getUserById' }, { id: user_id }),
       ).catch(() => null);
@@ -114,7 +123,6 @@ export class AppointmentService {
         });
       }
 
-      // Xác định customer và partner dựa trên role
       const userRole = user.role || [];
       const isUserRole = this.hasRole(userRole, 'User');
       const isPartnerRole =
@@ -122,16 +130,16 @@ export class AppointmentService {
         this.hasRole(userRole, 'Staff') ||
         this.hasRole(userRole, 'Admin');
 
-      const appointmentDate = new Date(date);
       const newAppointmentData: any = {
         ...data,
         user_id,
         date: appointmentDate,
         shift: shift.data.shift,
         status: AppointmentStatus.Pending_Confirmation,
+        service_ids: hasServices ? service_ids : [],
+        pet_ids: pet_ids && pet_ids.length > 0 ? pet_ids : [],
       };
 
-      // Gán customer hoặc partner dựa trên role
       if (isUserRole) {
         newAppointmentData.customer = user_id;
         newAppointmentData.created_by = AppointmentCreatedBy.Customer;
@@ -145,21 +153,16 @@ export class AppointmentService {
 
       const appointmentDateFormatted = appointmentDate.toLocaleDateString(
         'vi-VN',
-        {
-          weekday: 'long',
-          day: '2-digit',
-          month: '2-digit',
-          year: 'numeric',
-        },
+        { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' },
       );
-      try {
-        const user = await lastValueFrom(
-          this.customerService.send({ cmd: 'getUserById' }, { id: user_id }),
-        );
 
-        // Extract email correctly from the user object
+      try {
         const userEmail = user.email?.email_address || user.email;
         const userName = user.full_name || user.username || 'Quý khách';
+        const serviceNames =
+          services && services.length > 0
+            ? services.map((s) => s.name)
+            : ['Khám tổng quát/Chưa chỉ định'];
 
         await lastValueFrom(
           this.authService.send(
@@ -172,7 +175,7 @@ export class AppointmentService {
                 appointmentTime: `${shift.data.start_time} - ${shift.data.end_time}`,
                 clinicName: clinic.data.clinic_name,
                 clinicAddress: clinic.data.address,
-                services: services.map((s) => s.name),
+                services: serviceNames,
                 appointmentId: result.id,
               },
             },
@@ -190,11 +193,9 @@ export class AppointmentService {
           message: 'Lịch hẹn của bạn bị trùng lặp.',
         });
       }
-
       if (error instanceof RpcException) {
         throw error;
       }
-
       console.error('Error creating appointment:', error);
       throw new RpcException({
         status: HttpStatus.INTERNAL_SERVER_ERROR,
@@ -331,7 +332,8 @@ export class AppointmentService {
           if (appointment.clinic_id !== clinicId) {
             throw new RpcException({
               status: HttpStatus.FORBIDDEN,
-              message: 'Bạn không có quyền cập nhật trạng thái lịch hẹn của phòng khám khác',
+              message:
+                'Bạn không có quyền cập nhật trạng thái lịch hẹn của phòng khám khác',
             });
           }
         } else if (!this.isAdminOrStaff(role)) {
@@ -496,7 +498,7 @@ export class AppointmentService {
     clinicId?: string,
   ): Promise<any> {
     try {
-      // Tìm appointment
+      // 1. Tìm appointment
       const appointment =
         await this.appointmentRepositories.findById(appointmentId);
 
@@ -507,29 +509,26 @@ export class AppointmentService {
         });
       }
 
-      // Phân quyền dựa trên role
+      // 2. Kiểm tra quyền (Check Authorization)
       if (this.hasRole(role, 'User')) {
-        // USER: chỉ xem appointments của chính mình
-        if (!userId) {
+        if (!userId)
           throw new RpcException({
             status: HttpStatus.BAD_REQUEST,
             message: 'Thiếu thông tin người dùng',
           });
-        }
-        if (appointment.user_id !== userId) {
+        // User chỉ xem được đơn của mình (người tạo hoặc khách hàng)
+        if (appointment.user_id !== userId && appointment.customer !== userId) {
           throw new RpcException({
             status: HttpStatus.FORBIDDEN,
             message: 'Bạn không có quyền xem lịch hẹn này',
           });
         }
       } else if (this.hasRole(role, 'Clinic')) {
-        // CLINIC: chỉ xem appointments của phòng khám mình
-        if (!clinicId) {
+        if (!clinicId)
           throw new RpcException({
             status: HttpStatus.BAD_REQUEST,
             message: 'Thiếu thông tin phòng khám',
           });
-        }
         if (appointment.clinic_id !== clinicId) {
           throw new RpcException({
             status: HttpStatus.FORBIDDEN,
@@ -537,19 +536,116 @@ export class AppointmentService {
           });
         }
       } else if (!this.isAdminOrStaff(role)) {
-        // ADMIN/STAFF: xem được tất cả, các role khác không có quyền
         throw new RpcException({
           status: HttpStatus.FORBIDDEN,
           message: 'Không có quyền truy cập',
         });
       }
 
-      return appointment;
+      // 3. Chuẩn bị Promise để gọi Microservice
+      const promises: Promise<any>[] = [
+        // [0] Lấy thông tin Clinic
+        lastValueFrom(
+          this.partnerService.send(
+            { cmd: 'getClinicById' },
+            { id: appointment.clinic_id },
+          ),
+        ),
+        // [1] Lấy danh sách TOÀN BỘ dịch vụ của Clinic đó (để tí nữa lọc)
+        lastValueFrom(
+          this.partnerService.send(
+            { cmd: 'getServicesByClinicId' },
+            { clinic_id: appointment.clinic_id },
+          ),
+        ),
+        // [2] Lấy thông tin User
+        lastValueFrom(
+          this.customerService.send(
+            { cmd: 'getUserById' },
+            { id: appointment.user_id },
+          ),
+        ),
+      ];
+
+      // [2] Xử lý Pet: Kiểm tra xem có pet_ids không rồi mới gọi
+      const hasPets = appointment.pet_ids && appointment.pet_ids.length > 0;
+
+      if (hasPets) {
+        // QUAN TRỌNG: Bên PetService phải có handler nhận mảng ids
+        // Payload gửi đi: { ids: ['uuid-1', 'uuid-2'] }
+        promises.push(
+          lastValueFrom(
+            this.petcareService.send(
+              { cmd: 'getPetsByIds' },
+              { ids: appointment.pet_ids },
+            ),
+          ).catch((err) => {
+            console.error('❌ Lỗi lấy thông tin pet từ petcareService:', err?.message);
+            return []; // Nếu lỗi bên Pet service thì trả về mảng rỗng, không làm chết API
+          }),
+        );
+      } else {
+        // Nếu không có pet, tạo một promise giả trả về mảng rỗng để giữ thứ tự index
+        promises.push(Promise.resolve([]));
+      }
+
+      // 4. Chạy song song các request
+      const [clinicResult, allServicesResult, userResult, petsResult] =
+        await Promise.all(promises);
+
+      console.log('📋 Clinic Result:', JSON.stringify(clinicResult, null, 2));
+      console.log('📋 All Services Result:', JSON.stringify(allServicesResult, null, 2));
+      console.log('📋 User Result:', JSON.stringify(userResult, null, 2));
+      console.log('📋 Pets Result:', JSON.stringify(petsResult, null, 2));
+
+      // 5. Xử lý lọc dữ liệu (Filtering)
+
+      // --- Lọc Service ---
+      // appointment.service_ids: ['sv1', 'sv2']
+      // allServicesResult: {status: 'success', data: {items: [{id: 'sv1', name: 'A'}, ...], pagination: {...}}}
+      let detailServices: any[] = [];
+      // Kiểm tra xem kết quả trả về có phải mảng không (đề phòng service trả về lỗi format)
+      let servicesList: any[] = [];
+      
+      if (Array.isArray(allServicesResult)) {
+        servicesList = allServicesResult;
+      } else if (Array.isArray(allServicesResult?.data?.items)) {
+        servicesList = allServicesResult.data.items;
+      } else if (Array.isArray(allServicesResult?.data)) {
+        servicesList = allServicesResult.data;
+      }
+
+      if (appointment.service_ids && appointment.service_ids.length > 0) {
+        detailServices = servicesList.filter((s: any) =>
+          appointment.service_ids?.includes(s.id),
+        );
+      }
+      const detailPets = Array.isArray(petsResult)
+        ? petsResult
+        : petsResult?.data || [];
+
+      // Lấy thông tin user (chỉ lấy tên và số điện thoại)
+      const userInfo = userResult?.data || userResult || null;
+      const userNameInfo = userInfo ? { 
+        fullname: userInfo.fullname,
+        phone_number: userInfo.phone?.phone_number || userInfo.phone || null
+      } : null;
+
+      return {
+        id: appointment.id,
+        date: appointment.date,
+        shift: appointment.shift,
+        status: appointment.status,
+        user_info: userNameInfo,
+        clinic_info: clinicResult?.data || clinicResult || null,
+        service_infos: detailServices,
+        pet_infos: detailPets,
+      };
     } catch (error) {
       if (error instanceof RpcException) {
         throw error;
       }
-
+      console.error('Error in getAppointmentById:', error);
       throw new RpcException({
         status: HttpStatus.INTERNAL_SERVER_ERROR,
         message: error.message || 'Lỗi khi lấy thông tin lịch hẹn',
@@ -557,24 +653,6 @@ export class AppointmentService {
     }
   }
 
-  // ========== BASIC CRUD FUNCTIONS ==========
-  /**
-   * Tạo lịch hẹn (Basic CRUD)
-   */
-  async create(data: Partial<any>): Promise<any> {
-    try {
-      return await this.appointmentRepositories.create(data);
-    } catch (error) {
-      throw new RpcException({
-        status: HttpStatus.INTERNAL_SERVER_ERROR,
-        message: error.message || 'Lỗi khi tạo lịch hẹn',
-      });
-    }
-  }
-
-  /**
-   * Lấy tất cả lịch hẹn (Basic CRUD)
-   */
   async findAll(
     page: number = 1,
     limit: number = 10,
@@ -611,12 +689,6 @@ export class AppointmentService {
     }
   }
 
-  /**
-   * Cập nhật lịch hẹn (Basic CRUD) với authorization
-   * - Admin/Staff: có thể cập nhật tất cả
-   * - Clinic: chỉ cập nhật lịch hẹn của phòng khám mình
-   * - User: chỉ cập nhật lịch hẹn của chính mình
-   */
   async update(
     id: string,
     data: Partial<any>,
@@ -633,10 +705,8 @@ export class AppointmentService {
         });
       }
 
-      // Authorization check (nếu có role)
       if (role) {
         if (this.hasRole(role, 'User')) {
-          // USER: chỉ cập nhật lịch hẹn của chính mình
           if (!userId) {
             throw new RpcException({
               status: HttpStatus.BAD_REQUEST,
@@ -660,7 +730,8 @@ export class AppointmentService {
           if (appointment.clinic_id !== clinicId) {
             throw new RpcException({
               status: HttpStatus.FORBIDDEN,
-              message: 'Bạn không có quyền cập nhật lịch hẹn của phòng khám khác',
+              message:
+                'Bạn không có quyền cập nhật lịch hẹn của phòng khám khác',
             });
           }
         } else if (!this.isAdminOrStaff(role)) {
@@ -690,12 +761,6 @@ export class AppointmentService {
     }
   }
 
-  /**
-   * Xóa lịch hẹn (Basic CRUD) với authorization
-   * - Admin/Staff: có thể xóa tất cả
-   * - Clinic: chỉ xóa lịch hẹn của phòng khám mình
-   * - User: chỉ xóa lịch hẹn của chính mình
-   */
   async remove(
     id: string,
     role?: string | string[],
@@ -899,10 +964,8 @@ export class AppointmentService {
         );
       }
 
-      // Tìm user theo email hoặc phone
       let customerUser: any = null;
 
-      // Thử tìm theo email trước
       try {
         const userByEmail = await lastValueFrom(
           this.customerService.send(
@@ -910,13 +973,10 @@ export class AppointmentService {
             { email_address: customer_email },
           ),
         );
-
-        // getUserByEmailForAuth trả về User object nếu tìm thấy
         if (userByEmail && userByEmail.id) {
           customerUser = userByEmail;
         }
       } catch (error) {
-        // Không tìm thấy theo email, thử tìm theo phone
         try {
           const usersByPhone = await lastValueFrom(
             this.customerService.send(

@@ -275,9 +275,6 @@ export class AppointmentRepository {
     }
   }
 
-  /**
-   * Cập nhật thông tin lịch hẹn (generic update - không giới hạn field)
-   */
   async update(
     id: string,
     updateData: Partial<Appointment>,

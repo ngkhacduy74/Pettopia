@@ -79,6 +79,16 @@ export class PetController {
     }
   }
 
+  @MessagePattern({ cmd: 'getPetsByIds' })
+  async getPetsByIds(data: { ids: string[] }): Promise<PetResponseDto[]> {
+    try {
+      return await this.petService.findByIds(data.ids);
+    } catch (error) {
+      this.logger.error('Error fetching pets by IDs:', error);
+      return [{ message: 'Failed to fetch pets', error: error.message }] as any;
+    }
+  }
+
   // @Get(':pet_id')
   // async findById(@Param('pet_id') pet_id: string): Promise<PetResponseDto> {
   //   return this.petService.findById(pet_id);
