@@ -274,4 +274,57 @@ export class AppointmentRepository {
       );
     }
   }
+
+  /**
+   * Cập nhật thông tin lịch hẹn (generic update - không giới hạn field)
+   */
+  async update(
+    id: string,
+    updateData: Partial<Appointment>,
+  ): Promise<Appointment | null> {
+    try {
+      const updated = await this.appointmentModel
+        .findOneAndUpdate({ id }, updateData, { new: true })
+        .lean();
+
+      if (updated) {
+        await this.invalidateSingleAppointmentCache(updated.id);
+        await this.invalidateAppointmentLists(
+          updated.user_id,
+          updated.clinic_id,
+        );
+      }
+
+      return updated;
+    } catch (error) {
+      throw new InternalServerErrorException(
+        error.message || 'Lỗi khi cập nhật lịch hẹn',
+      );
+    }
+  }
+
+  /**
+   * Xóa lịch hẹn
+   */
+  async remove(id: string): Promise<Appointment | null> {
+    try {
+      const appointment = await this.appointmentModel
+        .findOneAndDelete({ id })
+        .lean();
+
+      if (appointment) {
+        await this.invalidateSingleAppointmentCache(appointment.id);
+        await this.invalidateAppointmentLists(
+          appointment.user_id,
+          appointment.clinic_id,
+        );
+      }
+
+      return appointment;
+    } catch (error) {
+      throw new InternalServerErrorException(
+        error.message || 'Lỗi khi xóa lịch hẹn',
+      );
+    }
+  }
 }
