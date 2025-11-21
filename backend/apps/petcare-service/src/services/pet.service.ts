@@ -121,6 +121,19 @@ export class PetService {
     }
   }
 
+  async findByIds(pet_ids: string[]): Promise<PetResponseDto[]> {
+    try {
+      if (!pet_ids || pet_ids.length === 0) {
+        return [];
+      }
+      
+      const pets = await this.petRepository.findByIds(pet_ids);
+      return pets.map((pet) => mapToResponseDto(pet));
+    } catch (error) {
+      throw new BadRequestException('Failed to fetch pets: ' + error.message);
+    }
+  }
+
   // async update(pet_id: string, updatePetDto: UpdatePetDto): Promise<PetResponseDto> {
   //   try {
   //     const updateData = { ...updatePetDto };

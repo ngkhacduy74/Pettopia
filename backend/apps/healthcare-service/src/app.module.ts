@@ -95,6 +95,17 @@ import { PrometheusService } from './services/prometheus.service';
           },
         }),
       },
+      {
+        name: 'PETCARE_SERVICE',
+        transport: Transport.TCP,
+        options: {
+          host:
+            process.env.NODE_ENV === 'production'
+              ? 'petcare-service'
+              : 'localhost',
+          port: 5003,
+        },
+      },
     ]),
     MongooseModule.forRootAsync({
       imports: [ConfigModule],

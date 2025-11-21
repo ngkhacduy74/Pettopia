@@ -21,13 +21,19 @@ import { HttpStatus } from '@nestjs/common/enums';
 export class AppointmentController {
   constructor(private readonly appointmentService: AppointmentService) {}
 
+  // Helper function để kiểm tra role (hỗ trợ cả string và array)
+  private hasRole(userRole: string | string[], targetRole: string): boolean {
+    if (Array.isArray(userRole)) {
+      return userRole.some((r) => r === targetRole);
+    }
+    return userRole === targetRole;
+  }
+
   @MessagePattern({ cmd: 'createAppointment' })
   async createAppointment(
     @Payload() payload: { data: CreateAppointmentDto; user_id: string },
   ) {
     try {
-      console.log('oqueojakds', payload.data, payload.user_id);
-
       const result = await this.appointmentService.createAppointment(
         payload.data,
         payload.user_id,
@@ -90,10 +96,13 @@ export class AppointmentController {
       appointmentId: string;
       updateData: UpdateAppointmentStatusDto;
       updatedByUserId?: string;
+      role?: string | string[];
+      clinicId?: string;
     },
   ) {
     try {
-      const { appointmentId, updateData, updatedByUserId } = payload;
+      const { appointmentId, updateData, updatedByUserId, role, clinicId } =
+        payload;
 
       if (!appointmentId) {
         throw new RpcException({
@@ -106,6 +115,8 @@ export class AppointmentController {
         appointmentId,
         updateData,
         updatedByUserId,
+        role,
+        clinicId,
       );
 
       return {
@@ -133,13 +144,8 @@ export class AppointmentController {
     },
   ) {
     try {
-      const {
-        appointmentId,
-        cancelledByUserId,
-        role,
-        cancelData,
-        clinicId,
-      } = payload;
+      const { appointmentId, cancelledByUserId, role, cancelData, clinicId } =
+        payload;
 
       if (!appointmentId) {
         throw new RpcException({
@@ -157,14 +163,30 @@ export class AppointmentController {
 
       // Đảm bảo cancelData luôn là object, ngay cả khi undefined
       const safeCancelData = cancelData || {};
-      
+
+      // Nếu role là Clinic mà không có clinicId, lấy từ appointment
+      let resolvedClinicId = clinicId;
+      if (!resolvedClinicId && this.hasRole(role, 'Clinic')) {
+        try {
+          const appointment =
+            await this.appointmentService['appointmentRepositories'].findById(
+              appointmentId,
+            );
+          if (appointment?.clinic_id) {
+            resolvedClinicId = appointment.clinic_id;
+          }
+        } catch (error) {
+          // Nếu không lấy được, sẽ throw lỗi ở service
+        }
+      }
+
       // Log để debug
       console.log('Cancel appointment payload:', {
         appointmentId,
         cancelledByUserId,
         role,
         cancelData: safeCancelData,
-        clinicId,
+        clinicId: resolvedClinicId,
       });
 
       const result = await this.appointmentService.cancelAppointment(
@@ -172,7 +194,7 @@ export class AppointmentController {
         cancelledByUserId,
         role,
         safeCancelData,
-        clinicId,
+        resolvedClinicId,
       );
 
       return {
@@ -222,6 +244,64 @@ export class AppointmentController {
     }
   }
 
+  @MessagePattern({ cmd: 'update_appointment' })
+  async update(
+    @Payload()
+    payload: {
+      id: string;
+      updateData: any;
+      role?: string | string[];
+      userId?: string;
+      clinicId?: string;
+    },
+  ) {
+    try {
+      const { id, updateData, role, userId, clinicId } = payload;
+      const result = await this.appointmentService.update(
+        id,
+        updateData,
+        role,
+        userId,
+        clinicId,
+      );
+      return {
+        status: 'success',
+        message: 'Cập nhật lịch hẹn thành công',
+        data: result,
+      };
+    } catch (error) {
+      return handleRpcError('AppointmentController.update', error);
+    }
+  }
+
+  @MessagePattern({ cmd: 'delete_appointment' })
+  async remove(
+    @Payload()
+    payload: {
+      id: string;
+      role?: string | string[];
+      userId?: string;
+      clinicId?: string;
+    },
+  ) {
+    try {
+      const { id, role, userId, clinicId } = payload;
+      const result = await this.appointmentService.remove(
+        id,
+        role,
+        userId,
+        clinicId,
+      );
+      return {
+        status: 'success',
+        message: 'Xóa lịch hẹn thành công',
+        data: result,
+      };
+    } catch (error) {
+      return handleRpcError('AppointmentController.remove', error);
+    }
+  }
+
   @MessagePattern({ cmd: 'createAppointmentForCustomer' })
   async createAppointmentForCustomer(
     @Payload()
@@ -254,7 +334,10 @@ export class AppointmentController {
         code: error.code,
         response: error.response,
       });
-      return handleRpcError('AppointmentController.createAppointmentForCustomer', error);
+      return handleRpcError(
+        'AppointmentController.createAppointmentForCustomer',
+        error,
+      );
     }
   }
 }
