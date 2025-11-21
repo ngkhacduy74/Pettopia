@@ -17,28 +17,46 @@ import {
     MongooseModule.forFeature([
       { name: Conversation.name, schema: ConversationSchema },
     ]),
-    ClientsModule.register([
+    ClientsModule.registerAsync([
       {
         name: 'HEALTHCARE_SERVICE',
-        transport: Transport.TCP,
-        options: {
-          host:
-            process.env.NODE_ENV === 'production'
-              ? 'healthcare-service'
-              : 'localhost',
-          port: 5005,
-        },
+        imports: [ConfigModule],
+        inject: [ConfigService],
+        useFactory: (configService: ConfigService) => ({
+          transport: Transport.RMQ,
+          options: {
+            urls: [
+              configService.get<string>(
+                'RMQ_URL',
+                'amqp://guest:guest@rabbitmq:5672',
+              ),
+            ],
+            queue: 'healthcare_service_queue',
+            queueOptions: {
+              durable: true,
+            },
+          },
+        }),
       },
       {
         name: 'PARTNER_SERVICE',
-        transport: Transport.TCP,
-        options: {
-          host:
-            process.env.NODE_ENV === 'production'
-              ? 'partner-service'
-              : 'localhost',
-          port: 5004,
-        },
+        imports: [ConfigModule],
+        inject: [ConfigService],
+        useFactory: (configService: ConfigService) => ({
+          transport: Transport.RMQ,
+          options: {
+            urls: [
+              configService.get<string>(
+                'RMQ_URL',
+                'amqp://guest:guest@rabbitmq:5672',
+              ),
+            ],
+            queue: 'partner_service_queue',
+            queueOptions: {
+              durable: true,
+            },
+          },
+        }),
       },
     ]),
   ],
@@ -75,5 +93,3 @@ import {
   ],
 })
 export class GeminiModule {}
-
-

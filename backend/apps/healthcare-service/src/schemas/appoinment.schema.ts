@@ -55,49 +55,9 @@ export class Appointment {
   })
   user_id: string;
 
-  // ID của customer (người dùng role User)
-  @Prop({
-    type: String,
-    required: false,
-    trim: true,
-    match: [
-      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
-      'customer phải là UUIDv4 hợp lệ',
-    ],
-  })
-  customer?: string;
-
-  // ID của partner (người dùng role Clinic, Staff, Admin)
-  @Prop({
-    type: String,
-    required: false,
-    trim: true,
-    match: [
-      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
-      'partner phải là UUIDv4 hợp lệ',
-    ],
-  })
-  partner?: string;
-
-  // Email của customer (dùng khi customer chưa có tài khoản)
-  @Prop({
-    type: String,
-    required: false,
-    trim: true,
-  })
-  customer_email?: string;
-
-  // Số điện thoại của customer (dùng khi customer chưa có tài khoản)
-  @Prop({
-    type: String,
-    required: false,
-    trim: true,
-  })
-  customer_phone?: string;
-
   @Prop({
     type: [String],
-    required: false,
+    required: true,
     trim: true,
     validate: {
       validator: function (values: string[]) {
@@ -108,7 +68,7 @@ export class Appointment {
       message: 'Tất cả pet_id phải là UUIDv4 hợp lệ',
     },
   })
-  pet_ids?: string[];
+  pet_ids: string[];
 
   // Phòng khám
   @Prop({
@@ -145,9 +105,13 @@ export class Appointment {
         ],
       },
     ],
-    required: false,
+    required: true,
+    validate: {
+      validator: (value: string[]) => value.length > 0,
+      message: 'service_ids không được là mảng rỗng.',
+    },
   })
-  service_ids?: string[];
+  service_ids: string[];
   @Prop({
     type: Date,
     required: true,
@@ -203,7 +167,6 @@ export class Appointment {
     ],
   })
   cancelled_by?: string;
-  toObject: any;
 }
 
 export type AppointmentDocument = Appointment & Document;

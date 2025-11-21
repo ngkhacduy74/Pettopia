@@ -290,7 +290,7 @@ services:
     image: grafana/grafana:9.2.0
     container_name: grafana
     ports:
-      - "3000:3000"
+      - "3001:3000"
     volumes:
       - ./monitoring/grafana/provisioning/:/etc/grafana/provisioning/
       - grafana_data:/var/lib/grafana

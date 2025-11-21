@@ -97,14 +97,23 @@ import { PrometheusService } from './services/prometheus.service';
       },
       {
         name: 'PETCARE_SERVICE',
-        transport: Transport.TCP,
-        options: {
-          host:
-            process.env.NODE_ENV === 'production'
-              ? 'petcare-service'
-              : 'localhost',
-          port: 5003,
-        },
+        imports: [ConfigModule],
+        inject: [ConfigService],
+        useFactory: (configService: ConfigService) => ({
+          transport: Transport.RMQ,
+          options: {
+            urls: [
+              configService.get<string>(
+                'RMQ_URL',
+                'amqp://guest:guest@rabbitmq:5672',
+              ),
+            ],
+            queue: 'petcare_service_queue',
+            queueOptions: {
+              durable: true,
+            },
+          },
+        }),
       },
     ]),
     MongooseModule.forRootAsync({

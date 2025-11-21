@@ -170,11 +170,16 @@ export class AppController {
     }
   }
   @MessagePattern({ cmd: 'updateUserPassword' })
-async updateUserPassword(@Payload() data: { email: string; newPassword: string }): Promise<{ success: boolean }> {
-  try {
-    return await this.appService.updatePasswordByEmail(data.email, data.newPassword);
-  } catch (err) {
-    handleRpcError('AppController.updateUserPassword', err);
+  async updateUserPassword(
+    @Payload() data: { email: string; newPassword: string },
+  ): Promise<{ success: boolean }> {
+    try {
+      return await this.appService.updatePasswordByEmail(
+        data.email,
+        data.newPassword,
+      );
+    } catch (err) {
+      handleRpcError('AppController.updateUserPassword', err);
+    }
   }
-}
 }

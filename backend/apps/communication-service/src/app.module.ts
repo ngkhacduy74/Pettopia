@@ -23,28 +23,47 @@ import { PrometheusMiddleware } from './middleware/prometheus.middleware';
       }),
     }),
     MongooseModule.forFeature([{ name: Post.name, schema: PostSchema }]),
-    ClientsModule.register([
+    ClientsModule.registerAsync([
       {
         name: 'CUSTOMER_SERVICE',
-        transport: Transport.TCP,
-        options: {
-          host:
-            process.env.NODE_ENV === 'production'
-              ? 'customer-service'
-              : 'localhost',
-          port: 5002,
-        },
+        imports: [ConfigModule],
+        inject: [ConfigService],
+        useFactory: (configService: ConfigService) => ({
+          transport: Transport.RMQ,
+          options: {
+            urls: [
+              configService.get<string>(
+                'RMQ_URL',
+                'amqp://guest:guest@rabbitmq:5672',
+              ),
+            ],
+            queue: 'customer_service_queue',
+            queueOptions: {
+              durable: true,
+            },
+          },
+        }),
       },
+
       {
         name: 'AUTH_SERVICE',
-        transport: Transport.TCP,
-        options: {
-          host:
-            process.env.NODE_ENV === 'production'
-              ? 'auth-service'
-              : 'localhost',
-          port: 5001,
-        },
+        imports: [ConfigModule],
+        inject: [ConfigService],
+        useFactory: (configService: ConfigService) => ({
+          transport: Transport.RMQ,
+          options: {
+            urls: [
+              configService.get<string>(
+                'RMQ_URL',
+                'amqp://guest:guest@rabbitmq:5672',
+              ),
+            ],
+            queue: 'auth_service_queue',
+            queueOptions: {
+              durable: true,
+            },
+          },
+        }),
       },
     ]),
   ],
