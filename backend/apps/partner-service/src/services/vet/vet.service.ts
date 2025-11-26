@@ -4,15 +4,11 @@ import {
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
-import { identity } from 'rxjs';
-
 import { CreateVetDto } from 'src/dto/vet/create-vet.dto';
 import { UpdateStatusVetDto } from 'src/dto/vet/update-vet-form';
 import { VetRegisterDto } from 'src/dto/vet/vet-register-form';
-import { ClinicsRepository } from 'src/repositories/clinic/clinic.repositories';
 import { VetRepository } from 'src/repositories/vet/vet.repositories';
 import { RegisterStatus } from 'src/schemas/clinic/clinic-register.schema';
-import { VetDocument } from 'src/schemas/vet/vet.schema';
 
 @Injectable()
 export class VetService {
