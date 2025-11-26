@@ -35,7 +35,20 @@ export class AppController {
     } catch (err) {
       handleRpcError('AppController.getUserById', err);
     }
+  }@MessagePattern({ cmd: 'updateUserPasswordById' })
+async updateUserPasswordById(
+  @Payload() data: { id: string; newPassword: string },
+): Promise<{ success: boolean }> {
+  try {
+    return await this.appService.updatePasswordById(
+      data.id,
+      data.newPassword,
+    );
+  } catch (err) {
+    handleRpcError('AppController.updateUserPasswordById', err);
   }
+}
+
   @MessagePattern({ cmd: 'getUserByUsername' })
   async getUserByUsername(
     @Payload() data: GetUserByUsernameDto,

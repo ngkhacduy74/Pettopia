@@ -10,6 +10,7 @@
       "item": [
         {
           "name": "register",
+          "id": "ca3414bd-7bf4-42cb-8fc6-8600c978d1fb",
           "request": {
             "method": "POST",
             "body": {
@@ -43,6 +44,7 @@
             {
               "listen": "test",
               "script": {
+                "id": "9411cd45-9499-462f-aacb-14539ffc4b90",
                 "exec": [
                   "const res = pm.response.json();\r",
                   "console.log(\"Response body:\", res);\r",
@@ -61,6 +63,7 @@
             {
               "listen": "prerequest",
               "script": {
+                "id": "cf83d37e-24e1-481f-bce2-cc722c71e5cb",
                 "exec": [
                   ""
                 ],
@@ -68,11 +71,12 @@
               }
             }
           ],
+          "id": "33362e6a-64f8-405a-bb57-648f2d5a7582",
           "request": {
             "method": "POST",
             "body": {
               "mode": "raw",
-              "raw": "//Admin , Staff\r\n// {\r\n//     \"username\": \"quynhmai811\",\r\n//     \"password\": \"Khacduy1212**\"\r\n// }\r\n\r\n\r\n//User //Clinic\r\n// {\r\n//     \"username\": \"khacduy07041\",\r\n//     \"password\": \"Khacduy1212**\"\r\n// }\r\n\r\n//User\r\n// {\r\n//     \"username\": \"nvduc3002\",\r\n//     \"password\": \"Khacduy1212**\"\r\n// }\r\n\r\n\r\n\r\n//Clinic \r\n// {\r\n//     \"username\": \"info.petcare12@gmail.com\",\r\n//     \"password\": \"CDbx8$nBTbQj\"\r\n\r\n// }",
+              "raw": "//Admin , Staff\r\n{\r\n    \"username\": \"quynhmai811\",\r\n    \"password\": \"Khacduy1212**\"\r\n}\r\n\r\n\r\n//User //Clinic\r\n// {\r\n//     \"username\": \"khacduy07041\",\r\n//     \"password\": \"Khacduy1212**\"\r\n// }\r\n\r\n//User\r\n// {\r\n//     \"username\": \"nvduc3002\",\r\n//     \"password\": \"Khacduy1212**\"\r\n// }\r\n\r\n\r\n\r\n//Clinic \r\n// {\r\n//     \"username\": \"info.petcare12@gmail.com\",\r\n//     \"password\": \"CDbx8$nBTbQj\"\r\n\r\n// }",
               "options": {
                 "raw": {
                   "language": "json"
@@ -80,15 +84,11 @@
               }
             },
             "url": {
-              "raw": "http://localhost:3333/api/v1/auth/login",
-              "protocol": "http",
+              "raw": "{{host}}/auth/login",
               "host": [
-                "localhost"
+                "{{host}}"
               ],
-              "port": "3333",
               "path": [
-                "api",
-                "v1",
                 "auth",
                 "login"
               ]
@@ -97,6 +97,7 @@
         },
         {
           "name": "test",
+          "id": "93857216-226c-41bc-ad44-e0f82c878708",
           "request": {
             "method": "GET",
             "header": [
@@ -125,6 +126,7 @@
         },
         {
           "name": "invite-vet",
+          "id": "77f35474-c745-4e73-be09-a32183210ee1",
           "request": {
             "method": "POST",
             "body": {
@@ -137,15 +139,11 @@
               }
             },
             "url": {
-              "raw": "http://localhost:3000/api/v1/auth/invite-vet",
-              "protocol": "http",
+              "raw": "{{host}}/auth/invite-vet",
               "host": [
-                "localhost"
+                "{{host}}"
               ],
-              "port": "3000",
               "path": [
-                "api",
-                "v1",
                 "auth",
                 "invite-vet"
               ]
@@ -154,6 +152,7 @@
         },
         {
           "name": "sendEmailOtp",
+          "id": "be7389a7-2208-4989-9df2-b193a7799238",
           "request": {
             "method": "POST",
             "body": {
@@ -166,15 +165,11 @@
               }
             },
             "url": {
-              "raw": "http://localhost:3000/api/v1/auth/send-otp-email",
-              "protocol": "http",
+              "raw": "{{host}}/auth/send-otp-email",
               "host": [
-                "localhost"
+                "{{host}}"
               ],
-              "port": "3000",
               "path": [
-                "api",
-                "v1",
                 "auth",
                 "send-otp-email"
               ]
@@ -183,6 +178,7 @@
         },
         {
           "name": "send-clinic-verification",
+          "id": "e7a0b5b2-f3e5-4e7e-8c2b-3677c97666a8",
           "request": {
             "method": "POST",
             "header": [
@@ -202,15 +198,11 @@
               }
             },
             "url": {
-              "raw": "http://localhost:3000/api/v1/auth/send-clinic-verification",
-              "protocol": "http",
+              "raw": "{{host}}/auth/send-clinic-verification",
               "host": [
-                "localhost"
+                "{{host}}"
               ],
-              "port": "3000",
               "path": [
-                "api",
-                "v1",
                 "auth",
                 "send-clinic-verification"
               ]
@@ -219,18 +211,15 @@
         },
         {
           "name": "verifi clinic token",
+          "id": "9a1a010a-0e40-44e3-8c96-d601a6128628",
           "request": {
             "method": "GET",
             "url": {
-              "raw": "http://localhost:3000/api/v1/auth/verify/clinic?token=42ae117b-789e-40af-b464-107611d6709d",
-              "protocol": "http",
+              "raw": "{{host}}/auth/verify/clinic?token=42ae117b-789e-40af-b464-107611d6709d",
               "host": [
-                "localhost"
+                "{{host}}"
               ],
-              "port": "3000",
               "path": [
-                "api",
-                "v1",
                 "auth",
                 "verify",
                 "clinic"
@@ -246,6 +235,7 @@
         },
         {
           "name": "convert location",
+          "id": "7488429a-9cba-40d4-bd64-062aa5dd56ab",
           "request": {
             "method": "POST",
             "body": {
@@ -258,29 +248,53 @@
               }
             },
             "url": {
-              "raw": "http://localhost:3000/api/v1/auth/convert/location",
-              "protocol": "http",
+              "raw": "{{host}}/auth/convert/location",
               "host": [
-                "localhost"
+                "{{host}}"
               ],
-              "port": "3000",
               "path": [
-                "api",
-                "v1",
                 "auth",
                 "convert",
                 "location"
               ]
             }
           }
+        },
+        {
+          "name": "New Request",
+          "id": "f8b231f9-f54e-47c9-b461-b43ec68d9122",
+          "request": {
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "//User\r\n// {\r\n//     \"username\": \"nvduc3002\",\r\n//     \"password\": \"Khacduy1212**\"\r\n// }\r\n\r\n\r\n\r\n//Clinic \r\n// {\r\n//     \"username\": \"info.petcare12@gmail.com\",\r\n//     \"password\": \"CDbx8$nBTbQj\"\r\n\r\n// } //Admin , Staff\r\n{\r\n    \"username\": \"quynhmai811\",\r\n    \"password\": \"Khacduy1212**\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{host}}/auth/login",
+              "host": [
+                "{{host}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            }
+          }
         }
-      ]
+      ],
+      "id": "34db3b47-b735-48e8-b1b0-c22377c5c511"
     },
     {
       "name": "customer",
       "item": [
         {
           "name": "getUserById",
+          "id": "789a0d37-8121-4015-a751-d304406ad531",
           "request": {
             "method": "GET",
             "header": [
@@ -309,6 +323,7 @@
         },
         {
           "name": "add role user",
+          "id": "fb15b5c7-142a-43a6-b922-b6607fc9a510",
           "request": {
             "method": "PATCH",
             "header": [
@@ -328,15 +343,11 @@
               }
             },
             "url": {
-              "raw": "http://localhost:3000/api/v1/customer/9645944f-5eb9-48d4-8604-98d0aeeb5c67/add-role",
-              "protocol": "http",
+              "raw": "{{host}}/customer/9645944f-5eb9-48d4-8604-98d0aeeb5c67/add-role",
               "host": [
-                "localhost"
+                "{{host}}"
               ],
-              "port": "3000",
               "path": [
-                "api",
-                "v1",
                 "customer",
                 "9645944f-5eb9-48d4-8604-98d0aeeb5c67",
                 "add-role"
@@ -346,6 +357,7 @@
         },
         {
           "name": "get all user",
+          "id": "6aad3c63-5d0c-4777-a68f-3a3c36114841",
           "request": {
             "method": "GET",
             "header": [
@@ -356,15 +368,11 @@
               }
             ],
             "url": {
-              "raw": "http://localhost:3000/api/v1/customer?page=1&limit=10&email_address=na",
-              "protocol": "http",
+              "raw": "{{host}}/customer?page=1&limit=10&email_address=na",
               "host": [
-                "localhost"
+                "{{host}}"
               ],
-              "port": "3000",
               "path": [
-                "api",
-                "v1",
                 "customer"
               ],
               "query": [
@@ -386,6 +394,7 @@
         },
         {
           "name": "total detail account",
+          "id": "baba9a53-4142-4b68-b426-ea1cccb2686b",
           "request": {
             "method": "GET",
             "header": [
@@ -396,15 +405,11 @@
               }
             ],
             "url": {
-              "raw": "http://localhost:3000/api/v1/customer/total/detail",
-              "protocol": "http",
+              "raw": "{{host}}/customer/total/detail",
               "host": [
-                "localhost"
+                "{{host}}"
               ],
-              "port": "3000",
               "path": [
-                "api",
-                "v1",
                 "customer",
                 "total",
                 "detail"
@@ -414,6 +419,7 @@
         },
         {
           "name": "update status",
+          "id": "d3a920a5-5f23-4d58-9a5d-d3573c0f5a01",
           "request": {
             "method": "PATCH",
             "header": [
@@ -433,15 +439,11 @@
               }
             },
             "url": {
-              "raw": "http://localhost:3000/api/v1/customer/d1ba6756-5e39-48d8-aabb-ea8071ee2e72/status",
-              "protocol": "http",
+              "raw": "{{host}}/customer/d1ba6756-5e39-48d8-aabb-ea8071ee2e72/status",
               "host": [
-                "localhost"
+                "{{host}}"
               ],
-              "port": "3000",
               "path": [
-                "api",
-                "v1",
                 "customer",
                 "d1ba6756-5e39-48d8-aabb-ea8071ee2e72",
                 "status"
@@ -451,39 +453,37 @@
         },
         {
           "name": "get user profile",
+          "id": "1d3f1ee6-f0e2-4244-8b36-408b7b0bd8c2",
           "request": {
             "method": "GET",
             "header": [
               {
                 "key": "token",
                 "value": "{{token}}",
-                "type": "text",
-                "uuid": "4ebee77a-5301-4709-ab94-9e49d489704d"
+                "type": "text"
               }
             ],
             "url": {
-              "raw": "http://localhost:3333/api/v1/customer/profile",
-              "protocol": "http",
+              "raw": "{{host}}/customer/profile",
               "host": [
-                "localhost"
+                "{{host}}"
               ],
-              "port": "3333",
               "path": [
-                "api",
-                "v1",
                 "customer",
                 "profile"
               ]
             }
           }
         }
-      ]
+      ],
+      "id": "7cf4dddc-1c74-42e7-9f86-69de9c9e7367"
     },
     {
       "name": "healthcare",
       "item": [
         {
           "name": "create appointment",
+          "id": "07a8ae33-2484-405d-a614-7f438af9ad5f",
           "request": {
             "method": "POST",
             "header": [
@@ -503,15 +503,11 @@
               }
             },
             "url": {
-              "raw": "http://localhost:3000/api/v1/healthcare/appointment",
-              "protocol": "http",
+              "raw": "{{host}}/healthcare/appointment",
               "host": [
-                "localhost"
+                "{{host}}"
               ],
-              "port": "3000",
               "path": [
-                "api",
-                "v1",
                 "healthcare",
                 "appointment"
               ]
@@ -520,6 +516,7 @@
         },
         {
           "name": "get appointment",
+          "id": "1ba5ab06-51fd-4e13-b7db-124c4bbf8684",
           "request": {
             "method": "GET",
             "header": [
@@ -530,15 +527,11 @@
               }
             ],
             "url": {
-              "raw": "http://localhost:3000/api/v1/healthcare/appointments?page=1&limit=10",
-              "protocol": "http",
+              "raw": "{{host}}/healthcare/appointments?page=1&limit=10",
               "host": [
-                "localhost"
+                "{{host}}"
               ],
-              "port": "3000",
               "path": [
-                "api",
-                "v1",
                 "healthcare",
                 "appointments"
               ],
@@ -557,6 +550,7 @@
         },
         {
           "name": "detail appointment",
+          "id": "dfbca78b-426d-41c6-b1a0-c524c2193018",
           "request": {
             "method": "GET",
             "header": [
@@ -567,15 +561,11 @@
               }
             ],
             "url": {
-              "raw": "http://localhost:3000/api/v1/healthcare/appointments/83adff1c-66cc-4e7d-9822-fe2f2af9b41c",
-              "protocol": "http",
+              "raw": "{{host}}/healthcare/appointments/83adff1c-66cc-4e7d-9822-fe2f2af9b41c",
               "host": [
-                "localhost"
+                "{{host}}"
               ],
-              "port": "3000",
               "path": [
-                "api",
-                "v1",
                 "healthcare",
                 "appointments",
                 "83adff1c-66cc-4e7d-9822-fe2f2af9b41c"
@@ -585,6 +575,7 @@
         },
         {
           "name": "update status appointment",
+          "id": "c1968403-100f-4065-a9c6-9095ed6a636f",
           "request": {
             "method": "PATCH",
             "header": [
@@ -604,15 +595,11 @@
               }
             },
             "url": {
-              "raw": "http://localhost:3000/api/v1/healthcare/appointments/3d463dea-e135-48f3-b3d7-99c680eae5fa/status",
-              "protocol": "http",
+              "raw": "{{host}}/healthcare/appointments/3d463dea-e135-48f3-b3d7-99c680eae5fa/status",
               "host": [
-                "localhost"
+                "{{host}}"
               ],
-              "port": "3000",
               "path": [
-                "api",
-                "v1",
                 "healthcare",
                 "appointments",
                 "3d463dea-e135-48f3-b3d7-99c680eae5fa",
@@ -623,6 +610,7 @@
         },
         {
           "name": "cancel appointmet",
+          "id": "f5d90680-7008-4074-a9b2-be833e0299ea",
           "request": {
             "method": "PATCH",
             "header": [
@@ -634,18 +622,19 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\r\n  \"status\": \"Confirmed\"\r\n // \"cancel_reason\": \"Lý do hủy (nếu có)\" \r\n}"
+              "raw": "{\r\n  \"status\": \"Confirmed\"\r\n // \"cancel_reason\": \"Lý do hủy (nếu có)\" \r\n}",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
             },
             "url": {
-              "raw": "http://localhost:3000/api/v1/healthcare/appointments/e10962c7-db96-4950-accd-78c61ead2f90/cancel",
-              "protocol": "http",
+              "raw": "{{host}}/healthcare/appointments/e10962c7-db96-4950-accd-78c61ead2f90/cancel",
               "host": [
-                "localhost"
+                "{{host}}"
               ],
-              "port": "3000",
               "path": [
-                "api",
-                "v1",
                 "healthcare",
                 "appointments",
                 "e10962c7-db96-4950-accd-78c61ead2f90",
@@ -656,14 +645,14 @@
         },
         {
           "name": "clinic create appointment",
+          "id": "3c9c8d57-ba22-47f9-b135-ed31ebda72a2",
           "request": {
             "method": "POST",
             "header": [
               {
                 "key": "token",
                 "value": "{{token}}",
-                "type": "text",
-                "uuid": "8a29cf71-2108-48f6-bea3-d45b14f4e7bc"
+                "type": "text"
               }
             ],
             "body": {
@@ -676,15 +665,11 @@
               }
             },
             "url": {
-              "raw": "http://localhost:3000/api/v1/healthcare/appointment/for-customer",
-              "protocol": "http",
+              "raw": "{{host}}/healthcare/appointment/for-customer",
               "host": [
-                "localhost"
+                "{{host}}"
               ],
-              "port": "3000",
               "path": [
-                "api",
-                "v1",
                 "healthcare",
                 "appointment",
                 "for-customer"
@@ -692,13 +677,15 @@
             }
           }
         }
-      ]
+      ],
+      "id": "3dc1793b-5c46-4684-8afb-7405b40be4a9"
     },
     {
       "name": "petcare",
       "item": [
         {
           "name": "createPet",
+          "id": "1064aabb-b89c-47f9-a3b5-37079b47c6b5",
           "request": {
             "method": "POST",
             "header": [
@@ -718,15 +705,11 @@
               }
             },
             "url": {
-              "raw": "http://localhost:3000/api/v1/pet/create",
-              "protocol": "http",
+              "raw": "{{host}}/pet/create",
               "host": [
-                "localhost"
+                "{{host}}"
               ],
-              "port": "3000",
               "path": [
-                "api",
-                "v1",
                 "pet",
                 "create"
               ]
@@ -735,18 +718,15 @@
         },
         {
           "name": "Delete",
+          "id": "baf928c1-4ce0-43c8-8239-682e48bf4a52",
           "request": {
             "method": "DELETE",
             "url": {
-              "raw": "http://localhost:3000/api/v1/pet/058f159b-3112-43d3-8712-e741aa958a3c",
-              "protocol": "http",
+              "raw": "{{host}}/pet/058f159b-3112-43d3-8712-e741aa958a3c",
               "host": [
-                "localhost"
+                "{{host}}"
               ],
-              "port": "3000",
               "path": [
-                "api",
-                "v1",
                 "pet",
                 "058f159b-3112-43d3-8712-e741aa958a3c"
               ]
@@ -755,6 +735,7 @@
         },
         {
           "name": "CreatwithCloudinary",
+          "id": "bb4815dd-9840-4e4a-8c03-9efb3d834014",
           "request": {
             "method": "POST",
             "body": {
@@ -803,20 +784,18 @@
                 {
                   "key": "avatar",
                   "type": "file",
-                  "src": "/C:/Users/QuyBao/OneDrive/Pictures/Ảnh chụp màn hình/Ảnh chụp màn hình (40).png"
+                  "src": [
+                    "/C:/Users/QuyBao/OneDrive/Pictures/Ảnh chụp màn hình/Ảnh chụp màn hình (40).png"
+                  ]
                 }
               ]
             },
             "url": {
-              "raw": "http://localhost:3000/api/v1/pet/create",
-              "protocol": "http",
+              "raw": "{{host}}/pet/create",
               "host": [
-                "localhost"
+                "{{host}}"
               ],
-              "port": "3000",
               "path": [
-                "api",
-                "v1",
                 "pet",
                 "create"
               ]
@@ -825,6 +804,7 @@
         },
         {
           "name": "UpdatePet",
+          "id": "fcbdffe9-c427-4f22-8e83-b8c647aed7e9",
           "request": {
             "method": "PATCH",
             "body": {
@@ -833,37 +813,38 @@
                 {
                   "key": "avatar",
                   "type": "file",
-                  "src": "postman-cloud:///1f0ac0cc-0151-4ec0-aa87-1fae95d6cd77"
+                  "src": [
+                    "postman-cloud:///1f0ac0cc-0151-4ec0-aa87-1fae95d6cd77"
+                  ]
                 }
               ]
             },
             "url": {
-              "raw": "http://localhost:3000/api/v1/pet/6f5f0a57-bf23-4850-84e5-90f0263871d2",
-              "protocol": "http",
+              "raw": "{{host}}/pet/6f5f0a57-bf23-4850-84e5-90f0263871d2",
               "host": [
-                "localhost"
+                "{{host}}"
               ],
-              "port": "3000",
               "path": [
-                "api",
-                "v1",
                 "pet",
                 "6f5f0a57-bf23-4850-84e5-90f0263871d2"
               ]
             }
           }
         }
-      ]
+      ],
+      "id": "cd7d6830-3492-40db-8757-fb0053d33c9a"
     },
     {
       "name": "billing",
-      "item": []
+      "item": [],
+      "id": "accfdec4-d09b-4452-888b-626432be3bf4"
     },
     {
       "name": "communication",
       "item": [
         {
           "name": "New Request",
+          "id": "90bf99a9-b554-4130-9a3e-ba2a91bf98c5",
           "request": {
             "method": "GET",
             "url": {
@@ -871,7 +852,8 @@
             }
           }
         }
-      ]
+      ],
+      "id": "93018e6c-2c38-44f1-9966-7afe4da61937"
     },
     {
       "name": "partner",
@@ -884,6 +866,7 @@
               "item": [
                 {
                   "name": "get all service follow clinic",
+                  "id": "a6dfe170-7c90-4a5a-83e1-cc2fac720f34",
                   "request": {
                     "method": "GET",
                     "header": [
@@ -903,15 +886,11 @@
                       }
                     },
                     "url": {
-                      "raw": "http://localhost:3000/api/v1/partner/service/all?page=1&limit=10",
-                      "protocol": "http",
+                      "raw": "{{host}}/partner/service/all?page=1&limit=10",
                       "host": [
-                        "localhost"
+                        "{{host}}"
                       ],
-                      "port": "3000",
                       "path": [
-                        "api",
-                        "v1",
                         "partner",
                         "service",
                         "all"
@@ -931,6 +910,7 @@
                 },
                 {
                   "name": "create service",
+                  "id": "66bb0812-262d-49e1-873c-8638dffa54db",
                   "request": {
                     "method": "POST",
                     "header": [
@@ -950,15 +930,11 @@
                       }
                     },
                     "url": {
-                      "raw": "http://localhost:3000/api/v1/partner/service",
-                      "protocol": "http",
+                      "raw": "{{host}}/partner/service",
                       "host": [
-                        "localhost"
+                        "{{host}}"
                       ],
-                      "port": "3000",
                       "path": [
-                        "api",
-                        "v1",
                         "partner",
                         "service"
                       ]
@@ -967,18 +943,15 @@
                 },
                 {
                   "name": "get service by id",
+                  "id": "4256d3d3-6372-47b5-8286-484d9193d322",
                   "request": {
                     "method": "GET",
                     "url": {
-                      "raw": "http://localhost:3000/api/v1/partner/service/",
-                      "protocol": "http",
+                      "raw": "{{host}}/partner/service/",
                       "host": [
-                        "localhost"
+                        "{{host}}"
                       ],
-                      "port": "3000",
                       "path": [
-                        "api",
-                        "v1",
                         "partner",
                         "service",
                         ""
@@ -988,6 +961,7 @@
                 },
                 {
                   "name": "delete service",
+                  "id": "51bb6fea-7d77-45f1-8ad2-5008f9ac5858",
                   "request": {
                     "method": "DELETE",
                     "header": [
@@ -998,15 +972,11 @@
                       }
                     ],
                     "url": {
-                      "raw": "http://localhost:3000/api/v1/partner/service/aad9adab-c1ba-44bd-8733-3d373fbbdb72",
-                      "protocol": "http",
+                      "raw": "{{host}}/partner/service/aad9adab-c1ba-44bd-8733-3d373fbbdb72",
                       "host": [
-                        "localhost"
+                        "{{host}}"
                       ],
-                      "port": "3000",
                       "path": [
-                        "api",
-                        "v1",
                         "partner",
                         "service",
                         "aad9adab-c1ba-44bd-8733-3d373fbbdb72"
@@ -1016,18 +986,15 @@
                 },
                 {
                   "name": "get service by clinic id",
+                  "id": "d7c078a1-9309-4969-9e81-4b0689ad07a1",
                   "request": {
                     "method": "GET",
                     "url": {
-                      "raw": "http://localhost:3000/api/v1/partner/service/47108e3e-d687-435f-91af-58aca253afea",
-                      "protocol": "http",
+                      "raw": "{{host}}/partner/service/47108e3e-d687-435f-91af-58aca253afea",
                       "host": [
-                        "localhost"
+                        "{{host}}"
                       ],
-                      "port": "3000",
                       "path": [
-                        "api",
-                        "v1",
                         "partner",
                         "service",
                         "47108e3e-d687-435f-91af-58aca253afea"
@@ -1037,6 +1004,7 @@
                 },
                 {
                   "name": "get all service by admin",
+                  "id": "2a199e7f-3ee4-46e5-aa20-d4ec967a6388",
                   "request": {
                     "method": "GET",
                     "header": [
@@ -1047,15 +1015,11 @@
                       }
                     ],
                     "url": {
-                      "raw": "http://localhost:3000/api/v1/partner/service/all/admin",
-                      "protocol": "http",
+                      "raw": "{{host}}/partner/service/all/admin",
                       "host": [
-                        "localhost"
+                        "{{host}}"
                       ],
-                      "port": "3000",
                       "path": [
-                        "api",
-                        "v1",
                         "partner",
                         "service",
                         "all",
@@ -1066,6 +1030,7 @@
                 },
                 {
                   "name": "deactive service",
+                  "id": "9552f63d-de8a-4647-9f65-79b42ed0e77e",
                   "request": {
                     "method": "PATCH",
                     "header": [
@@ -1076,15 +1041,11 @@
                       }
                     ],
                     "url": {
-                      "raw": "http://localhost:3000 /api/v1/partner/service/57710c8e-b5e4-4d34-bb61-0d6be618b0cf/deactivate",
-                      "protocol": "http",
+                      "raw": "{{host}}/partner/service/57710c8e-b5e4-4d34-bb61-0d6be618b0cf/deactivate",
                       "host": [
-                        "localhost"
+                        "{{host}}"
                       ],
-                      "port": "3000 ",
                       "path": [
-                        "api",
-                        "v1",
                         "partner",
                         "service",
                         "57710c8e-b5e4-4d34-bb61-0d6be618b0cf",
@@ -1093,13 +1054,15 @@
                     }
                   }
                 }
-              ]
+              ],
+              "id": "c408312b-d535-413e-8fb1-e149c60b10f7"
             },
             {
               "name": "shift",
               "item": [
                 {
                   "name": "create shift",
+                  "id": "b1687ed8-59d0-4aa3-b5b4-daee1466d897",
                   "request": {
                     "method": "POST",
                     "header": [
@@ -1119,15 +1082,11 @@
                       }
                     },
                     "url": {
-                      "raw": "http://localhost:3000/api/v1/partner/clinic/shift",
-                      "protocol": "http",
+                      "raw": "{{host}}/partner/clinic/shift",
                       "host": [
-                        "localhost"
+                        "{{host}}"
                       ],
-                      "port": "3000",
                       "path": [
-                        "api",
-                        "v1",
                         "partner",
                         "clinic",
                         "shift"
@@ -1137,6 +1096,7 @@
                 },
                 {
                   "name": "get all shift",
+                  "id": "258086b0-2029-43dc-ad64-5e6d55a8fb4d",
                   "request": {
                     "method": "GET",
                     "header": [
@@ -1147,15 +1107,11 @@
                       }
                     ],
                     "url": {
-                      "raw": "http://localhost:3000/api/v1/partner/clinic/shift?page=1&limit=10",
-                      "protocol": "http",
+                      "raw": "{{host}}/partner/clinic/shift?page=1&limit=10",
                       "host": [
-                        "localhost"
+                        "{{host}}"
                       ],
-                      "port": "3000",
                       "path": [
-                        "api",
-                        "v1",
                         "partner",
                         "clinic",
                         "shift"
@@ -1175,6 +1131,7 @@
                 },
                 {
                   "name": "update shift",
+                  "id": "baf526ba-305f-4672-97f7-3d1bb09bfdd2",
                   "request": {
                     "method": "PUT",
                     "header": [
@@ -1194,15 +1151,11 @@
                       }
                     },
                     "url": {
-                      "raw": "http://localhost:3000/api/v1/partner/clinic/shift/",
-                      "protocol": "http",
+                      "raw": "{{host}}/partner/clinic/shift/",
                       "host": [
-                        "localhost"
+                        "{{host}}"
                       ],
-                      "port": "3000",
                       "path": [
-                        "api",
-                        "v1",
                         "partner",
                         "clinic",
                         "shift",
@@ -1213,6 +1166,7 @@
                 },
                 {
                   "name": "get ship by clinic",
+                  "id": "bcced736-9a2d-4b32-907d-9367061072ad",
                   "request": {
                     "method": "GET",
                     "header": [
@@ -1223,15 +1177,11 @@
                       }
                     ],
                     "url": {
-                      "raw": "http://localhost:3000/api/v1/partner/clinic/shift/e9f23719-813b-407f-82fe-a1cde2fba1d0",
-                      "protocol": "http",
+                      "raw": "{{host}}/partner/clinic/shift/e9f23719-813b-407f-82fe-a1cde2fba1d0",
                       "host": [
-                        "localhost"
+                        "{{host}}"
                       ],
-                      "port": "3000",
                       "path": [
-                        "api",
-                        "v1",
                         "partner",
                         "clinic",
                         "shift",
@@ -1249,6 +1199,7 @@
                 },
                 {
                   "name": "get shift by clinic id",
+                  "id": "043bd508-249a-4f05-b7d4-34ddd0bf34ad",
                   "request": {
                     "method": "GET",
                     "header": [
@@ -1259,15 +1210,11 @@
                       }
                     ],
                     "url": {
-                      "raw": "http://localhost:3000/api/v1/partner/clinic/shift/e9f23719-813b-407f-82fe-a1cde2fba1d0",
-                      "protocol": "http",
+                      "raw": "{{host}}/partner/clinic/shift/e9f23719-813b-407f-82fe-a1cde2fba1d0",
                       "host": [
-                        "localhost"
+                        "{{host}}"
                       ],
-                      "port": "3000",
                       "path": [
-                        "api",
-                        "v1",
                         "partner",
                         "clinic",
                         "shift",
@@ -1285,6 +1232,7 @@
                 },
                 {
                   "name": "delete shift",
+                  "id": "1ac396d9-d147-408e-8e75-5b09307cd8fb",
                   "request": {
                     "method": "DELETE",
                     "header": [
@@ -1295,15 +1243,11 @@
                       }
                     ],
                     "url": {
-                      "raw": "http://localhost:3000/api/v1/partner/clinic/shift/e96b5d74-f1d7-46cb-aa19-a7acd9af256e",
-                      "protocol": "http",
+                      "raw": "{{host}}/partner/clinic/shift/e96b5d74-f1d7-46cb-aa19-a7acd9af256e",
                       "host": [
-                        "localhost"
+                        "{{host}}"
                       ],
-                      "port": "3000",
                       "path": [
-                        "api",
-                        "v1",
                         "partner",
                         "clinic",
                         "shift",
@@ -1312,10 +1256,12 @@
                     }
                   }
                 }
-              ]
+              ],
+              "id": "371f499b-f430-40ef-869b-729342183373"
             },
             {
               "name": "createClinicForm",
+              "id": "5c97cb51-55c6-40d9-b03e-084aa22187e7",
               "request": {
                 "method": "POST",
                 "header": [
@@ -1335,15 +1281,11 @@
                   }
                 },
                 "url": {
-                  "raw": "http://localhost:3000/api/v1/partner/clinic/register",
-                  "protocol": "http",
+                  "raw": "{{host}}/partner/clinic/register",
                   "host": [
-                    "localhost"
+                    "{{host}}"
                   ],
-                  "port": "3000",
                   "path": [
-                    "api",
-                    "v1",
                     "partner",
                     "clinic",
                     "register"
@@ -1353,6 +1295,7 @@
             },
             {
               "name": "getAllClinicForm",
+              "id": "01598033-89ea-4dad-bb5d-7fd3b5a2fcae",
               "request": {
                 "method": "GET",
                 "header": [
@@ -1363,15 +1306,11 @@
                   }
                 ],
                 "url": {
-                  "raw": "http://localhost:3000/api/v1/partner/clinic/form?page=2&limit=5",
-                  "protocol": "http",
+                  "raw": "{{host}}/partner/clinic/form?page=2&limit=5",
                   "host": [
-                    "localhost"
+                    "{{host}}"
                   ],
-                  "port": "3000",
                   "path": [
-                    "api",
-                    "v1",
                     "partner",
                     "clinic",
                     "form"
@@ -1391,6 +1330,7 @@
             },
             {
               "name": "updateStatusClinicForm",
+              "id": "5dcfed01-4ecd-439c-a621-7d43ee1d8764",
               "request": {
                 "method": "POST",
                 "header": [
@@ -1410,15 +1350,11 @@
                   }
                 },
                 "url": {
-                  "raw": "http://localhost:3000/api/v1/partner/clinic/status/d00ea5bb-8fb8-4bc2-bfe6-91632f24902d",
-                  "protocol": "http",
+                  "raw": "{{host}}/partner/clinic/status/d00ea5bb-8fb8-4bc2-bfe6-91632f24902d",
                   "host": [
-                    "localhost"
+                    "{{host}}"
                   ],
-                  "port": "3000",
                   "path": [
-                    "api",
-                    "v1",
                     "partner",
                     "clinic",
                     "status",
@@ -1429,6 +1365,7 @@
             },
             {
               "name": "activeClinic",
+              "id": "4569f117-9997-4f3c-9dcc-458f584cfca6",
               "request": {
                 "method": "PATCH",
                 "body": {
@@ -1441,15 +1378,11 @@
                   }
                 },
                 "url": {
-                  "raw": "http://localhost:3000/api/v1/partner/clinic/active/5e6e1a38-3bd9-46bf-a3b5-60767d15a28f",
-                  "protocol": "http",
+                  "raw": "{{host}}/partner/clinic/active/5e6e1a38-3bd9-46bf-a3b5-60767d15a28f",
                   "host": [
-                    "localhost"
+                    "{{host}}"
                   ],
-                  "port": "3000",
                   "path": [
-                    "api",
-                    "v1",
                     "partner",
                     "clinic",
                     "active",
@@ -1460,18 +1393,15 @@
             },
             {
               "name": "findAllClinic",
+              "id": "64352d3a-350d-4bf3-9419-deb51e1b46b0",
               "request": {
                 "method": "GET",
                 "url": {
-                  "raw": "http://localhost:3000/api/v1/partner/clinic?page=1&limit=5",
-                  "protocol": "http",
+                  "raw": "{{host}}/partner/clinic?page=1&limit=5",
                   "host": [
-                    "localhost"
+                    "{{host}}"
                   ],
-                  "port": "3000",
                   "path": [
-                    "api",
-                    "v1",
                     "partner",
                     "clinic"
                   ],
@@ -1490,18 +1420,15 @@
             },
             {
               "name": "getClinicFormById",
+              "id": "75e7559c-858b-44a8-92db-d3e784c5c83d",
               "request": {
                 "method": "GET",
                 "url": {
-                  "raw": "http://localhost:3000/api/v1/partner/clinic/form/da6ed44d-e793-4725-911d-4dd6bc043770",
-                  "protocol": "http",
+                  "raw": "{{host}}/partner/clinic/form/da6ed44d-e793-4725-911d-4dd6bc043770",
                   "host": [
-                    "localhost"
+                    "{{host}}"
                   ],
-                  "port": "3000",
                   "path": [
-                    "api",
-                    "v1",
                     "partner",
                     "clinic",
                     "form",
@@ -1512,6 +1439,7 @@
             },
             {
               "name": "get clinic by id",
+              "id": "2f97f10d-2acf-4890-b69b-9a844eeb34de",
               "request": {
                 "method": "GET",
                 "header": [
@@ -1522,15 +1450,11 @@
                   }
                 ],
                 "url": {
-                  "raw": "http://localhost:3000/api/v1/partner/clinic/1db5b90b-7021-4f04-ba7d-32a8d55f2b78",
-                  "protocol": "http",
+                  "raw": "{{host}}/partner/clinic/1db5b90b-7021-4f04-ba7d-32a8d55f2b78",
                   "host": [
-                    "localhost"
+                    "{{host}}"
                   ],
-                  "port": "3000",
                   "path": [
-                    "api",
-                    "v1",
                     "partner",
                     "clinic",
                     "1db5b90b-7021-4f04-ba7d-32a8d55f2b78"
@@ -1540,6 +1464,7 @@
             },
             {
               "name": "update clinic form",
+              "id": "94380b81-b2d0-46b9-bfec-882837b0a2cb",
               "request": {
                 "method": "PUT",
                 "header": [
@@ -1559,15 +1484,11 @@
                   }
                 },
                 "url": {
-                  "raw": "http://localhost:3000/api/v1/partner/verify-clinic/update-form/da57f9b3-e2e5-4241-a53b-c957f90bb72e",
-                  "protocol": "http",
+                  "raw": "{{host}}/partner/verify-clinic/update-form/da57f9b3-e2e5-4241-a53b-c957f90bb72e",
                   "host": [
-                    "localhost"
+                    "{{host}}"
                   ],
-                  "port": "3000",
                   "path": [
-                    "api",
-                    "v1",
                     "partner",
                     "verify-clinic",
                     "update-form",
@@ -1578,6 +1499,7 @@
             },
             {
               "name": "clinic invite",
+              "id": "c1d73b80-4d91-43e5-81a4-d18cd74b5ba8",
               "request": {
                 "method": "POST",
                 "header": [
@@ -1597,15 +1519,11 @@
                   }
                 },
                 "url": {
-                  "raw": "http://localhost:3000/api/v1/partner/clinic/invitations",
-                  "protocol": "http",
+                  "raw": "{{host}}/partner/clinic/invitations",
                   "host": [
-                    "localhost"
+                    "{{host}}"
                   ],
-                  "port": "3000",
                   "path": [
-                    "api",
-                    "v1",
                     "partner",
                     "clinic",
                     "invitations"
@@ -1613,13 +1531,15 @@
                 }
               }
             }
-          ]
+          ],
+          "id": "f0b703e6-dcfb-4896-87a7-a3f17caec6be"
         },
         {
           "name": "vet",
           "item": [
             {
               "name": "createVetForm",
+              "id": "204c92cf-c926-45f9-bc6b-d9aff7d25d32",
               "request": {
                 "method": "POST",
                 "header": [
@@ -1639,15 +1559,11 @@
                   }
                 },
                 "url": {
-                  "raw": "http://localhost:3000/api/v1/partner/vet/register",
-                  "protocol": "http",
+                  "raw": "{{host}}/partner/vet/register",
                   "host": [
-                    "localhost"
+                    "{{host}}"
                   ],
-                  "port": "3000",
                   "path": [
-                    "api",
-                    "v1",
                     "partner",
                     "vet",
                     "register"
@@ -1657,6 +1573,7 @@
             },
             {
               "name": "update status for vet form",
+              "id": "a7027bdf-c01c-4337-9ba0-a54e65dcc35c",
               "request": {
                 "method": "PATCH",
                 "header": [
@@ -1676,15 +1593,11 @@
                   }
                 },
                 "url": {
-                  "raw": "http://localhost:3000/api/v1/partner/vet/status/form/4572e78b-b8a7-48b0-ba28-34f91cb61759",
-                  "protocol": "http",
+                  "raw": "{{host}}/partner/vet/status/form/4572e78b-b8a7-48b0-ba28-34f91cb61759",
                   "host": [
-                    "localhost"
+                    "{{host}}"
                   ],
-                  "port": "3000",
                   "path": [
-                    "api",
-                    "v1",
                     "partner",
                     "vet",
                     "status",
@@ -1696,18 +1609,15 @@
             },
             {
               "name": "getAllVetForm",
+              "id": "11a1a632-98a6-4d8e-a6af-809582fe1ee2",
               "request": {
                 "method": "GET",
                 "url": {
-                  "raw": "http://localhost:3000/api/v1/partner/vet/form?page=1&limit=10",
-                  "protocol": "http",
+                  "raw": "{{host}}/partner/vet/form?page=1&limit=10",
                   "host": [
-                    "localhost"
+                    "{{host}}"
                   ],
-                  "port": "3000",
                   "path": [
-                    "api",
-                    "v1",
                     "partner",
                     "vet",
                     "form"
@@ -1727,6 +1637,7 @@
             },
             {
               "name": "accept invite",
+              "id": "667e8b5d-e294-4f01-86a5-a06bfec72d76",
               "request": {
                 "method": "POST",
                 "header": [
@@ -1737,15 +1648,11 @@
                   }
                 ],
                 "url": {
-                  "raw": "http://localhost:3000/api/v1/partner/clinic/invitations/:token/accept",
-                  "protocol": "http",
+                  "raw": "{{host}}/partner/clinic/invitations/:token/accept",
                   "host": [
-                    "localhost"
+                    "{{host}}"
                   ],
-                  "port": "3000",
                   "path": [
-                    "api",
-                    "v1",
                     "partner",
                     "clinic",
                     "invitations",
@@ -1763,6 +1670,7 @@
             },
             {
               "name": "reject invite",
+              "id": "4b823f54-2613-407a-a9da-841e96864603",
               "request": {
                 "method": "GET",
                 "header": [
@@ -1773,15 +1681,11 @@
                   }
                 ],
                 "url": {
-                  "raw": "http://localhost:3000/api/v1/partner/clinic/invitations/:token/decline",
-                  "protocol": "http",
+                  "raw": "{{host}}/partner/clinic/invitations/:token/decline",
                   "host": [
-                    "localhost"
+                    "{{host}}"
                   ],
-                  "port": "3000",
                   "path": [
-                    "api",
-                    "v1",
                     "partner",
                     "clinic",
                     "invitations",
@@ -1797,15 +1701,18 @@
                 }
               }
             }
-          ]
+          ],
+          "id": "889032c2-fa2f-4aaa-86bc-b8e49900d3fe"
         }
-      ]
+      ],
+      "id": "9f6b9076-ff9f-45b2-b238-26dd7e1f49c6"
     },
     {
       "name": "VietOS",
       "item": [
         {
           "name": "test",
+          "id": "76f8c962-63f3-458a-84c4-acb15e49f56b",
           "request": {
             "method": "GET",
             "body": {
@@ -1835,6 +1742,7 @@
         },
         {
           "name": "Tạo QR",
+          "id": "c041dd67-843b-4cf0-9035-564ebce101ca",
           "request": {
             "method": "POST",
             "body": {
@@ -1861,7 +1769,8 @@
             }
           }
         }
-      ]
+      ],
+      "id": "6c01a6c8-120b-4d1c-9fab-1d1dda9be985"
     }
   ]
 }

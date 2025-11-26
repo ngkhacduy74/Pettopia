@@ -5,6 +5,7 @@ import * as uuid from 'uuid';
 export enum AppointmentStatus {
   Pending_Confirmation = 'Pending_Confirmation',
   Confirmed = 'Confirmed',
+  In_Progress = 'In_Progress',
   Completed = 'Completed',
   Cancelled = 'Cancelled',
   No_Show = 'No_Show',

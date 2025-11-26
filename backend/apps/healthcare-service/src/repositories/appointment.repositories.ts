@@ -104,6 +104,31 @@ export class AppointmentRepository {
     }
   }
 
+  async existsActiveForClinicAndPet(
+    clinicId: string,
+    petId: string,
+    statuses: string[],
+  ): Promise<boolean> {
+    try {
+      const query: any = {
+        clinic_id: clinicId,
+        pet_ids: petId,
+      };
+
+      if (Array.isArray(statuses) && statuses.length > 0) {
+        query.status = { $in: statuses };
+      }
+
+      const exists = await this.appointmentModel.exists(query);
+      return !!exists;
+    } catch (error) {
+      throw new InternalServerErrorException(
+        error.message ||
+          'Lỗi khi kiểm tra lịch hẹn hoạt động cho phòng khám và pet',
+      );
+    }
+  }
+
   async findByUserId(
     userId: string,
     page: number = 1,
@@ -210,6 +235,40 @@ export class AppointmentRepository {
     } catch (error) {
       throw new InternalServerErrorException(
         error.message || 'Lỗi khi lấy danh sách lịch hẹn theo phòng khám',
+      );
+    }
+  }
+
+  async findByClinicAndDateAndStatuses(
+    clinicId: string,
+    date: Date,
+    statuses: string[],
+  ): Promise<Appointment[]> {
+    try {
+      const startOfDay = new Date(date);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(startOfDay);
+      endOfDay.setDate(endOfDay.getDate() + 1);
+
+      const query: any = {
+        clinic_id: clinicId,
+        date: { $gte: startOfDay, $lt: endOfDay },
+      };
+
+      if (Array.isArray(statuses) && statuses.length > 0) {
+        query.status = { $in: statuses };
+      }
+
+      const appointments = await this.appointmentModel
+        .find(query)
+        .sort({ createdAt: 1 })
+        .lean();
+
+      return appointments;
+    } catch (error) {
+      throw new InternalServerErrorException(
+        error.message ||
+          'Lỗi khi lấy danh sách lịch hẹn theo phòng khám, ngày và trạng thái',
       );
     }
   }

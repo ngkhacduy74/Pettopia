@@ -53,7 +53,7 @@ export class CreateAppointmentDto {
 export class UpdateAppointmentStatusDto {
   @IsEnum(AppointmentStatus, {
     message:
-      'status phải là một trong các giá trị: Pending_Confirmation, Confirmed, Completed, Cancelled, No_Show',
+      'status phải là một trong các giá trị: Pending_Confirmation, Confirmed, In_Progress, Completed, Cancelled, No_Show',
   })
   status: AppointmentStatus;
 

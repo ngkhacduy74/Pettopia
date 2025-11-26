@@ -43,7 +43,6 @@ export class AuditLogs {
 export const AuditLogsSchema = SchemaFactory.createForClass(AuditLogs);
 
 
-export const LocationSchema = SchemaFactory.createForClass(Location);
 
 @Schema({
   timestamps: true,

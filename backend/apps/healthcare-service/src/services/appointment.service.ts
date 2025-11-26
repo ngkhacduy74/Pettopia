@@ -8,13 +8,25 @@ import {
   CancelAppointmentDto,
   CreateAppointmentForCustomerDto,
 } from 'src/dto/appointment.dto';
+import { CreateMedicalRecordDto } from 'src/dto/medical_record.dto';
 import { AppointmentRepository } from '../repositories/appointment.repositories';
 import {
+  Appointment,
   AppointmentStatus,
   AppointmentShift,
   AppointmentCreatedBy,
 } from 'src/schemas/appoinment.schema';
 import { lastValueFrom } from 'rxjs';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
+import {
+  MedicalRecord,
+  MedicalRecordDocument,
+} from 'src/schemas/medical_record.schema';
+import {
+  Medication,
+  MedicationDocument,
+} from 'src/schemas/preciption.schema';
 
 @Injectable()
 export class AppointmentService {
@@ -28,6 +40,10 @@ export class AppointmentService {
     @Inject('AUTH_SERVICE')
     private readonly authService: ClientProxy,
     private readonly appointmentRepositories: AppointmentRepository,
+    @InjectModel(MedicalRecord.name)
+    private readonly medicalRecordModel: Model<MedicalRecordDocument>,
+    @InjectModel(Medication.name)
+    private readonly medicationModel: Model<MedicationDocument>,
   ) {}
 
   // Helper function để kiểm tra role (hỗ trợ cả string và array)
@@ -41,6 +57,292 @@ export class AppointmentService {
   // Helper function để kiểm tra có phải Admin hoặc Staff không
   private isAdminOrStaff(userRole: string | string[]): boolean {
     return this.hasRole(userRole, 'Admin') || this.hasRole(userRole, 'Staff');
+  }
+
+  async getTodayAppointmentsForClinic(
+    clinicId: string,
+    statuses: AppointmentStatus[] = [
+      AppointmentStatus.Pending_Confirmation,
+      AppointmentStatus.Confirmed,
+      AppointmentStatus.In_Progress,
+    ],
+    date?: Date,
+  ): Promise<Appointment[]> {
+    try {
+      const targetDate = date ? new Date(date) : new Date();
+      const statusValues = statuses.map((s) => s as unknown as string);
+
+      const appointments =
+        await this.appointmentRepositories.findByClinicAndDateAndStatuses(
+          clinicId,
+          targetDate,
+          statusValues,
+        );
+
+      return appointments as any;
+    } catch (error) {
+      throw new RpcException({
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        message:
+          error.message ||
+          'Lỗi khi lấy danh sách lịch hẹn hôm nay cho phòng khám',
+      });
+    }
+  }
+
+  async assignVetAndStart(
+    appointmentId: string,
+    vetId: string,
+  ): Promise<Appointment> {
+    try {
+      const appointment =
+        await this.appointmentRepositories.findById(appointmentId);
+
+      if (!appointment) {
+        throw new RpcException({
+          status: HttpStatus.NOT_FOUND,
+          message: 'Không tìm thấy lịch hẹn',
+        });
+      }
+
+      if (
+        appointment.status !== AppointmentStatus.Pending_Confirmation &&
+        appointment.status !== AppointmentStatus.Confirmed &&
+        appointment.status !== AppointmentStatus.In_Progress
+      ) {
+        throw new RpcException({
+          status: HttpStatus.BAD_REQUEST,
+          message:
+            'Chỉ có thể gán bác sĩ cho lịch hẹn ở trạng thái Pending_Confirmation, Confirmed hoặc In_Progress',
+        });
+      }
+
+      const updated = await this.appointmentRepositories.update(appointmentId, {
+        vet_id: vetId,
+        status: AppointmentStatus.In_Progress,
+      } as Partial<Appointment>);
+
+      if (!updated) {
+        throw new RpcException({
+          status: HttpStatus.INTERNAL_SERVER_ERROR,
+          message: 'Không thể cập nhật lịch hẹn',
+        });
+      }
+
+      return updated as any;
+    } catch (error) {
+      if (error instanceof RpcException) {
+        throw error;
+      }
+
+      throw new RpcException({
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        message: error.message || 'Lỗi khi gán bác sĩ và bắt đầu lịch hẹn',
+      });
+    }
+  }
+
+  async createMedicalRecordWithMedications(
+    appointmentId: string,
+    data: CreateMedicalRecordDto,
+  ): Promise<{ medicalRecord: MedicalRecord; medications: Medication[] }> {
+    try {
+      const appointment =
+        await this.appointmentRepositories.findById(appointmentId);
+
+      if (!appointment) {
+        throw new RpcException({
+          status: HttpStatus.NOT_FOUND,
+          message: 'Không tìm thấy lịch hẹn',
+        });
+      }
+
+      if (appointment.id !== data.appointment_id) {
+        data.appointment_id = appointment.id;
+      }
+
+      if (appointment.clinic_id !== data.clinic_id) {
+        throw new RpcException({
+          status: HttpStatus.BAD_REQUEST,
+          message: 'clinic_id không khớp với lịch hẹn',
+        });
+      }
+
+      if (!appointment.pet_ids || !appointment.pet_ids.includes(data.pet_id)) {
+        throw new RpcException({
+          status: HttpStatus.BAD_REQUEST,
+          message: 'pet_id không thuộc lịch hẹn này',
+        });
+      }
+
+      if (appointment.vet_id && appointment.vet_id !== data.vet_id) {
+        throw new RpcException({
+          status: HttpStatus.BAD_REQUEST,
+          message: 'vet_id không khớp với bác sĩ đã được gán cho lịch hẹn',
+        });
+      }
+
+      const medicalRecord = await this.medicalRecordModel.create({
+        appointment_id: data.appointment_id,
+        pet_id: data.pet_id,
+        vet_id: data.vet_id,
+        clinic_id: data.clinic_id,
+        symptoms: data.symptoms,
+        diagnosis: data.diagnosis,
+        notes: data.notes,
+      });
+
+      const medicationsPayload = data.medications.map((m) => ({
+        medical_record_id: medicalRecord.id,
+        medication_name: m.medication_name,
+        dosage: m.dosage,
+        instructions: m.instructions,
+      }));
+
+      const medications =
+        medicationsPayload.length > 0
+          ? await this.medicationModel.insertMany(medicationsPayload)
+          : [];
+
+      try {
+        await lastValueFrom(
+          this.petcareService.send(
+            { cmd: 'addMedicalRecordToPet' },
+            {
+              pet_id: data.pet_id,
+              medical_record_id: medicalRecord.id,
+            },
+          ),
+        );
+      } catch (err) {}
+
+      return {
+        medicalRecord: medicalRecord.toJSON() as any,
+        medications: medications as any,
+      };
+    } catch (error) {
+      if (error instanceof RpcException) {
+        throw error;
+      }
+
+      throw new RpcException({
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        message:
+          error.message || 'Lỗi khi tạo hồ sơ bệnh án và danh sách thuốc',
+      });
+    }
+  }
+
+  async completeAppointment(appointmentId: string): Promise<Appointment> {
+    try {
+      const appointment =
+        await this.appointmentRepositories.findById(appointmentId);
+
+      if (!appointment) {
+        throw new RpcException({
+          status: HttpStatus.NOT_FOUND,
+          message: 'Không tìm thấy lịch hẹn',
+        });
+      }
+
+      if (appointment.status === AppointmentStatus.Cancelled) {
+        throw new RpcException({
+          status: HttpStatus.BAD_REQUEST,
+          message: 'Không thể hoàn thành lịch hẹn đã bị hủy',
+        });
+      }
+
+      const updated = await this.appointmentRepositories.updateStatus(
+        appointmentId,
+        AppointmentStatus.Completed,
+      );
+
+      if (!updated) {
+        throw new RpcException({
+          status: HttpStatus.INTERNAL_SERVER_ERROR,
+          message: 'Không thể cập nhật trạng thái hoàn thành cho lịch hẹn',
+        });
+      }
+
+      return updated as any;
+    } catch (error) {
+      if (error instanceof RpcException) {
+        throw error;
+      }
+
+      throw new RpcException({
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        message: error.message || 'Lỗi khi hoàn thành lịch hẹn',
+      });
+    }
+  }
+
+  async getMedicalRecordsByPet(
+    petId: string,
+    role?: string | string[],
+    clinicId?: string,
+    vetId?: string,
+  ): Promise<{ medicalRecord: MedicalRecord; medications: Medication[] }[]> {
+    try {
+      // Nếu là Vet thì chỉ được xem khi còn ít nhất một lịch hẹn đang hoạt động
+      if (role && this.hasRole(role, 'Vet')) {
+        if (!clinicId) {
+          return [];
+        }
+
+        const activeStatuses = [
+          AppointmentStatus.Pending_Confirmation,
+          AppointmentStatus.Confirmed,
+          AppointmentStatus.In_Progress,
+        ].map((s) => s as unknown as string);
+
+        const hasActiveAppointment =
+          await this.appointmentRepositories.existsActiveForClinicAndPet(
+            clinicId,
+            petId,
+            activeStatuses,
+          );
+
+        if (!hasActiveAppointment) {
+          return [];
+        }
+      }
+
+      const records = await this.medicalRecordModel
+        .find({ pet_id: petId })
+        .sort({ createdAt: -1 })
+        .lean();
+
+      if (!records || records.length === 0) {
+        return [];
+      }
+
+      const recordIds = records.map((r: any) => r.id);
+
+      const medications = await this.medicationModel
+        .find({ medical_record_id: { $in: recordIds } })
+        .sort({ createdAt: -1 })
+        .lean();
+
+      const medsByRecord: Record<string, any[]> = {};
+      for (const m of medications) {
+        const key = m.medical_record_id;
+        if (!medsByRecord[key]) {
+          medsByRecord[key] = [];
+        }
+        medsByRecord[key].push(m);
+      }
+
+      return records.map((r: any) => ({
+        medicalRecord: r as any,
+        medications: (medsByRecord[r.id] || []) as any,
+      }));
+    } catch (error) {
+      throw new RpcException({
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        message: error.message || 'Lỗi khi lấy hồ sơ bệnh án theo pet',
+      });
+    }
   }
 
   async createAppointment(
@@ -516,8 +818,12 @@ export class AppointmentService {
             status: HttpStatus.BAD_REQUEST,
             message: 'Thiếu thông tin người dùng',
           });
-        // User chỉ xem được đơn của mình (người tạo hoặc khách hàng)
-        if (appointment.user_id !== userId && appointment.customer !== userId) {
+
+        const appointmentCustomer =
+          (appointment as any).customer ??
+          (appointment as any).customer_id ??
+          (appointment as any).customerId;
+        if (appointment.user_id !== userId && appointmentCustomer !== userId) {
           throw new RpcException({
             status: HttpStatus.FORBIDDEN,
             message: 'Bạn không có quyền xem lịch hẹn này',
@@ -580,7 +886,10 @@ export class AppointmentService {
               { ids: appointment.pet_ids },
             ),
           ).catch((err) => {
-            console.error('❌ Lỗi lấy thông tin pet từ petcareService:', err?.message);
+            console.error(
+              '❌ Lỗi lấy thông tin pet từ petcareService:',
+              err?.message,
+            );
             return []; // Nếu lỗi bên Pet service thì trả về mảng rỗng, không làm chết API
           }),
         );
@@ -594,7 +903,10 @@ export class AppointmentService {
         await Promise.all(promises);
 
       console.log('📋 Clinic Result:', JSON.stringify(clinicResult, null, 2));
-      console.log('📋 All Services Result:', JSON.stringify(allServicesResult, null, 2));
+      console.log(
+        '📋 All Services Result:',
+        JSON.stringify(allServicesResult, null, 2),
+      );
       console.log('📋 User Result:', JSON.stringify(userResult, null, 2));
       console.log('📋 Pets Result:', JSON.stringify(petsResult, null, 2));
 
@@ -606,7 +918,7 @@ export class AppointmentService {
       let detailServices: any[] = [];
       // Kiểm tra xem kết quả trả về có phải mảng không (đề phòng service trả về lỗi format)
       let servicesList: any[] = [];
-      
+
       if (Array.isArray(allServicesResult)) {
         servicesList = allServicesResult;
       } else if (Array.isArray(allServicesResult?.data?.items)) {
@@ -626,10 +938,13 @@ export class AppointmentService {
 
       // Lấy thông tin user (chỉ lấy tên và số điện thoại)
       const userInfo = userResult?.data || userResult || null;
-      const userNameInfo = userInfo ? { 
-        fullname: userInfo.fullname,
-        phone_number: userInfo.phone?.phone_number || userInfo.phone || null
-      } : null;
+      const userNameInfo = userInfo
+        ? {
+            fullname: userInfo.fullname,
+            phone_number:
+              userInfo.phone?.phone_number || userInfo.phone || null,
+          }
+        : null;
 
       return {
         id: appointment.id,

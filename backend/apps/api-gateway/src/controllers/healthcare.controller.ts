@@ -174,4 +174,148 @@ export class HealthcareController {
       message: 'Yêu cầu tạo lịch hẹn hộ khách hàng đang được xử lý.',
     };
   }
+
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.CLINIC, Role.STAFF, Role.ADMIN, Role.VET)
+  @Get('/appointments/today')
+  @HttpCode(HttpStatus.OK)
+  async getTodayAppointmentsForClinic(
+    @UserToken('clinic_id') clinicId: string,
+    @Query('date') date?: string,
+    @Query('statuses') statuses?: string | string[],
+  ) {
+    if (!clinicId) {
+      throw new RpcException({
+        status: HttpStatus.BAD_REQUEST,
+        message: 'Thiếu thông tin phòng khám',
+      });
+    }
+
+    const parsedStatuses = Array.isArray(statuses)
+      ? statuses
+      : statuses
+        ? statuses.split(',').map((s) => s.trim())
+        : undefined;
+
+    const payload: any = {
+      clinicId,
+    };
+
+    if (date) {
+      payload.date = date;
+    }
+
+    if (parsedStatuses && parsedStatuses.length > 0) {
+      payload.statuses = parsedStatuses;
+    }
+
+    return await lastValueFrom(
+      this.healthcareService.send({ cmd: 'getTodayAppointmentsForClinic' }, payload),
+    );
+  }
+
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.VET)
+  @Post('/appointments/:id/assign-vet')
+  @HttpCode(HttpStatus.OK)
+  async assignVetAndStart(
+    @Param('id') appointmentId: string,
+    @UserToken('id') vetId: string,
+  ) {
+    return await lastValueFrom(
+      this.healthcareService.send({ cmd: 'assignVetAndStart' }, {
+        appointmentId,
+        vetId,
+      }),
+    );
+  }
+
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.VET)
+  @Post('/appointments/:id/medical-records')
+  @HttpCode(HttpStatus.OK)
+  async createMedicalRecordWithMedications(
+    @Param('id') appointmentId: string,
+    @UserToken('id') vetId: string,
+    @UserToken('clinic_id') clinicId: string,
+    @Body() body: any,
+  ) {
+    const medicalRecordData = {
+      ...body,
+      vet_id: body.vet_id || vetId,
+      clinic_id: body.clinic_id || clinicId,
+    };
+
+    return await lastValueFrom(
+      this.healthcareService.send(
+        { cmd: 'createMedicalRecordWithMedications' },
+        {
+          appointmentId,
+          medicalRecordData,
+        },
+      ),
+    );
+  }
+
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.VET, Role.CLINIC, Role.STAFF, Role.ADMIN)
+  @Post('/appointments/:id/complete')
+  @HttpCode(HttpStatus.OK)
+  async completeAppointment(@Param('id') appointmentId: string) {
+    return await lastValueFrom(
+      this.healthcareService.send(
+        { cmd: 'completeAppointment' },
+        { appointmentId },
+      ),
+    );
+  }
+
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.USER, Role.VET, Role.CLINIC, Role.STAFF, Role.ADMIN)
+  @Get('/pets/:id/medical-records')
+  @HttpCode(HttpStatus.OK)
+  async getMedicalRecordsByPet(
+    @Param('id') petId: string,
+    @UserToken('role') role: Role,
+    @UserToken('clinic_id') clinicId: string,
+    @UserToken('id') userId: string,
+  ) {
+    const result: any = await lastValueFrom(
+      this.healthcareService.send(
+        { cmd: 'getMedicalRecordsByPet' },
+        { petId, role, clinicId, vetId: userId },
+      ),
+    );
+
+    if (!result || !Array.isArray(result.data)) {
+      return result;
+    }
+
+    // Clinic/Staff/Vet chỉ xem hồ sơ thuộc clinic của mình
+    if (
+      (role === Role.CLINIC || role === Role.STAFF || role === Role.VET) &&
+      clinicId
+    ) {
+      result.data = result.data.filter((item: any) => {
+        const recordClinicId = item?.medicalRecord?.clinic_id;
+        return recordClinicId === clinicId;
+      });
+    }
+
+    // Ẩn clinic_id và vet_id cho tất cả role trừ Admin
+    if (role !== Role.ADMIN) {
+      result.data = result.data.map((item: any) => {
+        if (item && item.medicalRecord) {
+          const { clinic_id, vet_id, ...restRecord } = item.medicalRecord;
+          return {
+            ...item,
+            medicalRecord: restRecord,
+          };
+        }
+        return item;
+      });
+    }
+
+    return result;
+  }
 }
