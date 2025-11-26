@@ -248,6 +248,9 @@ let PartnerController = class PartnerController {
             message: 'Yêu cầu cập nhật form đang được xử lý.',
         };
     }
+    async getClinicMembers(clinic_id) {
+        return await (0, rxjs_1.lastValueFrom)(this.partnerService.send({ cmd: 'getClinicMembers' }, { clinic_id }));
+    }
 };
 exports.PartnerController = PartnerController;
 __decorate([
@@ -596,6 +599,16 @@ __decorate([
     __metadata("design:paramtypes", [String, Object]),
     __metadata("design:returntype", Promise)
 ], PartnerController.prototype, "updateClinicForm", null);
+__decorate([
+    (0, common_1.UseGuards)(jwtAuth_guard_1.JwtAuthGuard, role_guard_1.RoleGuard),
+    (0, roles_decorator_1.Roles)(roles_decorator_1.Role.CLINIC),
+    (0, common_1.Get)('/clinic/members/:clinic_id'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    __param(0, (0, common_1.Param)('clinic_id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], PartnerController.prototype, "getClinicMembers", null);
 exports.PartnerController = PartnerController = __decorate([
     (0, common_1.Controller)('api/v1/partner'),
     __param(0, (0, common_1.Inject)('PARTNER_SERVICE')),

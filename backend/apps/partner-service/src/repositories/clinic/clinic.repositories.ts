@@ -607,6 +607,7 @@ export class ClinicsRepository {
   async addMemberToClinic(
     clinicId: string,
     memberId: string,
+    role?: string,
   ): Promise<ClinicDocument> {
     try {
       const updatedClinic = await this.clinicModel
@@ -629,12 +630,13 @@ export class ClinicsRepository {
       await this.invalidateClinicCache(updatedClinic);
 
       return updatedClinic;
-    } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw error;
+    } catch (err) {
+      if (err instanceof NotFoundException) {
+        throw err;
       }
       throw new InternalServerErrorException(
-        error.message || 'Không thể cập nhật danh sách thành viên phòng khám.',
+        err.message ||
+          `Lỗi cơ sở dữ liệu khi thêm thành viên vào phòng khám: ${clinicId}`,
       );
     }
   }

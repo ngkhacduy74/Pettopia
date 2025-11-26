@@ -98,6 +98,13 @@ export class ClinicInvitationService {
       status: ClinicInvitationStatus.PENDING,
     });
 
+    console.log('✅ Tạo lời mời thành công:', {
+      id: invitation.id,
+      email: invited_email,
+      role: normalizedRole,
+      clinic: clinic.clinic_name,
+    });
+
     try {
       const baseUrl = process.env.APP_URL || 'http://localhost:3333';
 
@@ -150,8 +157,14 @@ export class ClinicInvitationService {
       throw new NotFoundException('Không tìm thấy lời mời.');
     }
 
+    console.log('📋 Invitation status:', invitation.status);
+    console.log('📋 Invitation role:', invitation.role);
+    console.log('📋 Invitation clinic_id:', invitation.clinic_id);
+
     if (invitation.status !== ClinicInvitationStatus.PENDING) {
-      throw new BadRequestException('Lời mời đã được xử lý.');
+      throw new BadRequestException(
+        `Lời mời đã được ${invitation.status === ClinicInvitationStatus.ACCEPTED ? 'chấp nhận' : 'từ chối'} rồi.`,
+      );
     }
 
     if (invitation.expires_at.getTime() < Date.now()) {
@@ -161,23 +174,74 @@ export class ClinicInvitationService {
       throw new BadRequestException('Lời mời đã hết hạn.');
     }
 
-    const vet = await this.vetRepository.findVetById(vet_id);
+    let vet = await this.vetRepository.findVetById(vet_id);
+    console.log('⚠️  Vet info khi accept invitation:', vet);
+    console.log('📋 Invitation role đang được accept:', invitation.role);
+    console.log('📋 Invitation clinic_id:', invitation.clinic_id);
 
-    if (!vet) {
-      throw new BadRequestException(
-        'Bạn chưa hoàn tất hồ sơ bác sĩ để nhận lời mời.',
+    // Kiểm tra xem vet đã có CHÍNH XÁC role này tại clinic này chưa
+    if (vet && vet.clinic_roles && vet.clinic_roles.length > 0) {
+      const hasExactRole = vet.clinic_roles.find(
+        (cr: any) =>
+          cr.clinic_id === invitation.clinic_id && cr.role === invitation.role,
       );
+
+      if (hasExactRole) {
+        throw new BadRequestException(
+          `Bạn đã có vai trò "${invitation.role}" tại phòng khám này rồi.`,
+        );
+      }
     }
 
-    await Promise.all([
-      this.clinicsRepository.addMemberToClinic(invitation.clinic_id, vet_id),
-      this.vetRepository.addClinicToVet(vet_id, invitation.clinic_id),
-    ]);
+    // Nếu chưa có vet record, tạo mới (minimal record)
+    if (!vet) {
+      console.log('⚠️  Vet record chưa tồn tại, tạo mới với id:', vet_id);
+      const newVetData = {
+        id: vet_id,
+        is_active: true,
+        specialty: 'Chuyên khoa chưa xác định',
+        subSpecialties: [],
+        exp: 0,
+        license_number: `TMP-${vet_id.substring(0, 8)}`,
+        clinic_roles: [
+          {
+            clinic_id: invitation.clinic_id,
+            role: invitation.role,
+            joined_at: new Date(),
+          },
+        ],
+        clinic_id: [invitation.clinic_id],
+      };
+      vet = await this.vetRepository.createVet(newVetData);
+      console.log('✅ Tạo vet record mới thành công:', vet_id);
+    } else {
+      // Nếu đã có vet, thêm clinic_role vào
+      await this.vetRepository.addClinicToVet(
+        vet_id,
+        invitation.clinic_id,
+        invitation.role,
+      );
+      console.log('✅ Thêm clinic_role vào vet hiện tại:', vet_id);
+    }
+
+    // Thêm member vào clinic
+    await this.clinicsRepository.addMemberToClinic(
+      invitation.clinic_id,
+      vet_id,
+    );
 
     await this.clinicInvitationRepository.markAsAccepted(invitation.id, vet_id);
 
+    console.log('✅ Accept invitation hoàn tất:', {
+      vet_id,
+      clinic_id: invitation.clinic_id,
+      role: invitation.role,
+    });
+
     return {
       message: 'Bạn đã tham gia phòng khám thành công.',
+      vet_id: vet_id,
+      role: invitation.role,
     };
   }
 

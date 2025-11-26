@@ -318,17 +318,30 @@ export class VetRepository {
     }
   }
 
-  async addClinicToVet(vetId: string, clinicId: string): Promise<VetDocument> {
+  async addClinicToVet(
+    vetId: string,
+    clinicId: string,
+    role?: string,
+  ): Promise<VetDocument> {
     try {
-      const updatedVet = await this.vetModel
-        .findOneAndUpdate(
-          { id: vetId },
-          {
-            $addToSet: { clinic_id: clinicId },
-            $set: { updatedAt: new Date() },
+      const updateData: any = {
+        $addToSet: { clinic_id: clinicId },
+        $set: { updatedAt: new Date() },
+      };
+
+      // Nếu có role, thêm vào clinic_roles
+      if (role) {
+        updateData.$push = {
+          clinic_roles: {
+            clinic_id: clinicId,
+            role: role,
+            joined_at: new Date(),
           },
-          { new: true },
-        )
+        };
+      }
+
+      const updatedVet = await this.vetModel
+        .findOneAndUpdate({ id: vetId }, updateData, { new: true })
         .exec();
 
       if (!updatedVet) {

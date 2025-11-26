@@ -537,4 +537,16 @@ export class PartnerController {
       message: 'Yêu cầu cập nhật form đang được xử lý.',
     };
   }
+
+
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.CLINIC)
+  @Get('/clinic/members/:clinic_id')
+  @HttpCode(HttpStatus.OK)
+  async getClinicMembers(@Param('clinic_id') clinic_id: string) {
+    return await lastValueFrom(
+      this.partnerService.send({ cmd: 'getClinicMembers' }, { clinic_id }),
+    );
+  }
 }
+
