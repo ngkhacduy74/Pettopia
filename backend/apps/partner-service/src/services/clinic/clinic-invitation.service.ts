@@ -99,13 +99,15 @@ export class ClinicInvitationService {
     });
 
     try {
+      const baseUrl = process.env.APP_URL || 'http://localhost:3333';
+
       this.authService.emit(
         { cmd: 'sendClinicMemberInvitation' },
         {
           email: invited_email,
           clinicName: clinic.clinic_name,
           role: normalizedRole,
-          inviteLink: `${process.env.APP_URL}/invite/token=${token}/accept`,
+          inviteLink: `${baseUrl}/api/v1/partner/clinic/invitations/${token}/accept`,
           expiresAt: expiresAt.toLocaleDateString('vi-VN'),
         },
       );

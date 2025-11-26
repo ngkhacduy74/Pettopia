@@ -25,6 +25,8 @@ export class HealthcareController {
   constructor(
     @Inject('HEALTHCARE_SERVICE')
     private readonly healthcareService: ClientProxy,
+    @Inject('PETCARE_SERVICE')
+    private readonly petcareService: ClientProxy,
   ) {}
 
   @UseGuards(JwtAuthGuard)
@@ -176,7 +178,28 @@ export class HealthcareController {
   }
 
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles(Role.CLINIC, Role.STAFF, Role.ADMIN, Role.VET)
+  @Roles(Role.CLINIC, Role.STAFF, Role.ADMIN)
+  @Post('/pets')
+  @HttpCode(HttpStatus.CREATED)
+  async createPetForCustomer(
+    @Body() data: any,
+    @UserToken('id') staffId: string,
+  ) {
+    const ownerId = data.customer_id || data.owner_id;
+
+    const payload = {
+      ...data,
+      owner_id: ownerId,
+      created_by: staffId,
+    };
+
+    return await lastValueFrom(
+      this.petcareService.send({ cmd: 'createPet' }, payload),
+    );
+  }
+
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.CLINIC, Role.STAFF, Role.ADMIN)
   @Get('/appointments/today')
   @HttpCode(HttpStatus.OK)
   async getTodayAppointmentsForClinic(
@@ -216,6 +239,19 @@ export class HealthcareController {
 
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(Role.VET)
+  @Get('/appointments/my')
+  @HttpCode(HttpStatus.OK)
+  async getMyAppointments(@UserToken('id') vetId: string) {
+    return await lastValueFrom(
+      this.healthcareService.send(
+        { cmd: 'getMyAppointments' },
+        { vetId },
+      ),
+    );
+  }
+
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.VET, Role.CLINIC, Role.STAFF)
   @Post('/appointments/:id/assign-vet')
   @HttpCode(HttpStatus.OK)
   async assignVetAndStart(
@@ -227,6 +263,53 @@ export class HealthcareController {
         appointmentId,
         vetId,
       }),
+    );
+  }
+
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.CLINIC, Role.STAFF, Role.ADMIN)
+  @Post('/appointments/:id/assign-pet')
+  @HttpCode(HttpStatus.OK)
+  async assignPetToAppointment(
+    @Param('id') appointmentId: string,
+    @Body() body: any,
+    @UserToken('clinic_id') clinicId: string,
+  ) {
+    return await lastValueFrom(
+      this.healthcareService.send(
+        { cmd: 'assignPetToAppointment' },
+        {
+          appointmentId,
+          petId: body.pet_id,
+          clinicId,
+        },
+      ),
+    );
+  }
+
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.CLINIC, Role.STAFF, Role.ADMIN)
+  @Post('/appointments/:id/confirm')
+  @HttpCode(HttpStatus.OK)
+  async confirmAppointment(@Param('id') appointmentId: string) {
+    return await lastValueFrom(
+      this.healthcareService.send(
+        { cmd: 'confirmAppointment' },
+        { appointmentId },
+      ),
+    );
+  }
+
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.CLINIC, Role.STAFF, Role.ADMIN)
+  @Post('/appointments/:id/check-in')
+  @HttpCode(HttpStatus.OK)
+  async checkInAppointment(@Param('id') appointmentId: string) {
+    return await lastValueFrom(
+      this.healthcareService.send(
+        { cmd: 'checkInAppointment' },
+        { appointmentId },
+      ),
     );
   }
 

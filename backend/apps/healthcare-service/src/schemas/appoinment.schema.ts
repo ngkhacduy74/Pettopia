@@ -5,6 +5,7 @@ import * as uuid from 'uuid';
 export enum AppointmentStatus {
   Pending_Confirmation = 'Pending_Confirmation',
   Confirmed = 'Confirmed',
+  Checked_In = 'Checked_In',
   In_Progress = 'In_Progress',
   Completed = 'Completed',
   Cancelled = 'Cancelled',
@@ -168,6 +169,12 @@ export class Appointment {
     ],
   })
   cancelled_by?: string;
+
+  @Prop({
+    type: Date,
+    required: false,
+  })
+  checked_in_at?: Date;
 }
 
 export type AppointmentDocument = Appointment & Document;

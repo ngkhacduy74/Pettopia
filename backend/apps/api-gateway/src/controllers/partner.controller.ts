@@ -171,7 +171,38 @@ export class PartnerController {
       message: 'Yêu cầu gửi lời mời thành viên đang được xử lý.',
     };
   }
-  
+
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.USER, Role.VET)
+  @Post('/clinic/invitations/:token/accept')
+  @HttpCode(HttpStatus.OK)
+  async acceptClinicInvitation(
+    @Param('token') token: string,
+    @UserToken('id') vet_id: string,
+  ) {
+    return await lastValueFrom(
+      this.partnerService.send(
+        { cmd: 'acceptClinicMemberInvitation' },
+        { token, vet_id },
+      ),
+    );
+  }
+
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.VET)
+  @Post('/clinic/invitations/:token/decline')
+  @HttpCode(HttpStatus.ACCEPTED)
+  async declineClinicInvitation(@Param('token') token: string) {
+    this.partnerService.emit(
+      { cmd: 'declineClinicMemberInvitation' },
+      { token },
+    );
+    return {
+      statusCode: HttpStatus.ACCEPTED,
+      message: 'Yêu cầu từ chối lời mời đang được xử lý.',
+    };
+  }
+
   @UseGuards(JwtAuthGuard)
   @Get('/clinic/:id')
   @HttpCode(HttpStatus.OK)
@@ -267,43 +298,6 @@ export class PartnerController {
     };
   }
 
-  @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles(Role.USER, Role.VET)
-  @Post('/clinic/invitations/:token/accept')
-  @HttpCode(HttpStatus.ACCEPTED)
-  async acceptClinicInvitation(
-    @Param('token') token: string,
-    @UserToken('id') vet_id: string,
-  ) {
-    this.partnerService.emit(
-      { cmd: 'acceptClinicMemberInvitation' },
-      { token, vet_id },
-    );
-    return {
-      statusCode: HttpStatus.ACCEPTED,
-      message: 'Yêu cầu chấp nhận lời mời đang được xử lý.',
-    };
-  }
-
-  @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles(Role.VET)
-  @Post('/clinic/invitations/:token/decline')
-  @HttpCode(HttpStatus.ACCEPTED)
-  async declineClinicInvitation(@Param('token') token: string) {
-    this.partnerService.emit(
-      { cmd: 'declineClinicMemberInvitation' },
-      { token },
-    );
-    return {
-      statusCode: HttpStatus.ACCEPTED,
-      message: 'Yêu cầu từ chối lời mời đang được xử lý.',
-    };
-  }
-
-  @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles(Role.USER)
-  @Post('/vet/register')
-  @HttpCode(HttpStatus.ACCEPTED)
   async vetRegister(@Body() data: any, @UserToken('id') user_id: string) {
     this.partnerService.emit({ cmd: 'registerVet' }, { ...data, user_id });
     return {

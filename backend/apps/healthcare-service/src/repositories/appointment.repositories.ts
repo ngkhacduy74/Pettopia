@@ -273,6 +273,60 @@ export class AppointmentRepository {
     }
   }
 
+  async findByVetAndStatuses(
+    vetId: string,
+    statuses: string[],
+  ): Promise<Appointment[]> {
+    try {
+      const query: any = {
+        vet_id: vetId,
+      };
+
+      if (Array.isArray(statuses) && statuses.length > 0) {
+        query.status = { $in: statuses };
+      }
+
+      const appointments = await this.appointmentModel
+        .find(query)
+        .sort({ date: 1, createdAt: 1 })
+        .lean();
+
+      return appointments;
+    } catch (error) {
+      throw new InternalServerErrorException(
+        error.message ||
+          'Lỗi khi lấy danh sách lịch hẹn theo bác sĩ và trạng thái',
+      );
+    }
+  }
+
+  async existsActiveForClinicPetVet(
+    clinicId: string,
+    petId: string,
+    vetId: string,
+    statuses: string[],
+  ): Promise<boolean> {
+    try {
+      const query: any = {
+        clinic_id: clinicId,
+        pet_ids: petId,
+        vet_id: vetId,
+      };
+
+      if (Array.isArray(statuses) && statuses.length > 0) {
+        query.status = { $in: statuses };
+      }
+
+      const exists = await this.appointmentModel.exists(query);
+      return !!exists;
+    } catch (error) {
+      throw new InternalServerErrorException(
+        error.message ||
+          'Lỗi khi kiểm tra lịch hẹn hoạt động cho phòng khám, pet và bác sĩ',
+      );
+    }
+  }
+
   async findById(id: string): Promise<Appointment | null> {
     const cacheKey = this.getAppointmentKey(id);
     try {

@@ -343,6 +343,70 @@ export class AppointmentController {
     }
   }
 
+  @MessagePattern({ cmd: 'getMyAppointments' })
+  async getMyAppointments(
+    @Payload()
+    payload: {
+      vetId: string;
+    },
+  ) {
+    try {
+      const { vetId } = payload;
+
+      if (!vetId) {
+        throw new RpcException({
+          status: HttpStatus.BAD_REQUEST,
+          message: 'Thiếu thông tin bác sĩ thú y',
+        });
+      }
+
+      const result = await this.appointmentService.getMyAppointments(vetId);
+
+      return {
+        status: 'success',
+        message: 'Lấy danh sách lịch hẹn của bác sĩ thú y thành công',
+        data: result,
+      };
+    } catch (error) {
+      return handleRpcError('AppointmentController.getMyAppointments', error);
+    }
+  }
+
+  @MessagePattern({ cmd: 'assignPetToAppointment' })
+  async assignPetToAppointment(
+    @Payload()
+    payload: {
+      appointmentId: string;
+      petId: string;
+      clinicId?: string;
+    },
+  ) {
+    try {
+      const { appointmentId, petId, clinicId } = payload;
+
+      if (!appointmentId || !petId) {
+        throw new RpcException({
+          status: HttpStatus.BAD_REQUEST,
+          message: 'Thiếu thông tin lịch hẹn hoặc pet',
+        });
+      }
+
+      const result = await this.appointmentService.assignPetToAppointment(
+        appointmentId,
+        petId,
+        clinicId,
+      );
+
+      return {
+        status: 'success',
+        message: 'Gán pet vào lịch hẹn thành công',
+        data: result,
+      };
+    } catch (error) {
+      return handleRpcError('AppointmentController.assignPetToAppointment', error);
+    }
+  }
+
   @MessagePattern({ cmd: 'assignVetAndStart' })
   async assignVetAndStart(
     @Payload()
@@ -380,6 +444,68 @@ export class AppointmentController {
       };
     } catch (error) {
       return handleRpcError('AppointmentController.assignVetAndStart', error);
+    }
+  }
+
+  @MessagePattern({ cmd: 'confirmAppointment' })
+  async confirmAppointment(
+    @Payload()
+    payload: {
+      appointmentId: string;
+    },
+  ) {
+    try {
+      const { appointmentId } = payload;
+
+      if (!appointmentId) {
+        throw new RpcException({
+          status: HttpStatus.BAD_REQUEST,
+          message: 'Thiếu thông tin ID lịch hẹn',
+        });
+      }
+
+      const result = await this.appointmentService.confirmAppointment(
+        appointmentId,
+      );
+
+      return {
+        status: 'success',
+        message: 'Xác nhận lịch hẹn thành công',
+        data: result,
+      };
+    } catch (error) {
+      return handleRpcError('AppointmentController.confirmAppointment', error);
+    }
+  }
+
+  @MessagePattern({ cmd: 'checkInAppointment' })
+  async checkInAppointment(
+    @Payload()
+    payload: {
+      appointmentId: string;
+    },
+  ) {
+    try {
+      const { appointmentId } = payload;
+
+      if (!appointmentId) {
+        throw new RpcException({
+          status: HttpStatus.BAD_REQUEST,
+          message: 'Thiếu thông tin ID lịch hẹn',
+        });
+      }
+
+      const result = await this.appointmentService.checkInAppointment(
+        appointmentId,
+      );
+
+      return {
+        status: 'success',
+        message: 'Check-in lịch hẹn thành công',
+        data: result,
+      };
+    } catch (error) {
+      return handleRpcError('AppointmentController.checkInAppointment', error);
     }
   }
 
