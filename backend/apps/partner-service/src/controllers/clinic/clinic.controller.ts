@@ -140,4 +140,14 @@ export class ClinicController {
       handleRpcError('ClinicController.updateClinicForm', err);
     }
   }
+
+  @MessagePattern({ cmd: 'getClinicMembers' })
+  async getClinicMembers(@Payload() data: { clinic_id: string }): Promise<any> {
+    try {
+      const result = await this.clinicService.getClinicMembers(data.clinic_id);
+      return result;
+    } catch (err) {
+      handleRpcError('ClinicController.getClinicMembers', err);
+    }
+  }
 }

@@ -580,7 +580,10 @@ export class AppointmentService {
               { ids: appointment.pet_ids },
             ),
           ).catch((err) => {
-            console.error('❌ Lỗi lấy thông tin pet từ petcareService:', err?.message);
+            console.error(
+              '❌ Lỗi lấy thông tin pet từ petcareService:',
+              err?.message,
+            );
             return []; // Nếu lỗi bên Pet service thì trả về mảng rỗng, không làm chết API
           }),
         );
@@ -594,7 +597,10 @@ export class AppointmentService {
         await Promise.all(promises);
 
       console.log('📋 Clinic Result:', JSON.stringify(clinicResult, null, 2));
-      console.log('📋 All Services Result:', JSON.stringify(allServicesResult, null, 2));
+      console.log(
+        '📋 All Services Result:',
+        JSON.stringify(allServicesResult, null, 2),
+      );
       console.log('📋 User Result:', JSON.stringify(userResult, null, 2));
       console.log('📋 Pets Result:', JSON.stringify(petsResult, null, 2));
 
@@ -606,7 +612,7 @@ export class AppointmentService {
       let detailServices: any[] = [];
       // Kiểm tra xem kết quả trả về có phải mảng không (đề phòng service trả về lỗi format)
       let servicesList: any[] = [];
-      
+
       if (Array.isArray(allServicesResult)) {
         servicesList = allServicesResult;
       } else if (Array.isArray(allServicesResult?.data?.items)) {
@@ -626,10 +632,13 @@ export class AppointmentService {
 
       // Lấy thông tin user (chỉ lấy tên và số điện thoại)
       const userInfo = userResult?.data || userResult || null;
-      const userNameInfo = userInfo ? { 
-        fullname: userInfo.fullname,
-        phone_number: userInfo.phone?.phone_number || userInfo.phone || null
-      } : null;
+      const userNameInfo = userInfo
+        ? {
+            fullname: userInfo.fullname,
+            phone_number:
+              userInfo.phone?.phone_number || userInfo.phone || null,
+          }
+        : null;
 
       return {
         id: appointment.id,

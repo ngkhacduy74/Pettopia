@@ -85,6 +85,36 @@ export class Vet {
   @Prop({ type: [CertificationSchema], default: [] })
   certifications?: Certification[];
 
+  @Prop({
+    type: [
+      {
+        clinic_id: {
+          type: String,
+          required: true,
+          match: [
+            /^[a-f0-9\-]{36}$/,
+            'Clinic ID không hợp lệ (phải là UUID v4)',
+          ],
+        },
+        role: {
+          type: String,
+          enum: ['vet', 'staff', 'receptionist', 'manager'],
+          required: true,
+        },
+        joined_at: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
+    default: [],
+  })
+  clinic_roles: Array<{
+    clinic_id: string;
+    role: 'vet' | 'staff' | 'receptionist' | 'manager';
+    joined_at?: Date;
+  }>;
+
   @Prop({ type: [String], default: [] })
   clinic_id?: string[];
 }

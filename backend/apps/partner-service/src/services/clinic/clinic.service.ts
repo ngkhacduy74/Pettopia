@@ -19,6 +19,7 @@ import { generateRandomPassword } from 'src/common/generate.common';
 import { v4 as uuidv4 } from 'uuid';
 import { ShiftRepository } from 'src/repositories/clinic/shift.repositories';
 import { createRpcError } from 'src/common/error.detail';
+import { VetRepository } from 'src/repositories/vet/vet.repositories';
 
 @Injectable()
 export class ClinicService {
@@ -26,6 +27,7 @@ export class ClinicService {
     private readonly clinicRepositories: ClinicsRepository,
     private readonly serviceRepositories: ServiceRepository,
     private readonly shiftRepositories: ShiftRepository,
+    private readonly vetRepositories: VetRepository,
     @Inject('CUSTOMER_SERVICE') private readonly customerService: ClientProxy,
     @Inject('AUTH_SERVICE') private readonly authService: ClientProxy,
   ) {}
@@ -855,6 +857,50 @@ export class ClinicService {
     );
 
     return updatedClinic;
+  }
+
+  async getClinicMembers(clinic_id: string): Promise<any> {
+    const clinic = await this.clinicRepositories.getClinicById(clinic_id);
+
+    if (!clinic) {
+      throw createRpcError(
+        HttpStatus.NOT_FOUND,
+        'Phòng khám không tồn tại',
+        'Not Found',
+      );
+    }
+
+    // Lấy thông tin chi tiết của từng member bao gồm role
+    const memberDetails = await Promise.all(
+      clinic.member_ids.map(async (member_id) => {
+        const vet = await this.vetRepositories.findVetById(member_id);
+        if (!vet) return null;
+
+        // Tìm role của member trong clinic này
+        const memberRole = vet.clinic_roles?.find(
+          (cr: any) => cr.clinic_id === clinic_id,
+        );
+
+        return {
+          member_id: vet.id,
+          role: memberRole?.role || 'unknown',
+          joined_at: memberRole?.joined_at || null,
+          specialty: vet.specialty,
+          exp: vet.exp,
+        };
+      }),
+    );
+
+    return {
+      status: 'success',
+      message: 'Lấy danh sách thành viên phòng khám thành công',
+      data: {
+        clinic_id: clinic.id,
+        clinic_name: clinic.clinic_name,
+        members: memberDetails.filter((m) => m !== null),
+        total_members: clinic.member_ids?.length || 0,
+      },
+    };
   }
 
   async triggerToCheckActiveClinic(clinic_id: string): Promise<void> {

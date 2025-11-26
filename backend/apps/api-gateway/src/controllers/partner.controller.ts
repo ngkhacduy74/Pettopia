@@ -492,4 +492,14 @@ export class PartnerController {
       this.partnerService.send({ cmd: 'updateClinicForm' }, payload),
     );
   }
+
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.CLINIC)
+  @Get('/clinic/members/:clinic_id')
+  @HttpCode(HttpStatus.OK)
+  async getClinicMembers(@Param('clinic_id') clinic_id: string) {
+    return await lastValueFrom(
+      this.partnerService.send({ cmd: 'getClinicMembers' }, { clinic_id }),
+    );
+  }
 }
