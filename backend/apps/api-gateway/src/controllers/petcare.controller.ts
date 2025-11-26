@@ -31,7 +31,7 @@ export class PetController {
   @Post('/create')
   @UseInterceptors(
     FileInterceptor('avatar', {
-      limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+      limits: { fileSize: 1 * 1024 * 1024 }, // 5MB
       fileFilter: (req, file, cb) => {
         if (!file.mimetype.match(/image\/(jpg|jpeg|png|gif)$/)) {
           return cb(new Error('Only image files are allowed!'), false);
@@ -82,7 +82,7 @@ export class PetController {
   @Patch('/:id')
   @UseInterceptors(
     FileInterceptor('avatar', {
-      limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+      limits: { fileSize: 1 * 1024 * 1024 }, // 5MB
       fileFilter: (req, file, cb) => {
         if (!file.mimetype.match(/image\/(jpg|jpeg|png|gif)$/)) {
           return cb(new Error('Only image files are allowed!'), false);
