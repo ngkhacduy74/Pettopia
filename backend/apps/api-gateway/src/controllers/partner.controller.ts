@@ -284,48 +284,21 @@ export class PartnerController {
     };
   }
 
-  @Patch('/clinic/active/:id')
-  @HttpCode(HttpStatus.ACCEPTED)
-  async updateClinicActiveStatus(
-    @Param('id') idClinic: string,
-    @Body('is_active') is_active: boolean,
-  ) {
-    const payload = { id: idClinic, is_active };
-    this.partnerService.emit({ cmd: 'updateClinicActiveStatus' }, payload);
-    return {
-      statusCode: HttpStatus.ACCEPTED,
-      message: 'Yêu cầu cập nhật trạng thái hoạt động đang được xử lý.',
-    };
-  }
-
-  async vetRegister(@Body() data: any, @UserToken('id') user_id: string) {
-    this.partnerService.emit({ cmd: 'registerVet' }, { ...data, user_id });
-    return {
-      statusCode: HttpStatus.ACCEPTED,
-      message: 'Yêu cầu đăng ký Vet đang được xử lý.',
-    };
-  }
-
-  @Get('/vet/form')
-  @HttpCode(HttpStatus.OK)
-  async getAllVetForm(
-    @Query('page', new ParseIntPipe({ optional: true })) page = 1,
-    @Query('limit', new ParseIntPipe({ optional: true })) limit = 10,
-    @Query('status') status?: string,
-  ): Promise<any> {
-    return await lastValueFrom(
-      this.partnerService.send(
-        { cmd: 'getAllVetForm' },
-        { page, limit, status },
-      ),
-    );
-  }
-
   @Get('/vet/form/:id')
   @HttpCode(HttpStatus.OK)
   async getVetFormById(@Param('id') id: string): Promise<any> {
     return await lastValueFrom(
       this.partnerService.send({ cmd: 'getVetFormById' }, { id }),
+    );
+  }
+
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.USER)
+  @Post('/vet/register')
+  @HttpCode(HttpStatus.OK)
+  async vetRegister(@Body() data: any, @UserToken('id') user_id: string) {
+    return await lastValueFrom(
+      this.partnerService.send({ cmd: 'registerVet' }, { ...data, user_id }),
     );
   }
 
