@@ -1,13 +1,8 @@
-import {
-  BadRequestException,
-  HttpStatus,
-  Inject,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { lastValueFrom } from 'rxjs';
 import { v4 as uuid } from 'uuid';
+
 import { ClinicInvitationRepository } from 'src/repositories/clinic/clinic-invitation.repository';
 import { ClinicsRepository } from 'src/repositories/clinic/clinic.repositories';
 import { VetRepository } from 'src/repositories/vet/vet.repositories';
@@ -35,6 +30,7 @@ interface DeclineClinicInvitationPayload {
 
 @Injectable()
 export class ClinicInvitationService {
+  // Thời gian sống của lời mời (giờ)
   private readonly invitationTtlHours = Number(
     process.env.CLINIC_INVITATION_TTL_HOURS ?? 24 * 7,
   );
@@ -43,27 +39,48 @@ export class ClinicInvitationService {
     private readonly clinicInvitationRepository: ClinicInvitationRepository,
     private readonly clinicsRepository: ClinicsRepository,
     private readonly vetRepository: VetRepository,
+
+    // Dùng client đã được đăng ký sẵn trong AppModule (ClientsModule.registerAsync)
     @Inject('AUTH_SERVICE') private readonly authService: ClientProxy,
-  ) {}
+  ) { }
 
   async createInvitation(payload: CreateClinicInvitationPayload) {
     const { clinic_id, invited_email, role, invited_by } = payload;
+    console.log('createInvitation payload:', payload);
 
+    // 1. Validate input
     if (!clinic_id) {
-      throw new BadRequestException('Thiếu mã phòng khám.');
+      throw createRpcError(
+        HttpStatus.BAD_REQUEST,
+        'Thiếu mã phòng khám.',
+        'Bad Request',
+      );
     }
 
-    if (!invited_email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(invited_email)) {
-      throw new BadRequestException('Email lời mời không hợp lệ.');
+    if (
+      !invited_email ||
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(invited_email)
+    ) {
+      throw createRpcError(
+        HttpStatus.BAD_REQUEST,
+        'Email lời mời không hợp lệ.',
+        'Bad Request',
+      );
     }
 
     const normalizedRole = this.normalizeRole(role);
 
+    // 2. Kiểm tra clinic có tồn tại không
     const clinic = await this.clinicsRepository.getClinicById(clinic_id);
     if (!clinic) {
-      throw new NotFoundException('Không tìm thấy thông tin phòng khám.');
+      throw createRpcError(
+        HttpStatus.NOT_FOUND,
+        'Không tìm thấy thông tin phòng khám.',
+        'Not Found',
+      );
     }
 
+    // 3. Kiểm tra đã có pending invitation cho email này chưa
     const existingPendingInvitation =
       await this.clinicInvitationRepository.findPendingByClinicAndEmail(
         clinic_id,
@@ -74,13 +91,17 @@ export class ClinicInvitationService {
       const stillValid =
         existingPendingInvitation.expires_at &&
         existingPendingInvitation.expires_at.getTime() > Date.now();
+
       if (stillValid) {
-        throw new BadRequestException(
+        throw createRpcError(
+          HttpStatus.BAD_REQUEST,
           'Đã tồn tại lời mời đang chờ xử lý cho email này.',
+          'Bad Request',
         );
       }
     }
 
+    // 4. Tạo mới invitation trong DB
     const invitationId = uuid();
     const token = uuid();
     const expiresAt = new Date(
@@ -97,40 +118,52 @@ export class ClinicInvitationService {
       expires_at: expiresAt,
       status: ClinicInvitationStatus.PENDING,
     });
-
-    console.log('✅ Tạo lời mời thành công:', {
-      id: invitation.id,
-      email: invited_email,
-      role: normalizedRole,
-      clinic: clinic.clinic_name,
-    });
-
+    console.log('invitation:1222212', invitation);
+    // 5. Gửi email qua AUTH_SERVICE (best-effort)
     try {
-      const baseUrl = process.env.APP_URL || 'http://localhost:3333';
+      console.log(
+        '[ClinicInvitationService] Sending clinic member invitation email...',
+      );
 
-      this.authService.emit(
-        { cmd: 'sendClinicMemberInvitation' },
+      await lastValueFrom(
+        this.authService.send(
+          { cmd: 'sendClinicMemberInvitation' },
+          {
+            email: invited_email,
+            clinicName: clinic.clinic_name,
+            role: normalizedRole,
+            inviteLink: `${process.env.APP_URL}/api/v1/partner/invitations/${token}/accept`,
+            expiresAt: expiresAt.toISOString(),
+          },
+        ),
+      );
+
+      console.log(
+        '[ClinicInvitationService] Invitation email sent successfully.',
+      );
+    } catch (error: any) {
+
+      console.error(
+        '[ClinicInvitationService] Error sending invitation email:',
         {
-          email: invited_email,
-          clinicName: clinic.clinic_name,
-          role: normalizedRole,
-          inviteLink: `${baseUrl}/api/v1/partner/clinic/invitations/${token}/accept`,
-          expiresAt: expiresAt.toLocaleDateString('vi-VN'),
+          message: error?.message,
+          name: error?.name,
+          stack: error?.stack,
         },
       );
-    } catch (error) {
-      await this.clinicInvitationRepository.cancelPendingInvitation(
-        invitation.id,
-      );
-      throw createRpcError(
-        HttpStatus.INTERNAL_SERVER_ERROR,
-        'Không thể gửi email lời mời.',
-        'Internal Server Error',
-        error?.message,
-      );
+
+      // Nếu muốn debug kỹ hơn:
+      if (error?.message === 'The client is closed') {
+        console.error(
+          '[ClinicInvitationService] AUTH_SERVICE RMQ client is closed. Kiểm tra lại queue, RMQ_URL hoặc auth-service container.',
+        );
+      }
+
+
     }
 
     return {
+      status: 'success',
       message: 'Đã tạo lời mời thành công.',
       data: {
         id: invitation.id,
@@ -140,30 +173,41 @@ export class ClinicInvitationService {
     };
   }
 
+  // ================== CHẤP NHẬN LỜI MỜI ==================
   async acceptInvitation(payload: AcceptClinicInvitationPayload) {
     const { token, vet_id } = payload;
 
     if (!token) {
-      throw new BadRequestException('Thiếu token lời mời.');
+      throw createRpcError(
+        HttpStatus.BAD_REQUEST,
+        'Thiếu token lời mời.',
+        'Bad Request',
+      );
     }
 
     if (!vet_id) {
-      throw new BadRequestException('Thiếu mã bác sĩ.');
+      throw createRpcError(
+        HttpStatus.BAD_REQUEST,
+        'Thiếu mã bác sĩ.',
+        'Bad Request',
+      );
     }
 
     const invitation = await this.clinicInvitationRepository.findByToken(token);
 
     if (!invitation) {
-      throw new NotFoundException('Không tìm thấy lời mời.');
+      throw createRpcError(
+        HttpStatus.NOT_FOUND,
+        'Không tìm thấy lời mời.',
+        'Not Found',
+      );
     }
 
-    console.log('📋 Invitation status:', invitation.status);
-    console.log('📋 Invitation role:', invitation.role);
-    console.log('📋 Invitation clinic_id:', invitation.clinic_id);
-
     if (invitation.status !== ClinicInvitationStatus.PENDING) {
-      throw new BadRequestException(
-        `Lời mời đã được ${invitation.status === ClinicInvitationStatus.ACCEPTED ? 'chấp nhận' : 'từ chối'} rồi.`,
+      throw createRpcError(
+        HttpStatus.BAD_REQUEST,
+        'Lời mời đã được xử lý.',
+        'Bad Request',
       );
     }
 
@@ -171,118 +215,95 @@ export class ClinicInvitationService {
       await this.clinicInvitationRepository.cancelPendingInvitation(
         invitation.id,
       );
-      throw new BadRequestException('Lời mời đã hết hạn.');
-    }
-
-    let vet = await this.vetRepository.findVetById(vet_id);
-    console.log('⚠️  Vet info khi accept invitation:', vet);
-    console.log('📋 Invitation role đang được accept:', invitation.role);
-    console.log('📋 Invitation clinic_id:', invitation.clinic_id);
-
-    // Kiểm tra xem vet đã có CHÍNH XÁC role này tại clinic này chưa
-    if (vet && vet.clinic_roles && vet.clinic_roles.length > 0) {
-      const hasExactRole = vet.clinic_roles.find(
-        (cr: any) =>
-          cr.clinic_id === invitation.clinic_id && cr.role === invitation.role,
+      throw createRpcError(
+        HttpStatus.BAD_REQUEST,
+        'Lời mời đã hết hạn.',
+        'Bad Request',
       );
-
-      if (hasExactRole) {
-        throw new BadRequestException(
-          `Bạn đã có vai trò "${invitation.role}" tại phòng khám này rồi.`,
-        );
-      }
     }
 
-    // Nếu chưa có vet record, tạo mới (minimal record)
+    const vet = await this.vetRepository.findVetById(vet_id);
+
     if (!vet) {
-      console.log('⚠️  Vet record chưa tồn tại, tạo mới với id:', vet_id);
-      const newVetData = {
-        id: vet_id,
-        is_active: true,
-        specialty: 'Chuyên khoa chưa xác định',
-        subSpecialties: [],
-        exp: 0,
-        license_number: `TMP-${vet_id.substring(0, 8)}`,
-        clinic_roles: [
-          {
-            clinic_id: invitation.clinic_id,
-            role: invitation.role,
-            joined_at: new Date(),
-          },
-        ],
-        clinic_id: [invitation.clinic_id],
-      };
-      vet = await this.vetRepository.createVet(newVetData);
-      console.log('✅ Tạo vet record mới thành công:', vet_id);
-    } else {
-      // Nếu đã có vet, thêm clinic_role vào
-      await this.vetRepository.addClinicToVet(
-        vet_id,
-        invitation.clinic_id,
-        invitation.role,
+      throw createRpcError(
+        HttpStatus.BAD_REQUEST,
+        'Bạn chưa hoàn tất hồ sơ bác sĩ để nhận lời mời.',
+        'Bad Request',
       );
-      console.log('✅ Thêm clinic_role vào vet hiện tại:', vet_id);
     }
 
-    // Thêm member vào clinic
-    await this.clinicsRepository.addMemberToClinic(
-      invitation.clinic_id,
-      vet_id,
-    );
+    await Promise.all([
+      this.clinicsRepository.addMemberToClinic(invitation.clinic_id, vet_id),
+      this.vetRepository.addClinicToVet(vet_id, invitation.clinic_id),
+    ]);
 
     await this.clinicInvitationRepository.markAsAccepted(invitation.id, vet_id);
 
-    console.log('✅ Accept invitation hoàn tất:', {
-      vet_id,
-      clinic_id: invitation.clinic_id,
-      role: invitation.role,
-    });
-
     return {
+      status: 'success',
       message: 'Bạn đã tham gia phòng khám thành công.',
-      vet_id: vet_id,
-      role: invitation.role,
     };
   }
 
+  // ================== TỪ CHỐI LỜI MỜI ==================
   async declineInvitation(payload: DeclineClinicInvitationPayload) {
     const { token } = payload;
 
     if (!token) {
-      throw new BadRequestException('Thiếu token lời mời.');
+      throw createRpcError(
+        HttpStatus.BAD_REQUEST,
+        'Thiếu token lời mời.',
+        'Bad Request',
+      );
     }
 
     const invitation = await this.clinicInvitationRepository.findByToken(token);
 
     if (!invitation) {
-      throw new NotFoundException('Không tìm thấy lời mời.');
+      throw createRpcError(
+        HttpStatus.NOT_FOUND,
+        'Không tìm thấy lời mời.',
+        'Not Found',
+      );
     }
 
     if (invitation.status !== ClinicInvitationStatus.PENDING) {
-      throw new BadRequestException('Lời mời đã được xử lý.');
+      throw createRpcError(
+        HttpStatus.BAD_REQUEST,
+        'Lời mời đã được xử lý.',
+        'Bad Request',
+      );
     }
 
     await this.clinicInvitationRepository.markAsDeclined(invitation.id);
 
     return {
+      status: 'success',
       message: 'Bạn đã từ chối lời mời.',
     };
   }
 
+  // ================== HELPER ==================
   private normalizeRole(
     role: ClinicInvitationRole | string,
   ): ClinicInvitationRole {
-    const normalized = role?.toString().toLowerCase();
+    const normalized = role?.toString().toLowerCase().trim();
     switch (normalized) {
       case ClinicInvitationRole.VET:
+      case 'vet':
       case 'bác sĩ':
         return ClinicInvitationRole.VET;
+
       case ClinicInvitationRole.RECEPTIONIST:
+      case 'receptionist':
       case 'lễ tân':
         return ClinicInvitationRole.RECEPTIONIST;
+
       case ClinicInvitationRole.MANAGER:
+      case 'manager':
       case 'quản lý':
         return ClinicInvitationRole.MANAGER;
+
       default:
         return ClinicInvitationRole.STAFF;
     }

@@ -739,9 +739,10 @@ export class MailTemplateService {
       .map((service) => `<li>${service}</li>`)
       .join('');
 
-    const cancelReasonHtml = data.cancelReason
-      ? `<div style="background-color: #ffebee; border-left: 4px solid #f44336; padding: 15px; margin: 15px 0; border-radius: 3px;"><h4>LÝ DO HỦY:</h4><p>${data.cancelReason}</p></div>`
-      : '';
+    const cancelReasonHtml =
+      data.cancelReason
+        ? `<div style="background-color: #ffebee; border-left: 4px solid #f44336; padding: 15px; margin: 15px 0; border-radius: 3px;"><h4>LÝ DO HỦY:</h4><p>${data.cancelReason}</p></div>`
+        : '';
 
     return `
       <!DOCTYPE html>

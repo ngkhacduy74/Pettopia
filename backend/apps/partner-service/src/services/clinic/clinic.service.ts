@@ -30,7 +30,7 @@ export class ClinicService {
     private readonly vetRepositories: VetRepository,
     @Inject('CUSTOMER_SERVICE') private readonly customerService: ClientProxy,
     @Inject('AUTH_SERVICE') private readonly authService: ClientProxy,
-  ) {}
+  ) { }
 
   async createClinicForm(
     createClinicFormData: CreateClinicFormDto,
@@ -261,15 +261,17 @@ export class ClinicService {
 
             console.log('Sending welcome email to:', recipientEmail);
 
-            this.authService.emit(
-              { cmd: 'sendClinicWelcomeEmail' },
-              {
-                email: recipientEmail,
-                clinicName: clinicForm.clinic_name,
-                representativeName: clinicForm.representative_name,
-                username: userAccountData.username,
-                password: userAccountData.password,
-              },
+            await lastValueFrom(
+              this.authService.send(
+                { cmd: 'sendClinicWelcomeEmail' },
+                {
+                  email: recipientEmail,
+                  clinicName: clinicForm.clinic_name,
+                  representativeName: clinicForm.representative_name,
+                  username: userAccountData.username,
+                  password: userAccountData.password,
+                },
+              ),
             );
 
             console.log('Welcome email sent successfully');

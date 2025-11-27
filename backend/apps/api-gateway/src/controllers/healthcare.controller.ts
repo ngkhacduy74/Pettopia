@@ -27,7 +27,7 @@ export class HealthcareController {
     private readonly healthcareService: ClientProxy,
     @Inject('PETCARE_SERVICE')
     private readonly petcareService: ClientProxy,
-  ) {}
+  ) { }
 
   @UseGuards(JwtAuthGuard)
   @Post('/appointment')
@@ -256,12 +256,14 @@ export class HealthcareController {
   @HttpCode(HttpStatus.OK)
   async assignVetAndStart(
     @Param('id') appointmentId: string,
-    @UserToken('id') vetId: string,
+    @UserToken('id') userId: string,
+    @Body() body: { vetId?: string },
   ) {
+    const vetIdToAssign = body.vetId || userId;
     return await lastValueFrom(
       this.healthcareService.send({ cmd: 'assignVetAndStart' }, {
         appointmentId,
-        vetId,
+        vetId: vetIdToAssign,
       }),
     );
   }
@@ -288,20 +290,7 @@ export class HealthcareController {
   }
 
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles(Role.CLINIC, Role.STAFF, Role.ADMIN)
-  @Post('/appointments/:id/confirm')
-  @HttpCode(HttpStatus.OK)
-  async confirmAppointment(@Param('id') appointmentId: string) {
-    return await lastValueFrom(
-      this.healthcareService.send(
-        { cmd: 'confirmAppointment' },
-        { appointmentId },
-      ),
-    );
-  }
-
-  @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles(Role.CLINIC, Role.STAFF, Role.ADMIN)
+  @Roles(Role.CLINIC, Role.STAFF, Role.VET)
   @Post('/appointments/:id/check-in')
   @HttpCode(HttpStatus.OK)
   async checkInAppointment(@Param('id') appointmentId: string) {
@@ -319,16 +308,8 @@ export class HealthcareController {
   @HttpCode(HttpStatus.OK)
   async createMedicalRecordWithMedications(
     @Param('id') appointmentId: string,
-    @UserToken('id') vetId: string,
-    @UserToken('clinic_id') clinicId: string,
-    @Body() body: any,
+    @Body() medicalRecordData: any,
   ) {
-    const medicalRecordData = {
-      ...body,
-      vet_id: body.vet_id || vetId,
-      clinic_id: body.clinic_id || clinicId,
-    };
-
     return await lastValueFrom(
       this.healthcareService.send(
         { cmd: 'createMedicalRecordWithMedications' },
@@ -374,7 +355,6 @@ export class HealthcareController {
       return result;
     }
 
-    // Clinic/Staff/Vet chỉ xem hồ sơ thuộc clinic của mình
     if (
       (role === Role.CLINIC || role === Role.STAFF || role === Role.VET) &&
       clinicId
@@ -385,7 +365,6 @@ export class HealthcareController {
       });
     }
 
-    // Ẩn clinic_id và vet_id cho tất cả role trừ Admin
     if (role !== Role.ADMIN) {
       result.data = result.data.map((item: any) => {
         if (item && item.medicalRecord) {

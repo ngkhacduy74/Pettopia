@@ -11,6 +11,7 @@ import {
   IsEmail,
   Matches,
 } from 'class-validator';
+import { Expose } from 'class-transformer';
 import {
   AppointmentCreatedBy,
   AppointmentShift,
@@ -18,31 +19,38 @@ import {
 } from 'src/schemas/appoinment.schema';
 
 export class CreateAppointmentDto {
+  @Expose()
   @IsArray({ message: 'pet_ids phải là mảng UUID' })
   @IsUUID('4', { each: true, message: 'Mỗi pet_id phải là UUID v4 hợp lệ' })
   @IsOptional()
   pet_ids?: string[];
 
+  @Expose()
   @IsUUID('4', { message: 'clinic_id phải là UUID v4 hợp lệ' })
   clinic_id: string;
 
+  @Expose()
   @IsArray({ message: 'service_ids phải là mảng UUID' })
   @IsOptional()
   @IsUUID('4', { each: true, message: 'Mỗi service_id phải là UUID v4 hợp lệ' })
   service_ids?: string[];
 
+  @Expose()
   @IsDateString({}, { message: 'date phải đúng định dạng ngày (YYYY-MM-DD)' })
   date: string | Date;
 
+  @Expose()
   @IsUUID('4', { message: 'shift_id phải là UUID v4 hợp lệ' })
   shift_id: string;
 
+  @Expose()
   @IsOptional()
   @IsEnum(AppointmentShift, {
     message: 'shift phải là Morning hoặc Afternoon hoặc Evening',
   })
   shift?: AppointmentShift;
 
+  @Expose()
   @IsOptional()
   @IsEnum(AppointmentCreatedBy, {
     message: 'created_by phải là customer hoặc partner',

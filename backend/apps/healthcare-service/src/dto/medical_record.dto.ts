@@ -32,15 +32,18 @@ export class MedicationItemDto {
 }
 
 export class CreateMedicalRecordDto {
+  @IsOptional()
   @IsUUID('4', { message: 'appointment_id phải là UUID v4 hợp lệ' })
   appointment_id: string;
 
   @IsUUID('4', { message: 'pet_id phải là UUID v4 hợp lệ' })
   pet_id: string;
 
+  @IsOptional()
   @IsUUID('4', { message: 'vet_id phải là UUID v4 hợp lệ' })
   vet_id: string;
 
+  @IsOptional()
   @IsUUID('4', { message: 'clinic_id phải là UUID v4 hợp lệ' })
   clinic_id: string;
 

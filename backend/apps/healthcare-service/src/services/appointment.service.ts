@@ -23,10 +23,7 @@ import {
   MedicalRecord,
   MedicalRecordDocument,
 } from 'src/schemas/medical_record.schema';
-import {
-  Medication,
-  MedicationDocument,
-} from 'src/schemas/preciption.schema';
+import { Medication, MedicationDocument } from 'src/schemas/preciption.schema';
 
 @Injectable()
 export class AppointmentService {
@@ -44,7 +41,7 @@ export class AppointmentService {
     private readonly medicalRecordModel: Model<MedicalRecordDocument>,
     @InjectModel(Medication.name)
     private readonly medicationModel: Model<MedicationDocument>,
-  ) {}
+  ) { }
 
   // Helper function để kiểm tra role (hỗ trợ cả string và array)
   private hasRole(userRole: string | string[], targetRole: string): boolean {
@@ -168,24 +165,18 @@ export class AppointmentService {
         data.appointment_id = appointment.id;
       }
 
-      if (appointment.clinic_id !== data.clinic_id) {
-        throw new RpcException({
-          status: HttpStatus.BAD_REQUEST,
-          message: 'clinic_id không khớp với lịch hẹn',
-        });
+      // Tự động lấy clinic_id từ appointment
+      data.clinic_id = appointment.clinic_id;
+
+      // Tự động lấy vet_id từ appointment nếu có (đảm bảo tính nhất quán)
+      if (appointment.vet_id) {
+        data.vet_id = appointment.vet_id;
       }
 
       if (!appointment.pet_ids || !appointment.pet_ids.includes(data.pet_id)) {
         throw new RpcException({
           status: HttpStatus.BAD_REQUEST,
           message: 'pet_id không thuộc lịch hẹn này',
-        });
-      }
-
-      if (appointment.vet_id && appointment.vet_id !== data.vet_id) {
-        throw new RpcException({
-          status: HttpStatus.BAD_REQUEST,
-          message: 'vet_id không khớp với bác sĩ đã được gán cho lịch hẹn',
         });
       }
 
@@ -233,7 +224,7 @@ export class AppointmentService {
             },
           ),
         );
-      } catch (err) {}
+      } catch (err) { }
 
       return {
         medicalRecord: medicalRecord.toJSON() as any,
@@ -267,7 +258,8 @@ export class AppointmentService {
       if (appointment.status !== AppointmentStatus.Pending_Confirmation) {
         throw new RpcException({
           status: HttpStatus.BAD_REQUEST,
-          message: 'Chỉ có thể xác nhận lịch hẹn ở trạng thái Pending_Confirmation',
+          message:
+            'Chỉ có thể xác nhận lịch hẹn ở trạng thái Pending_Confirmation',
         });
       }
 
@@ -323,13 +315,10 @@ export class AppointmentService {
         });
       }
 
-      const updated = await this.appointmentRepositories.update(
-        appointmentId,
-        {
-          status: AppointmentStatus.Checked_In,
-          checked_in_at: new Date(),
-        } as Partial<Appointment>,
-      );
+      const updated = await this.appointmentRepositories.update(appointmentId, {
+        status: AppointmentStatus.Checked_In,
+        checked_in_at: new Date(),
+      } as Partial<Appointment>);
 
       if (!updated) {
         throw new RpcException({
@@ -482,9 +471,9 @@ export class AppointmentService {
           return [];
         }
 
-        const activeStatuses = [
-          AppointmentStatus.In_Progress,
-        ].map((s) => s as unknown as string);
+        const activeStatuses = [AppointmentStatus.In_Progress].map(
+          (s) => s as unknown as string,
+        );
 
         const hasActiveAppointment =
           await this.appointmentRepositories.existsActiveForClinicPetVet(
@@ -571,6 +560,8 @@ export class AppointmentService {
     user_id: string,
   ): Promise<any> {
     const { clinic_id, service_ids, pet_ids, shift_id, date } = data;
+    console.log('createAppointment received data:', JSON.stringify(data));
+    console.log('createAppointment extracted pet_ids:', pet_ids);
     const appointmentDate = new Date(date);
     const now = new Date();
     const appointmentDateStart = new Date(appointmentDate).setHours(0, 0, 0, 0);
@@ -587,28 +578,55 @@ export class AppointmentService {
     const hasServices = Array.isArray(service_ids) && service_ids.length > 0;
 
     try {
-      const [clinic, services, shift] = await Promise.all([
-        lastValueFrom(
-          this.partnerService.send({ cmd: 'getClinicById' }, { id: clinic_id }),
-        ),
-        // --- 2. GỌI SERVICE VALIDATE ---
-        // Hàm này bên Partner Service cần query: find({ _id: { $in: service_ids }, clinic_id: clinic_id })
-        hasServices
-          ? lastValueFrom(
-              this.partnerService.send(
-                { cmd: 'validateClinicServices' },
-                { clinic_id, service_ids },
-              ),
-            )
-          : Promise.resolve([]),
-        // Lấy thông tin ca khám
-        lastValueFrom(
+      const clinic = await lastValueFrom(
+        this.partnerService.send({ cmd: 'getClinicById' }, { id: clinic_id }),
+      ).catch((err) => {
+        console.error('❌ Error getClinicById:', err);
+        throw new RpcException({
+          status: HttpStatus.BAD_REQUEST,
+          message: 'Lỗi khi lấy thông tin phòng khám',
+        });
+      });
+      console.log('>>> [createAppointment] clinic:', JSON.stringify(clinic));
+
+      let services: any[] = [];
+      if (hasServices) {
+        console.log('>>> [createAppointment] BEFORE validateClinicServices');
+        services = await lastValueFrom(
           this.partnerService.send(
-            { cmd: 'getClinicShiftById' },
-            { clinic_id, shift_id },
+            { cmd: 'validateClinicServices' },
+            { clinic_id, service_ids },
           ),
+        ).catch((err) => {
+          console.error('❌ Error validateClinicServices:', err);
+          throw new RpcException({
+            status: HttpStatus.BAD_REQUEST,
+            message:
+              'Lỗi khi xác thực dịch vụ hoặc dịch vụ không thuộc phòng khám này',
+          });
+        });
+        console.log(
+          '>>> [createAppointment] services:',
+          JSON.stringify(services),
+        );
+      } else {
+        console.log('>>> [createAppointment] skip validateClinicServices');
+      }
+
+      console.log('>>> [createAppointment] BEFORE getClinicShiftById');
+      const shift = await lastValueFrom(
+        this.partnerService.send(
+          { cmd: 'getClinicShiftById' },
+          { clinic_id, shift_id },
         ),
-      ]);
+      ).catch((err) => {
+        console.error('❌ Error getClinicShiftById:', err);
+        throw new RpcException({
+          status: HttpStatus.BAD_REQUEST,
+          message: 'Lỗi khi lấy thông tin ca khám',
+        });
+      });
+      console.log('>>> [createAppointment] shift:', JSON.stringify(shift));
 
       // Validate Clinic
       if (!clinic || clinic.is_active === false) {
@@ -662,7 +680,7 @@ export class AppointmentService {
         service_ids: hasServices ? service_ids : [],
         pet_ids: pet_ids && pet_ids.length > 0 ? pet_ids : [],
       };
-
+      console.log('newAppointmentData:', JSON.stringify(newAppointmentData));
       if (isUserRole) {
         newAppointmentData.customer = user_id;
         newAppointmentData.created_by = AppointmentCreatedBy.Customer;
@@ -673,7 +691,7 @@ export class AppointmentService {
 
       const result =
         await this.appointmentRepositories.create(newAppointmentData);
-
+      console.log('result123123fdsdf:', JSON.stringify(result));
       const appointmentDateFormatted = appointmentDate.toLocaleDateString(
         'vi-VN',
         { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' },
@@ -809,9 +827,7 @@ export class AppointmentService {
     }
   }
 
-  async getMyAppointments(
-    vetId: string,
-  ): Promise<Appointment[]> {
+  async getMyAppointments(vetId: string): Promise<Appointment[]> {
     try {
       const activeStatuses = [
         AppointmentStatus.Checked_In,
@@ -1199,10 +1215,10 @@ export class AppointmentService {
       const userInfo = userResult?.data || userResult || null;
       const userNameInfo = userInfo
         ? {
-            fullname: userInfo.fullname,
-            phone_number:
-              userInfo.phone?.phone_number || userInfo.phone || null,
-          }
+          fullname: userInfo.fullname,
+          phone_number:
+            userInfo.phone?.phone_number || userInfo.phone || null,
+        }
         : null;
 
       return {
@@ -1642,20 +1658,20 @@ export class AppointmentService {
         // Format địa chỉ clinic để phù hợp với email template
         const clinicAddress = clinicData.address
           ? {
-              description:
-                clinicData.address.detail ||
-                clinicData.address.description ||
-                '',
-              ward: clinicData.address.ward || '',
-              district: clinicData.address.district || '',
-              city: clinicData.address.city || '',
-            }
+            description:
+              clinicData.address.detail ||
+              clinicData.address.description ||
+              '',
+            ward: clinicData.address.ward || '',
+            district: clinicData.address.district || '',
+            city: clinicData.address.city || '',
+          }
           : {
-              description: '',
-              ward: '',
-              district: '',
-              city: '',
-            };
+            description: '',
+            ward: '',
+            district: '',
+            city: '',
+          };
 
         this.authService.emit(
           { cmd: 'sendAppointmentConfirmation' },

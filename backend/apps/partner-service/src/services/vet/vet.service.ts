@@ -1,9 +1,12 @@
 import {
   BadRequestException,
+  Inject,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
+import { ClientProxy } from '@nestjs/microservices';
+import { lastValueFrom } from 'rxjs';
 import { CreateVetDto } from 'src/dto/vet/create-vet.dto';
 import { UpdateStatusVetDto } from 'src/dto/vet/update-vet-form';
 import { VetRegisterDto } from 'src/dto/vet/vet-register-form';
@@ -12,7 +15,10 @@ import { RegisterStatus } from 'src/schemas/clinic/clinic-register.schema';
 
 @Injectable()
 export class VetService {
-  constructor(private readonly vetRepositories: VetRepository) {}
+  constructor(
+    private readonly vetRepositories: VetRepository,
+    @Inject('CUSTOMER_SERVICE') private readonly customerService: ClientProxy,
+  ) { }
 
   async vetRegister(
     user_id: string,
@@ -77,6 +83,14 @@ export class VetService {
             console.log(
               `[updateVetFormStatus] Bác sĩ mới được tạo: ${newVet.id}`,
             );
+
+            // Thêm role Vet cho user
+            await lastValueFrom(
+              this.customerService.send(
+                { cmd: 'add_user_role' },
+                { userId: updatedVetForm.user_id, role: 'Vet' },
+              ),
+            );
           } catch (createErr) {
             console.error(
               '[updateVetFormStatus] Lỗi khi tạo bác sĩ:',
@@ -108,7 +122,7 @@ export class VetService {
       console.error('[updateVetFormStatus] Lỗi:', error);
       throw new InternalServerErrorException(
         error.message ||
-          'Cập nhật trạng thái hồ sơ bác sĩ thất bại. Vui lòng thử lại sau.',
+        'Cập nhật trạng thái hồ sơ bác sĩ thất bại. Vui lòng thử lại sau.',
       );
     }
   }

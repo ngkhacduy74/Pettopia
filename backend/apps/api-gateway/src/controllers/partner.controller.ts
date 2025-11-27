@@ -30,18 +30,14 @@ export class PartnerController {
   constructor(
     @Inject('PARTNER_SERVICE') private readonly partnerService: ClientProxy,
   ) {}
-  
   @UseGuards(JwtAuthGuard)
   @Post('/clinic/register')
-  @HttpCode(HttpStatus.ACCEPTED)
+  @HttpCode(HttpStatus.CREATED)
   async clinicRegister(@Body() data: any, @UserToken('id') user_id: string) {
-    this.partnerService.emit({ cmd: 'registerClinic' }, { ...data, user_id });
-    return {
-      statusCode: HttpStatus.ACCEPTED,
-      message: 'Yêu cầu đăng ký phòng khám đang được xử lý.',
-    };
+    return await lastValueFrom(
+      this.partnerService.send({ cmd: 'registerClinic' }, { ...data, user_id }),
+    );
   }
-  
   @UseGuards(JwtAuthGuard)
   @Get('/clinic/form')
   @HttpCode(HttpStatus.OK)
@@ -57,7 +53,6 @@ export class PartnerController {
       ),
     );
   }
-  
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(Role.CLINIC)
   @Get('/service/all')
@@ -75,7 +70,7 @@ export class PartnerController {
       ),
     );
   }
-  
+  //test
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(Role.ADMIN, Role.STAFF)
   @Get('/service/all/admin')
@@ -92,7 +87,7 @@ export class PartnerController {
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(Role.ADMIN, Role.STAFF)
   @Patch('/service/:id/deactivate')
-  @HttpCode(HttpStatus.ACCEPTED)
+  @HttpCode(HttpStatus.OK)
   async deactivateService(@Param('id') id: string) {
     if (!id) {
       throw new RpcException({
@@ -101,14 +96,12 @@ export class PartnerController {
       });
     }
 
-    this.partnerService.emit(
-      { cmd: 'updateServiceStatus' },
-      { id, is_active: false },
+    return await lastValueFrom(
+      this.partnerService.send(
+        { cmd: 'updateServiceStatus' },
+        { id, is_active: false },
+      ),
     );
-    return {
-      statusCode: HttpStatus.ACCEPTED,
-      message: 'Yêu cầu cập nhật trạng thái dịch vụ đang được xử lý.',
-    };
   }
 
   @UseGuards(JwtAuthGuard, RoleGuard)
@@ -131,7 +124,7 @@ export class PartnerController {
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(Role.CLINIC)
   @Post('/clinic/invitations')
-  @HttpCode(HttpStatus.ACCEPTED)
+  @HttpCode(HttpStatus.CREATED)
   async inviteClinicMember(
     @Body('email') invited_email: string,
     @Body('role') role: string,
@@ -157,19 +150,103 @@ export class PartnerController {
         message: 'Vai trò lời mời là bắt buộc.',
       });
     }
-    this.partnerService.emit(
-      { cmd: 'createClinicMemberInvitation' },
-      {
-        clinic_id,
-        invited_email,
-        role,
-        invited_by,
-      },
+    return await lastValueFrom(
+      this.partnerService.send(
+        { cmd: 'createClinicMemberInvitation' },
+        {
+          clinic_id,
+          invited_email,
+          role,
+          invited_by,
+        },
+      ),
     );
-    return {
-      statusCode: HttpStatus.ACCEPTED,
-      message: 'Yêu cầu gửi lời mời thành viên đang được xử lý.',
-    };
+  }
+  @UseGuards(JwtAuthGuard)
+  @Get('/clinic/:id')
+  @HttpCode(HttpStatus.OK)
+  async getClinicById(@Param('id') idClinic: string) {
+    return await lastValueFrom(
+      this.partnerService.send({ cmd: 'getClinicById' }, { id: idClinic }),
+    );
+  }
+
+  @Get('/clinic/form/:id')
+  @HttpCode(HttpStatus.OK)
+  async getClinicFormById(@Param('id') idForm: string) {
+    return await lastValueFrom(
+      this.partnerService.send({ cmd: 'getClinicFormById' }, { id: idForm }),
+    );
+  }
+
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.ADMIN, Role.STAFF)
+  @Post('/clinic/status/:id')
+  @HttpCode(HttpStatus.OK)
+  async updateStatusClinicForm(
+    @Param('id') idForm: string,
+    @Body() body: any,
+    @UserToken('id') review_by: string,
+  ) {
+    const payload = { id: idForm, ...body, review_by };
+    return await lastValueFrom(
+      this.partnerService.send({ cmd: 'updateStatusClinicForm' }, payload),
+    );
+  }
+
+  @Patch('/vet/status/form/:id')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.ADMIN, Role.STAFF)
+  async updateVetFormStatus(
+    @Param('id') id: string,
+    @Body() data: any,
+    @UserToken('id') review_by: string,
+  ) {
+    const { status, note } = data;
+    return await lastValueFrom(
+      this.partnerService.send(
+        { cmd: 'updateVetFormStatus' },
+        { status, note, review_by, id },
+      ),
+    );
+  }
+
+  @Get('/clinic')
+  @HttpCode(HttpStatus.OK)
+  async findAllClinic(
+    @Query('page', new ParseIntPipe({ optional: true }))
+    page: number = 1,
+    @Query('limit', new ParseIntPipe({ optional: true }))
+    limit: number = 10,
+  ): Promise<any> {
+    return await lastValueFrom(
+      this.partnerService.send({ cmd: 'findAllClinic' }, { page, limit }),
+    );
+  }
+
+  @Patch('/clinic/:id')
+  @HttpCode(HttpStatus.OK)
+  async updateClinicInfo(
+    @Param('id') idClinic: string,
+    @Body() updateData: any,
+  ) {
+    const payload = { id: idClinic, ...updateData };
+    return await lastValueFrom(
+      this.partnerService.send({ cmd: 'updateClinicInfo' }, payload),
+    );
+  }
+
+  @Patch('/clinic/active/:id')
+  @HttpCode(HttpStatus.OK)
+  async updateClinicActiveStatus(
+    @Param('id') idClinic: string,
+    @Body('is_active') is_active: boolean,
+  ) {
+    const payload = { id: idClinic, is_active };
+    return await lastValueFrom(
+      this.partnerService.send({ cmd: 'updateClinicActiveStatus' }, payload),
+    );
   }
 
   @UseGuards(JwtAuthGuard, RoleGuard)
@@ -191,104 +268,13 @@ export class PartnerController {
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(Role.VET)
   @Post('/clinic/invitations/:token/decline')
-  @HttpCode(HttpStatus.ACCEPTED)
+  @HttpCode(HttpStatus.OK)
   async declineClinicInvitation(@Param('token') token: string) {
-    this.partnerService.emit(
-      { cmd: 'declineClinicMemberInvitation' },
-      { token },
-    );
-    return {
-      statusCode: HttpStatus.ACCEPTED,
-      message: 'Yêu cầu từ chối lời mời đang được xử lý.',
-    };
-  }
-
-  @UseGuards(JwtAuthGuard)
-  @Get('/clinic/:id')
-  @HttpCode(HttpStatus.OK)
-  async getClinicById(@Param('id') idClinic: string) {
     return await lastValueFrom(
-      this.partnerService.send({ cmd: 'getClinicById' }, { id: idClinic }),
-    );
-  }
-
-  @Get('/clinic/form/:id')
-  @HttpCode(HttpStatus.OK)
-  async getClinicFormById(@Param('id') idForm: string) {
-    return await lastValueFrom(
-      this.partnerService.send({ cmd: 'getClinicFormById' }, { id: idForm }),
-    );
-  }
-
-  @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles(Role.ADMIN, Role.STAFF)
-  @Post('/clinic/status/:id')
-  @HttpCode(HttpStatus.ACCEPTED)
-  async updateStatusClinicForm(
-    @Param('id') idForm: string,
-    @Body() body: any,
-    @UserToken('id') review_by: string,
-  ) {
-    const payload = { id: idForm, ...body, review_by };
-    this.partnerService.emit({ cmd: 'updateStatusClinicForm' }, payload);
-    return {
-      statusCode: HttpStatus.ACCEPTED,
-      message: 'Yêu cầu cập nhật trạng thái form đang được xử lý.',
-    };
-  }
-
-  @Patch('/vet/status/form/:id')
-  @HttpCode(HttpStatus.ACCEPTED)
-  @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles(Role.ADMIN, Role.STAFF)
-  async updateVetFormStatus(
-    @Param('id') id: string,
-    @Body() data: any,
-    @UserToken('id') review_by: string,
-  ) {
-    const { status, note } = data;
-    this.partnerService.emit(
-      { cmd: 'updateVetFormStatus' },
-      { status, note, review_by, id },
-    );
-    return {
-      statusCode: HttpStatus.ACCEPTED,
-      message: 'Yêu cầu cập nhật trạng thái form Vet đang được xử lý.',
-    };
-  }
-
-  @Get('/clinic')
-  @HttpCode(HttpStatus.OK)
-  async findAllClinic(
-    @Query('page', new ParseIntPipe({ optional: true }))
-    page: number = 1,
-    @Query('limit', new ParseIntPipe({ optional: true }))
-    limit: number = 10,
-  ): Promise<any> {
-    return await lastValueFrom(
-      this.partnerService.send({ cmd: 'findAllClinic' }, { page, limit }),
-    );
-  }
-
-  @Patch('/clinic/:id')
-  @HttpCode(HttpStatus.ACCEPTED)
-  async updateClinicInfo(
-    @Param('id') idClinic: string,
-    @Body() updateData: any,
-  ) {
-    const payload = { id: idClinic, ...updateData };
-    this.partnerService.emit({ cmd: 'updateClinicInfo' }, payload);
-    return {
-      statusCode: HttpStatus.ACCEPTED,
-      message: 'Yêu cầu cập nhật thông tin phòng khám đang được xử lý.',
-    };
-  }
-
-  @Get('/vet/form/:id')
-  @HttpCode(HttpStatus.OK)
-  async getVetFormById(@Param('id') id: string): Promise<any> {
-    return await lastValueFrom(
-      this.partnerService.send({ cmd: 'getVetFormById' }, { id }),
+      this.partnerService.send(
+        { cmd: 'declineClinicMemberInvitation' },
+        { token },
+      ),
     );
   }
 
@@ -302,16 +288,37 @@ export class PartnerController {
     );
   }
 
+  @Get('/vet/form')
+  @HttpCode(HttpStatus.OK)
+  async getAllVetForm(
+    @Query('page', new ParseIntPipe({ optional: true })) page = 1,
+    @Query('limit', new ParseIntPipe({ optional: true })) limit = 10,
+    @Query('status') status?: string,
+  ): Promise<any> {
+    return await lastValueFrom(
+      this.partnerService.send(
+        { cmd: 'getAllVetForm' },
+        { page, limit, status },
+      ),
+    );
+  }
+
+  @Get('/vet/form/:id')
+  @HttpCode(HttpStatus.OK)
+  async getVetFormById(@Param('id') id: string): Promise<any> {
+    return await lastValueFrom(
+      this.partnerService.send({ cmd: 'getVetFormById' }, { id }),
+    );
+  }
+
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(Role.CLINIC)
   @Post('/service')
-  @HttpCode(HttpStatus.ACCEPTED)
+  @HttpCode(HttpStatus.CREATED)
   async createService(@Body() data: any, @UserToken('id') clinic_id: string) {
-    this.partnerService.emit({ cmd: 'createService' }, { data, clinic_id });
-    return {
-      statusCode: HttpStatus.ACCEPTED,
-      message: 'Yêu cầu tạo dịch vụ đang được xử lý.',
-    };
+    return await lastValueFrom(
+      this.partnerService.send({ cmd: 'createService' }, { data, clinic_id }),
+    );
   }
 
   @UseGuards(JwtAuthGuard, RoleGuard)
@@ -339,83 +346,67 @@ export class PartnerController {
     @Body() updateServiceDto: any,
     @UserToken() clinic_id: any,
   ) {
-    this.partnerService.emit(
+    return this.partnerService.send(
       { cmd: 'update_service' },
       { serviceId: id, updateServiceDto, clinic_id },
     );
-    return {
-      statusCode: HttpStatus.ACCEPTED,
-      message: 'Yêu cầu cập nhật dịch vụ đang được xử lý.',
-    };
   }
 
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(Role.CLINIC)
   @Delete(':id')
   remove(@Param('id') id: string, @UserToken() clinic_id: any) {
-    this.partnerService.emit(
+    return this.partnerService.send(
       { cmd: 'remove_service' },
       { serviceId: id, clinic_id },
     );
-    return {
-      statusCode: HttpStatus.ACCEPTED,
-      message: 'Yêu cầu xóa dịch vụ đang được xử lý.',
-    };
   }
-  
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(Role.CLINIC)
   @Patch('/service/status/:id')
-  @HttpCode(HttpStatus.ACCEPTED)
+  @HttpCode(HttpStatus.OK)
   async updateServiceStatus(
     @Param('id') idService: string,
     @Body('is_active') is_active: boolean,
   ) {
-    this.partnerService.emit(
-      { cmd: 'updateServiceStatus' },
-      { id: idService, is_active },
+    return await lastValueFrom(
+      this.partnerService.send(
+        { cmd: 'updateServiceStatus' },
+        { id: idService, is_active },
+      ),
     );
-    return {
-      statusCode: HttpStatus.ACCEPTED,
-      message: 'Yêu cầu cập nhật trạng thái dịch vụ đang được xử lý.',
-    };
   }
-  
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(Role.CLINIC)
   @Post('/clinic/shift')
-  @HttpCode(HttpStatus.ACCEPTED)
+  @HttpCode(HttpStatus.CREATED)
   async createClinicShift(@Body() data: any, @UserToken('id') clinic_id: any) {
-    this.partnerService.emit(
-      { cmd: 'createClinicShift' },
-      { ...data, clinic_id },
+    return await lastValueFrom(
+      this.partnerService.send(
+        { cmd: 'createClinicShift' },
+        { ...data, clinic_id },
+      ),
     );
-    return {
-      statusCode: HttpStatus.ACCEPTED,
-      message: 'Yêu cầu tạo ca làm việc đang được xử lý.',
-    };
   }
 
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(Role.CLINIC)
   @Put('/clinic/shift/:id')
-  @HttpCode(HttpStatus.ACCEPTED)
+  @HttpCode(HttpStatus.OK)
   async updateClinicShift(
     @Param('id') idShift: string,
     @Body() updateData: any,
   ) {
     const payload = { id: idShift, ...updateData };
-    this.partnerService.emit({ cmd: 'updateClinicShift' }, payload);
-    return {
-      statusCode: HttpStatus.ACCEPTED,
-      message: 'Yêu cầu cập nhật ca làm việc đang được xử lý.',
-    };
+    return await lastValueFrom(
+      this.partnerService.send({ cmd: 'updateClinicShift' }, payload),
+    );
   }
 
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(Role.CLINIC)
   @Delete('/clinic/shift/:id')
-  @HttpCode(HttpStatus.ACCEPTED)
+  @HttpCode(HttpStatus.OK)
   async deleteClinicShift(
     @Param('id') idShift: string,
     @UserToken('clinic_id') clinic_id: string,
@@ -423,32 +414,27 @@ export class PartnerController {
     if (!idShift || !clinic_id) {
       throw new BadRequestException('Thiếu thông tin bắt buộc');
     }
-    this.partnerService.emit(
-      { cmd: 'deleteClinicShift' },
-      { id: idShift, clinic_id },
+    return await lastValueFrom(
+      this.partnerService.send(
+        { cmd: 'deleteClinicShift' },
+        { id: idShift, clinic_id },
+      ),
     );
-    return {
-      statusCode: HttpStatus.ACCEPTED,
-      message: 'Yêu cầu xóa ca làm việc đang được xử lý.',
-    };
   }
 
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(Role.CLINIC)
   @Patch('/clinic/shift/:id/status')
-  @HttpCode(HttpStatus.ACCEPTED)
+  @HttpCode(HttpStatus.OK)
   async updateClinicShiftStatus(
     @Param('id') idShift: string,
     @Body('is_active') is_active: boolean,
   ) {
     const payload = { id: idShift, is_active };
-    this.partnerService.emit({ cmd: 'updateClinicShiftStatus' }, payload);
-    return {
-      statusCode: HttpStatus.ACCEPTED,
-      message: 'Yêu cầu cập nhật trạng thái ca làm việc đang được xử lý.',
-    };
+    return await lastValueFrom(
+      this.partnerService.send({ cmd: 'updateClinicShiftStatus' }, payload),
+    );
   }
-  
   @UseGuards(JwtAuthGuard)
   @Get('/clinic/shift/:clinic_id')
   @HttpCode(HttpStatus.OK)
@@ -481,45 +467,29 @@ export class PartnerController {
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(Role.CLINIC)
   @Delete('/service/:id')
-  @HttpCode(HttpStatus.ACCEPTED)
+  @HttpCode(HttpStatus.OK)
   async deleteService(
     @Param('id') serviceId: string,
     @UserToken('clinic_id') clinic_id: string,
   ) {
-    this.partnerService.emit(
-      { cmd: 'remove_service' },
-      { serviceId, clinic_id },
+    return await lastValueFrom(
+      this.partnerService.send(
+        { cmd: 'remove_service' },
+        { serviceId, clinic_id },
+      ),
     );
-    return {
-      statusCode: HttpStatus.ACCEPTED,
-      message: 'Yêu cầu xóa dịch vụ đang được xử lý.',
-    };
   }
 
   @UseGuards(ClinicUpdateGuard)
   @Put('/verify-clinic/update-form/:id')
-  @HttpCode(HttpStatus.ACCEPTED)
+  @HttpCode(HttpStatus.OK)
   async updateClinicForm(@Param('id') id: string, @Body() dto: any) {
     if (!id) {
       throw new RpcException('Thiếu ID phòng khám trong URL');
     }
     const payload = { id, dto };
-    this.partnerService.emit({ cmd: 'updateClinicForm' }, payload);
-    return {
-      statusCode: HttpStatus.ACCEPTED,
-      message: 'Yêu cầu cập nhật form đang được xử lý.',
-    };
-  }
-
-
-  @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles(Role.CLINIC)
-  @Get('/clinic/members/:clinic_id')
-  @HttpCode(HttpStatus.OK)
-  async getClinicMembers(@Param('clinic_id') clinic_id: string) {
     return await lastValueFrom(
-      this.partnerService.send({ cmd: 'getClinicMembers' }, { clinic_id }),
+      this.partnerService.send({ cmd: 'updateClinicForm' }, payload),
     );
   }
 }
-
