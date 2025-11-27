@@ -8,38 +8,48 @@ import redisClient from '../../common/redis/redis.module.js';
 
 @Injectable()
 export class ServiceRepository {
-  private redis: typeof redisClient;
+  private redis = redisClient;
   private readonly serviceCacheTTL = 3600;
   private readonly listCacheTTL = 600;
 
   constructor(
     @InjectModel(Service.name) private serviceModel: Model<ServiceDocument>,
-  ) {
-    this.redis = redisClient;
+  ) {}
+
+  // ============================================================
+  // SAFE REDIS WRAPPERS — không bao giờ throw, luôn fallback DB
+  // ============================================================
+
+  private isRedisReady(): boolean {
+    return this.redis && this.redis.isOpen;
   }
 
   private async safeGet(key: string): Promise<string | null> {
     try {
-      if (!this.redis.isOpen) return null;
+      if (!this.isRedisReady()) return null;
       return await this.redis.get(key);
-    } catch (error) {
+    } catch {
       return null;
     }
   }
 
   private async safeSet(key: string, value: string, options?: any) {
     try {
-      if (!this.redis.isOpen) return;
+      if (!this.isRedisReady()) return;
       await this.redis.set(key, value, options);
-    } catch (error) {}
+    } catch {}
   }
 
   private async safeDel(keys: string | string[]) {
     try {
-      if (!this.redis.isOpen) return;
+      if (!this.isRedisReady()) return;
       await this.redis.del(keys);
-    } catch (error) {}
+    } catch {}
   }
+
+  // ============================================================
+  // Key Helpers
+  // ============================================================
 
   private getServiceKey(id: string): string {
     return `service:${id}`;
@@ -52,7 +62,8 @@ export class ServiceRepository {
   }
 
   private async invalidateAllServiceLists() {
-    if (!this.redis.isOpen) return;
+    if (!this.isRedisReady()) return;
+
     try {
       let cursor = '0';
       do {
@@ -60,14 +71,18 @@ export class ServiceRepository {
           MATCH: 'services:*',
           COUNT: 100,
         });
+
         cursor = reply.cursor;
-        const keys = reply.keys;
-        if (keys.length > 0) {
-          await this.redis.del(keys);
+        if (reply.keys.length > 0) {
+          await this.safeDel(reply.keys);
         }
       } while (cursor !== '0');
-    } catch (err) {}
+    } catch {}
   }
+
+  // ============================================================
+  // CREATE SERVICE
+  // ============================================================
 
   async createService(
     data: CreateServiceDto,
@@ -78,7 +93,6 @@ export class ServiceRepository {
       const result = await newService.save();
 
       await this.invalidateAllServiceLists();
-
       return result;
     } catch (err) {
       throw new InternalServerErrorException(
@@ -86,6 +100,10 @@ export class ServiceRepository {
       );
     }
   }
+
+  // ============================================================
+  // GET ALL SERVICES (paginated)
+  // ============================================================
 
   async getAllService(
     page: number,
@@ -97,13 +115,13 @@ export class ServiceRepository {
     limit: number;
   }> {
     const cacheKey = `services:all:${page}:${limit}`;
+
     try {
       const cached = await this.safeGet(cacheKey);
-      if (cached) {
-        return JSON.parse(cached);
-      }
+      if (cached) return JSON.parse(cached);
 
       const skip = (page - 1) * limit;
+
       const [data, total] = await Promise.all([
         this.serviceModel.find().skip(skip).limit(limit).lean().exec(),
         this.serviceModel.countDocuments(),
@@ -123,17 +141,20 @@ export class ServiceRepository {
     }
   }
 
+  // ============================================================
+  // GET SERVICES BY CLINIC (simple version)
+  // ============================================================
+
   async findServicesByClinicId(
     clinicId: string,
     skip: number,
     limit: number,
   ): Promise<Service[]> {
     const cacheKey = `services:clinic:${clinicId}:${skip}:${limit}:simple`;
+
     try {
       const cached = await this.safeGet(cacheKey);
-      if (cached) {
-        return JSON.parse(cached);
-      }
+      if (cached) return JSON.parse(cached);
 
       const result = await this.serviceModel
         .find({ clinic_id: clinicId, is_active: true })
@@ -155,13 +176,16 @@ export class ServiceRepository {
     }
   }
 
+  // ============================================================
+  // COUNT ACTIVE SERVICES BY CLINIC
+  // ============================================================
+
   async countServicesByClinicId(clinicId: string): Promise<number> {
     const cacheKey = `services:count:clinic:${clinicId}`;
+
     try {
       const cached = await this.safeGet(cacheKey);
-      if (cached) {
-        return JSON.parse(cached);
-      }
+      if (cached) return JSON.parse(cached);
 
       const count = await this.serviceModel.countDocuments({
         clinic_id: clinicId,
@@ -179,6 +203,10 @@ export class ServiceRepository {
       );
     }
   }
+
+  // ============================================================
+  // UPDATE SERVICE
+  // ============================================================
 
   async updateService(
     serviceId: string,
@@ -209,6 +237,10 @@ export class ServiceRepository {
     }
   }
 
+  // ============================================================
+  // REMOVE SERVICE
+  // ============================================================
+
   async removeService(serviceId: string, clinic_id: string): Promise<any> {
     try {
       const result = await this.serviceModel.deleteOne({
@@ -230,6 +262,10 @@ export class ServiceRepository {
       );
     }
   }
+
+  // ============================================================
+  // UPDATE STATUS
+  // ============================================================
 
   async updateServiceStatus(id: string, is_active: boolean): Promise<Service> {
     try {
@@ -256,25 +292,23 @@ export class ServiceRepository {
     }
   }
 
+  // ============================================================
+  // GET SERVICES BY CLINIC (full version)
+  // ============================================================
+
   async getServicesByClinicId(
     clinic_id: string,
     page: number,
     limit: number,
-  ): Promise<{
-    data: Service[];
-    total: number;
-    page: number;
-    limit: number;
-  }> {
+  ): Promise<{ data: Service[]; total: number; page: number; limit: number }> {
     const cacheKey = `services:clinic:${clinic_id}:${page}:${limit}:full`;
+
     try {
       const cached = await this.safeGet(cacheKey);
-      if (cached) {
-        return JSON.parse(cached);
-      }
+      if (cached) return JSON.parse(cached);
 
       const skip = (page - 1) * limit;
-      const filter = { clinic_id: clinic_id, is_active: true };
+      const filter = { clinic_id, is_active: true };
 
       const [data, total] = await Promise.all([
         this.serviceModel
@@ -301,13 +335,16 @@ export class ServiceRepository {
     }
   }
 
+  // ============================================================
+  // GET SERVICE BY ID
+  // ============================================================
+
   async getServiceById(id: string): Promise<Service | null> {
     const cacheKey = this.getServiceKey(id);
+
     try {
       const cached = await this.safeGet(cacheKey);
-      if (cached) {
-        return JSON.parse(cached);
-      }
+      if (cached) return JSON.parse(cached);
 
       const service = await this.serviceModel.findOne({ id }).lean().exec();
 

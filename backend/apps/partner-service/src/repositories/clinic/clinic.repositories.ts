@@ -19,18 +19,14 @@ import {
 } from 'src/schemas/clinic/clinic-register.schema';
 import { Clinic, ClinicDocument } from 'src/schemas/clinic/clinic.schema';
 
-// --- PHẦN THÊM VÀO ---
+// --- REDIS IMPORT ---
 import redisClient from '../../common/redis/redis.module.js';
-// (Hãy đảm bảo đường dẫn import này chính xác với cấu trúc thư mục của bạn)
-// --- KẾT THÚC PHẦN THÊM VÀO ---
 
 @Injectable()
 export class ClinicsRepository {
-  // --- PHẦN THÊM VÀO ---
   private redis: typeof redisClient;
   private readonly cacheTTL = 3600; // Cache 1 giờ cho các mục đơn lẻ
   private readonly listCacheTTL = 600; // Cache 10 phút cho danh sách
-  // --- KẾT THÚC PHẦN THÊM VÀO ---
 
   constructor(
     @InjectModel(Clinic_Register.name)
@@ -38,14 +34,105 @@ export class ClinicsRepository {
     @InjectModel(Clinic.name)
     private clinicModel: Model<ClinicDocument>,
   ) {
-    // --- PHẦN THÊM VÀO ---
     this.redis = redisClient;
-    // --- KẾT THÚC PHẦN THÊM VÀO ---
   }
 
-  // --- PHẦN THÊM VÀO: HELPERS QUẢN LÝ CACHE ---
+  // ========================================================================
+  // CORE HELPERS: XỬ LÝ FAIL-SAFE CHO REDIS
+  // ========================================================================
 
-  // --- Helpers cho Clinic Form (Đơn đăng ký) ---
+  /**
+   * Kiểm tra xem Redis có đang kết nối và sẵn sàng không
+   */
+  private get isRedisReady(): boolean {
+    // Kiểm tra biến redis tồn tại VÀ trạng thái kết nối là isOpen
+    return !!this.redis && (this.redis as any).isOpen === true;
+  }
+
+  /**
+   * Lấy dữ liệu từ Redis an toàn.
+   * Nếu Redis lỗi hoặc không kết nối -> Trả về null (để fallback sang Mongo)
+   */
+  private async safeCacheGet<T>(key: string): Promise<T | null> {
+    if (!this.isRedisReady) return null;
+
+    try {
+      const data = await this.redis.get(key);
+      return data ? JSON.parse(data) : null;
+    } catch (err) {
+      console.warn(
+        `[Redis GET Fail] Key: ${key} - Ignore & use DB. Error: ${err.message}`,
+      );
+      return null;
+    }
+  }
+
+  /**
+   * Lưu dữ liệu vào Redis an toàn.
+   * Nếu Redis lỗi -> Bỏ qua, không throw lỗi.
+   */
+  private async safeCacheSet(
+    key: string,
+    value: any,
+    ttl?: number,
+  ): Promise<void> {
+    if (!this.isRedisReady) return;
+
+    try {
+      await this.redis.set(key, JSON.stringify(value), {
+        EX: ttl || this.cacheTTL,
+      });
+    } catch (err) {
+      console.warn(
+        `[Redis SET Fail] Key: ${key} - Ignore. Error: ${err.message}`,
+      );
+    }
+  }
+
+  /**
+   * Xóa key Redis an toàn.
+   */
+  private async safeCacheDel(keys: string | string[]): Promise<void> {
+    if (!this.isRedisReady) return;
+
+    try {
+      await this.redis.del(keys);
+    } catch (err) {
+      console.warn(`[Redis DEL Fail] - Ignore. Error: ${err.message}`);
+    }
+  }
+
+  /**
+   * Xóa cache theo prefix (SCAN) an toàn.
+   */
+  private async safeCacheInvalidatePrefix(prefix: string): Promise<void> {
+    if (!this.isRedisReady) return;
+
+    try {
+      let cursor = '0';
+      do {
+        const reply = await this.redis.scan(cursor, {
+          MATCH: `${prefix}:*`,
+          COUNT: 100,
+        });
+        cursor = reply.cursor;
+        const keys = reply.keys;
+        if (keys.length > 0) {
+          await this.redis.del(keys);
+        }
+      } while (cursor !== '0');
+    } catch (err) {
+      console.warn(
+        `[Redis SCAN/DEL Fail] Prefix: ${prefix} - Ignore. Error: ${err.message}`,
+      );
+    }
+  }
+
+  // ========================================================================
+  // KEY GENERATORS
+  // ========================================================================
+
+  // Helpers cho Clinic Form
   private getFormKeyById(id: string): string {
     return `form:${id}`;
   }
@@ -65,7 +152,7 @@ export class ClinicsRepository {
     return `form:exists:resp-license:${license}`;
   }
 
-  // --- Helpers cho Clinic (Đã duyệt) ---
+  // Helpers cho Clinic
   private getClinicKeyById(id: string): string {
     return `clinic:${id}`;
   }
@@ -76,108 +163,55 @@ export class ClinicsRepository {
     return 'clinics:count';
   }
 
-  /**
-   * Xóa cache cho một Clinic Form cụ thể (invalidate)
-   */
+  // ========================================================================
+  // INVALIDATION LOGIC (SỬ DỤNG SAFE CACHE)
+  // ========================================================================
+
   private async invalidateClinicFormCache(form: ClinicRegisterDocument | null) {
     if (!form) return;
-    try {
-      if (form.id) await this.redis.del(this.getFormKeyById(form.id));
-      if (form.verification_token)
-        await this.redis.del(this.getFormKeyByToken(form.verification_token));
-      if (form.email?.email_address)
-        await this.redis.del(
-          this.getFormKeyExistsEmail(form.email.email_address),
-        );
-      if (form.phone?.phone_number)
-        await this.redis.del(
-          this.getFormKeyExistsPhone(form.phone.phone_number),
-        );
-      if (form.license_number)
-        await this.redis.del(this.getFormKeyExistsLicense(form.license_number));
-      if (form.representative?.responsible_licenses) {
-        for (const license of form.representative.responsible_licenses) {
-          await this.redis.del(
-            this.getFormKeyExistsResponsibleLicense(license),
-          );
-        }
-      }
-    } catch (err) {
-      console.error('Lỗi khi xóa cache clinic form:', err);
+    const keys: string[] = [];
+
+    if (form.id) keys.push(this.getFormKeyById(form.id));
+    if (form.verification_token)
+      keys.push(this.getFormKeyByToken(form.verification_token));
+    if (form.email?.email_address)
+      keys.push(this.getFormKeyExistsEmail(form.email.email_address));
+    if (form.phone?.phone_number)
+      keys.push(this.getFormKeyExistsPhone(form.phone.phone_number));
+    if (form.license_number)
+      keys.push(this.getFormKeyExistsLicense(form.license_number));
+    if (form.representative?.responsible_licenses) {
+      form.representative.responsible_licenses.forEach((license) => {
+        keys.push(this.getFormKeyExistsResponsibleLicense(license));
+      });
     }
+
+    if (keys.length > 0) await this.safeCacheDel(keys);
   }
 
-  /**
-   * Xóa cache cho một Clinic cụ thể (invalidate)
-   */
   private async invalidateClinicCache(clinic: ClinicDocument | null) {
     if (!clinic) return;
+    const keys: string[] = [];
 
-    // Nếu Redis không có hoặc đã đóng -> bỏ qua luôn
-    if (!this.redis || (this.redis as any).isOpen === false) {
-      return;
-    }
+    if (clinic.id) keys.push(this.getClinicKeyById(clinic.id));
+    if (clinic.email?.email_address)
+      keys.push(this.getClinicKeyByEmail(clinic.email.email_address));
 
-    try {
-      const keys: string[] = [];
-
-      if (clinic.id) {
-        keys.push(this.getClinicKeyById(clinic.id));
-      }
-      if (clinic.email?.email_address) {
-        keys.push(this.getClinicKeyByEmail(clinic.email.email_address));
-      }
-
-      if (keys.length > 0) {
-        await this.redis.del(keys);
-      }
-    } catch (err: any) {
-      // Chỉ log cảnh báo, KHÔNG throw nữa
-      console.warn(
-        'Lỗi khi xóa cache clinic (bỏ qua, không ảnh hưởng flow):',
-        err?.message || err,
-      );
-    }
+    if (keys.length > 0) await this.safeCacheDel(keys);
   }
 
-
-  /**
-   * Xóa cache danh sách (dùng SCAN, an toàn, không block Redis)
-   */
-  private async invalidateListCache(prefix: string) {
-    try {
-      let cursor = '0';
-      do {
-        const reply = await this.redis.scan(cursor, {
-          MATCH: `${prefix}:*`,
-          COUNT: 100,
-        });
-        cursor = reply.cursor;
-        const keys = reply.keys;
-        if (keys.length > 0) {
-          await this.redis.del(keys);
-        }
-      } while (cursor !== '0');
-    } catch (err) {
-      console.error(`Lỗi khi xóa cache với prefix ${prefix}:`, err);
-    }
-  }
-
-  // Hàm gọi tắt để xóa cache danh sách form
   private async invalidateClinicFormListCache() {
-    await this.invalidateListCache('forms:list');
+    await this.safeCacheInvalidatePrefix('forms:list');
   }
 
-  // Hàm gọi tắt để xóa cache danh sách clinic
   private async invalidateClinicListCache() {
-    await this.invalidateListCache('clinics:list');
-    await this.redis.del(this.getClinicCountKey()); // Cũng xóa cache đếm
+    await this.safeCacheInvalidatePrefix('clinics:list');
+    await this.safeCacheDel(this.getClinicCountKey());
   }
-  // --- KẾT THÚC PHẦN HELPERS ---
 
-  //
-  // --- PHẦN LOGIC CỦA CLINIC FORM ---
-  //
+  // ========================================================================
+  // CLINIC FORM LOGIC
+  // ========================================================================
 
   async createClinicForm(
     data: CreateClinicFormDto,
@@ -186,7 +220,7 @@ export class ClinicsRepository {
       const clinicDocument = new this.clinicFormModel(data);
       const result = await clinicDocument.save();
 
-      // Invalidate cache danh sách form
+      // Clear cache danh sách (không cần await để trả về nhanh hơn, hoặc await nếu muốn chắc chắn)
       await this.invalidateClinicFormListCache();
 
       return result;
@@ -199,126 +233,92 @@ export class ClinicsRepository {
 
   async existsClinicFormByEmail(email_address: string): Promise<boolean> {
     const key = this.getFormKeyExistsEmail(email_address);
-    try {
-      // 1. Thử lấy từ Redis
-      const cached = await this.redis.get(key);
-      if (cached) return JSON.parse(cached);
+    // 1. Safe Get Redis
+    const cached = await this.safeCacheGet<boolean>(key);
+    if (cached !== null) return cached;
 
-      // 2. Cache Miss -> Lấy từ MongoDB
-      const doc = await this.clinicFormModel
-        .findOne({ 'email.email_address': email_address })
-        .lean()
-        .exec();
-      const exists = !!doc;
+    // 2. Mongo
+    const doc = await this.clinicFormModel
+      .findOne({ 'email.email_address': email_address })
+      .select('_id')
+      .lean()
+      .exec();
+    const exists = !!doc;
 
-      // 3. Lưu vào Redis
-      await this.redis.set(key, JSON.stringify(exists), { EX: this.cacheTTL });
-      return exists;
-    } catch (err) {
-      throw new InternalServerErrorException(
-        err.message || 'Lỗi kiểm tra trùng email form clinic',
-      );
-    }
+    // 3. Safe Set Redis
+    await this.safeCacheSet(key, exists);
+    return exists;
   }
 
   async existsClinicFormByPhone(phone_number: string): Promise<boolean> {
     const key = this.getFormKeyExistsPhone(phone_number);
-    try {
-      // 1. Thử lấy từ Redis
-      const cached = await this.redis.get(key);
-      if (cached) return JSON.parse(cached);
+    const cached = await this.safeCacheGet<boolean>(key);
+    if (cached !== null) return cached;
 
-      // 2. Cache Miss
-      const doc = await this.clinicFormModel
-        .findOne({ 'phone.phone_number': phone_number })
-        .lean()
-        .exec();
-      const exists = !!doc;
+    const doc = await this.clinicFormModel
+      .findOne({ 'phone.phone_number': phone_number })
+      .select('_id')
+      .lean()
+      .exec();
+    const exists = !!doc;
 
-      // 3. Lưu vào Redis
-      await this.redis.set(key, JSON.stringify(exists), { EX: this.cacheTTL });
-      return exists;
-    } catch (err) {
-      throw new InternalServerErrorException(
-        err.message || 'Lỗi kiểm tra trùng số điện thoại form clinic',
-      );
-    }
+    await this.safeCacheSet(key, exists);
+    return exists;
   }
 
   async existsClinicFormByLicenseNumber(
     license_number: string,
   ): Promise<boolean> {
     const key = this.getFormKeyExistsLicense(license_number);
-    try {
-      // 1. Thử lấy từ Redis
-      const cached = await this.redis.get(key);
-      if (cached) return JSON.parse(cached);
+    const cached = await this.safeCacheGet<boolean>(key);
+    if (cached !== null) return cached;
 
-      // 2. Cache Miss
-      const doc = await this.clinicFormModel
-        .findOne({ license_number })
-        .lean()
-        .exec();
-      const exists = !!doc;
+    const doc = await this.clinicFormModel
+      .findOne({ license_number })
+      .select('_id')
+      .lean()
+      .exec();
+    const exists = !!doc;
 
-      // 3. Lưu vào Redis
-      await this.redis.set(key, JSON.stringify(exists), { EX: this.cacheTTL });
-      return exists;
-    } catch (err) {
-      throw new InternalServerErrorException(
-        err.message || 'Lỗi kiểm tra trùng số giấy phép form clinic',
-      );
-    }
+    await this.safeCacheSet(key, exists);
+    return exists;
   }
 
   async existsClinicFormByResponsibleLicense(
     license: string,
   ): Promise<boolean> {
     const key = this.getFormKeyExistsResponsibleLicense(license);
-    try {
-      // 1. Thử lấy từ Redis
-      const cached = await this.redis.get(key);
-      if (cached) return JSON.parse(cached);
+    const cached = await this.safeCacheGet<boolean>(key);
+    if (cached !== null) return cached;
 
-      // 2. Cache Miss
-      const doc = await this.clinicFormModel
-        .findOne({ 'representative.responsible_licenses': { $in: [license] } })
-        .lean()
-        .exec();
-      const exists = !!doc;
+    const doc = await this.clinicFormModel
+      .findOne({ 'representative.responsible_licenses': { $in: [license] } })
+      .select('_id')
+      .lean()
+      .exec();
+    const exists = !!doc;
 
-      // 3. Lưu vào Redis
-      await this.redis.set(key, JSON.stringify(exists), { EX: this.cacheTTL });
-      return exists;
-    } catch (err) {
-      throw new InternalServerErrorException(
-        err.message || 'Lỗi kiểm tra trùng giấy phép hành nghề đại diện',
-      );
-    }
+    await this.safeCacheSet(key, exists);
+    return exists;
   }
 
   async findOneClinicForm(id: string): Promise<any> {
     const key = this.getFormKeyById(id);
-    try {
-      // 1. Thử lấy từ Redis
-      const cached = await this.redis.get(key);
-      if (cached) return JSON.parse(cached);
+    const cached = await this.safeCacheGet(key);
+    if (cached) return cached;
 
-      // 2. Cache Miss
+    try {
       const findOne = await this.clinicFormModel
         .findOne({ id: id })
         .lean()
         .exec();
-      if (!findOne) {
-        return null;
-      }
+      if (!findOne) return null;
 
-      // 3. Lưu vào Redis
-      await this.redis.set(key, JSON.stringify(findOne), { EX: this.cacheTTL });
+      await this.safeCacheSet(key, findOne);
       return findOne;
     } catch (err) {
       throw new InternalServerErrorException(
-        err.message || `Lỗi cơ sở dữ liệu khi tìm form clinic với ID: ${id}`,
+        err.message || `Lỗi DB khi tìm form ID: ${id}`,
       );
     }
   }
@@ -344,9 +344,8 @@ export class ClinicsRepository {
     clinic.review_by = review_by;
     const saved = await clinic.save();
 
-    // Invalidate cache
     await this.invalidateClinicFormCache(saved);
-    await this.invalidateClinicFormListCache(); // Xóa cache danh sách
+    await this.invalidateClinicFormListCache();
 
     return {
       message: 'Cập nhật trạng thái đơn đăng ký thành công!',
@@ -364,30 +363,25 @@ export class ClinicsRepository {
     limit: number;
   }): Promise<{ data: ClinicRegisterDocument[]; total: number }> {
     const cacheKey = `forms:list:${JSON.stringify(filters)}`;
-    try {
-      // 1. Thử lấy từ Redis
-      const cached = await this.redis.get(cacheKey);
-      if (cached) return JSON.parse(cached);
+    const cached = await this.safeCacheGet<{ data: any[]; total: number }>(
+      cacheKey,
+    );
+    if (cached) return cached;
 
-      // 2. Cache Miss
+    try {
       const query: any = {};
-      if (filters.status) {
-        query.status = filters.status;
-      }
+      if (filters.status) query.status = filters.status;
 
       const total = await this.clinicFormModel.countDocuments(query);
       const data = await this.clinicFormModel
         .find(query)
         .sort({ createdAt: -1 })
         .skip(filters.skip)
-        .limit(filters.limit);
+        .limit(filters.limit); // Lưu ý: .lean() ở đây sẽ tốt hơn nếu không cần methods của mongoose document
 
       const response = { data, total };
+      await this.safeCacheSet(cacheKey, response, this.listCacheTTL);
 
-      // 3. Lưu vào Redis
-      await this.redis.set(cacheKey, JSON.stringify(response), {
-        EX: this.listCacheTTL,
-      });
       return response;
     } catch (err) {
       throw new InternalServerErrorException(err.message || 'Lỗi khi tìm form');
@@ -396,22 +390,15 @@ export class ClinicsRepository {
 
   async findByVerificationToken(token: string) {
     const key = this.getFormKeyByToken(token);
-    try {
-      // 1. Thử lấy từ Redis
-      const cached = await this.redis.get(key);
-      if (cached) return JSON.parse(cached);
+    const cached = await this.safeCacheGet(key);
+    if (cached) return cached;
 
-      // 2. Cache Miss
+    try {
       const result = await this.clinicFormModel.findOne({
         verification_token: token,
-      });
-
-      // 3. Lưu vào Redis
-      // (Lưu ý: không dùng .lean(), nên JSON.stringify(result) sẽ ổn)
+      }); // Có thể thêm .lean() nếu chỉ đọc
       if (result) {
-        await this.redis.set(key, JSON.stringify(result), {
-          EX: this.cacheTTL,
-        });
+        await this.safeCacheSet(key, result);
       }
       return result;
     } catch (err) {
@@ -425,13 +412,9 @@ export class ClinicsRepository {
     const updatedForm = await this.clinicFormModel.findOneAndUpdate(
       { id: id },
       dto,
-      {
-        new: true,
-        runValidators: true,
-      },
+      { new: true, runValidators: true },
     );
 
-    // Invalidate cache
     if (updatedForm) {
       await this.invalidateClinicFormCache(updatedForm);
       await this.invalidateClinicFormListCache();
@@ -439,14 +422,13 @@ export class ClinicsRepository {
     return updatedForm;
   }
 
-  // (Hàm này trùng với findByVerificationToken, nhưng vẫn giữ logic cache)
   async findClinicByVerificationToken(token: string): Promise<any> {
     return this.findByVerificationToken(token);
   }
 
-  //
-  // --- PHẦN LOGIC CỦA CLINIC (ĐÃ DUYỆT) ---
-  //
+  // ========================================================================
+  // CLINIC LOGIC (ĐÃ DUYỆT)
+  // ========================================================================
 
   async createClinic(data: CreateClinicDto): Promise<ClinicDocument> {
     try {
@@ -463,8 +445,7 @@ export class ClinicsRepository {
       const newClinic = new this.clinicModel(data);
       const savedClinic = await newClinic.save();
 
-      // Invalidate cache
-      await this.invalidateClinicListCache(); // Xóa cache danh sách và đếm
+      await this.invalidateClinicListCache();
 
       return savedClinic;
     } catch (err) {
@@ -479,17 +460,13 @@ export class ClinicsRepository {
     id: string,
   ): Promise<{ success: boolean; message: string }> {
     try {
-      // Tìm doc trước khi sửa
       const form = await this.clinicFormModel.findOne({ id });
 
-      const result = await this.clinicFormModel.updateOne(
+      await this.clinicFormModel.updateOne(
         { id },
         { status: RegisterStatus.PENDING },
       );
-      // (Logic kiểm tra lỗi của bạn)
-      // ...
 
-      // Invalidate cache
       if (form) {
         await this.invalidateClinicFormCache(form);
       }
@@ -500,8 +477,6 @@ export class ClinicsRepository {
         message: `Đã rollback trạng thái đơn ${id} về PENDING thành công.`,
       };
     } catch (err) {
-      // (Logic xử lý lỗi của bạn)
-      // ...
       throw err;
     }
   }
@@ -510,15 +485,11 @@ export class ClinicsRepository {
     const updatedClinic = await this.clinicModel
       .findOneAndUpdate(
         { id: id },
-        {
-          is_active: is_active,
-          updatedAt: new Date(),
-        },
+        { is_active: is_active, updatedAt: new Date() },
         { new: true },
       )
       .exec();
 
-    // Invalidate cache
     if (updatedClinic) {
       await this.invalidateClinicCache(updatedClinic);
       await this.invalidateClinicListCache();
@@ -529,12 +500,10 @@ export class ClinicsRepository {
 
   async findAllClinic(skip: number, limit: number): Promise<any> {
     const cacheKey = `clinics:list:${skip}:${limit}`;
-    try {
-      // 1. Thử lấy từ Redis
-      const cached = await this.redis.get(cacheKey);
-      if (cached) return JSON.parse(cached);
+    const cached = await this.safeCacheGet(cacheKey);
+    if (cached) return cached;
 
-      // 2. Cache Miss
+    try {
       const clinics = await this.clinicModel
         .find()
         .sort({ createdAt: -1 })
@@ -543,94 +512,48 @@ export class ClinicsRepository {
         .lean()
         .exec();
 
-      // 3. Lưu vào Redis
-      await this.redis.set(cacheKey, JSON.stringify(clinics), {
-        EX: this.listCacheTTL,
-      });
+      await this.safeCacheSet(cacheKey, clinics, this.listCacheTTL);
       return clinics;
     } catch (err) {
       throw new InternalServerErrorException(
-        err.message || 'Lỗi cơ sở dữ liệu khi truy vấn danh sách phòng khám',
+        err.message || 'Lỗi DB khi truy vấn danh sách phòng khám',
       );
     }
   }
 
   async countAllClinic(): Promise<number> {
     const key = this.getClinicCountKey();
+    const cached = await this.safeCacheGet<number>(key);
+    if (cached !== null) return cached;
+
     try {
-      // 1. Thử lấy từ Redis
-      const cached = await this.redis.get(key);
-      if (cached) return JSON.parse(cached);
-
-      // 2. Cache Miss
       const count = await this.clinicModel.countDocuments();
-
-      // 3. Lưu vào Redis
-      await this.redis.set(key, JSON.stringify(count), {
-        EX: this.listCacheTTL, // Dùng cache ngắn cho số đếm
-      });
+      await this.safeCacheSet(key, count, this.listCacheTTL);
       return count;
     } catch (err) {
       throw new InternalServerErrorException(
-        err.message || 'Lỗi cơ sở dữ liệu khi đếm tổng số phòng khám',
+        err.message || 'Lỗi DB khi đếm tổng số phòng khám',
       );
     }
   }
 
   async getClinicById(id: string): Promise<any> {
     const key = this.getClinicKeyById(id);
+    const cached = await this.safeCacheGet(key);
+    if (cached) return cached;
 
-    // 0. Nếu không có redis hoặc đã đóng -> bỏ qua cache luôn
-    if (!this.redis || (this.redis as any).isOpen === false) {
-      // Chỉ dùng DB
-      return this.clinicModel.findOne({ id }).lean().exec();
-    }
-
-    // 1. Thử lấy từ Redis, nhưng lỗi Redis thì chỉ cảnh báo
-    let cached: string | null = null;
     try {
-      cached = await this.redis.get(key);
-    } catch (err: any) {
-      console.warn(
-        `Redis GET error in getClinicById(${id}), fallback to DB only:`,
-        err?.message || err,
-      );
-    }
+      const clinic = await this.clinicModel.findOne({ id }).lean().exec();
+      if (!clinic) return null;
 
-    if (cached) {
-      try {
-        return JSON.parse(cached);
-      } catch (e) {
-        console.warn('Redis cached data parse error, ignore cache:', e);
-      }
-    }
-
-    // 2. Luôn luôn fallback sang DB
-    let clinic: any;
-    try {
-      clinic = await this.clinicModel.findOne({ id }).lean().exec();
-    } catch (err: any) {
-      // Chỉ DB lỗi mới throw 500
+      await this.safeCacheSet(key, clinic);
+      return clinic;
+    } catch (err) {
       throw new InternalServerErrorException(
-        err.message || `Lỗi cơ sở dữ liệu khi tìm phòng khám với ID: ${id}`,
+        err.message || `Lỗi DB khi tìm phòng khám ID: ${id}`,
       );
     }
-
-    if (!clinic) return null;
-
-    // 3. Lưu lại vào Redis kiểu best-effort (lỗi thì bỏ qua)
-    this.redis
-      .set(key, JSON.stringify(clinic), { EX: this.cacheTTL })
-      .catch((err: any) => {
-        console.warn(
-          `Redis SET error in getClinicById(${id}), ignore cache:`,
-          err?.message || err,
-        );
-      });
-
-    return clinic;
   }
-
 
   async updateClinicFormByMail(updateData: any): Promise<any> {
     const { id, ...data } = updateData;
@@ -645,7 +568,6 @@ export class ClinicsRepository {
       throw new NotFoundException(`Không tìm thấy form đăng ký với id: ${id}`);
     }
 
-    // Invalidate cache
     await this.invalidateClinicFormCache(clinic);
     await this.invalidateClinicFormListCache();
 
@@ -653,7 +575,6 @@ export class ClinicsRepository {
   }
 
   async clearClinicVerificationToken(id: string) {
-    // Tìm doc trước
     const clinic = await this.clinicModel.findById(id);
 
     const result = await this.clinicModel.updateOne(
@@ -661,7 +582,6 @@ export class ClinicsRepository {
       { $unset: { verification_token: '', token_expires_at: '' } },
     );
 
-    // Invalidate cache
     if (clinic) {
       await this.invalidateClinicCache(clinic);
     }
@@ -669,53 +589,39 @@ export class ClinicsRepository {
   }
 
   async updateClinic(id: string, dto: any): Promise<ClinicDocument> {
-    try {
-      const updatedClinic = await this.clinicModel
-        .findOneAndUpdate({ id: id }, { $set: dto }, { new: true })
-        .exec();
+    const updatedClinic = await this.clinicModel
+      .findOneAndUpdate({ id: id }, { $set: dto }, { new: true })
+      .exec();
 
-      if (!updatedClinic) {
-        throw new NotFoundException(
-          `Không tìm thấy phòng khám với id: ${id} để cập nhật`,
-        );
-      }
-
-      // Invalidate cache
-      await this.invalidateClinicCache(updatedClinic);
-      await this.invalidateClinicListCache();
-
-      return updatedClinic;
-    } catch (err) {
-      // (Logic xử lý lỗi của bạn)
-      // ...
-      throw err;
+    if (!updatedClinic) {
+      throw new NotFoundException(
+        `Không tìm thấy phòng khám với id: ${id} để cập nhật`,
+      );
     }
+
+    await this.invalidateClinicCache(updatedClinic);
+    await this.invalidateClinicListCache();
+
+    return updatedClinic;
   }
 
   async getClinicByEmail(email: string): Promise<any> {
     const key = this.getClinicKeyByEmail(email);
-    try {
-      // 1. Thử lấy từ Redis
-      const cached = await this.redis.get(key);
-      if (cached) return JSON.parse(cached);
+    const cached = await this.safeCacheGet(key);
+    if (cached) return cached;
 
-      // 2. Cache Miss
+    try {
       const clinic = await this.clinicModel
         .findOne({ 'email.email_address': email })
         .lean()
         .exec();
+      if (!clinic) return null;
 
-      if (!clinic) {
-        return null;
-      }
-
-      // 3. Lưu vào Redis
-      await this.redis.set(key, JSON.stringify(clinic), { EX: this.cacheTTL });
+      await this.safeCacheSet(key, clinic);
       return clinic;
     } catch (err) {
       throw new InternalServerErrorException(
-        err.message ||
-        `Lỗi cơ sở dữ liệu khi tìm phòng khám với email: ${email}`,
+        err.message || `Lỗi DB khi tìm phòng khám email: ${email}`,
       );
     }
   }
@@ -742,16 +648,10 @@ export class ClinicsRepository {
         );
       }
 
-      // Invalidate cache
-      // Xóa cache của clinic này
       await this.invalidateClinicCache(updatedClinic);
-      // (Không cần xóa cache list, vì danh sách không hiển thị member_ids)
-
       return updatedClinic;
     } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw error;
-      }
+      if (error instanceof NotFoundException) throw error;
       throw new InternalServerErrorException(
         error.message || 'Không thể cập nhật danh sách thành viên phòng khám.',
       );

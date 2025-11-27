@@ -10,75 +10,78 @@ import redisClient from '../common/redis/redis.module.js';
 
 @Injectable()
 export class PetRepository {
-  private redis: typeof redisClient;
+  private redis = redisClient;
   private readonly cacheTTL = 3600;
   private readonly listCacheTTL = 600;
 
-  constructor(@InjectModel(Pet.name) private petModel: Model<PetDocument>) {
-    this.redis = redisClient;
+  constructor(@InjectModel(Pet.name) private petModel: Model<PetDocument>) {}
+
+  private isRedisAvailable(): boolean {
+    return this.redis && this.redis.isOpen;
   }
 
-  // --- CÁC HÀM HELPER AN TOÀN (SAFE WRAPPERS) ---
   private async safeGet(key: string): Promise<string | null> {
     try {
-      if (!this.redis.isOpen) return null;
+      if (!this.isRedisAvailable()) return null;
       return await this.redis.get(key);
-    } catch (error) {
+    } catch (err) {
       return null;
     }
   }
 
   private async safeSet(key: string, value: string, options?: any) {
     try {
-      if (!this.redis.isOpen) return;
+      if (!this.isRedisAvailable()) return;
       await this.redis.set(key, value, options);
-    } catch (error) {}
+    } catch (err) {}
   }
 
   private async safeDel(keys: string | string[]) {
     try {
-      if (!this.redis.isOpen) return;
+      if (!this.isRedisAvailable()) return;
       await this.redis.del(keys);
-    } catch (error) {}
+    } catch (err) {}
   }
-  // --- KẾT THÚC HELPER ---
+
+  private async safeScan(prefix: string): Promise<string[]> {
+    if (!this.isRedisAvailable()) return [];
+
+    const keys: string[] = [];
+    try {
+      let cursor = '0';
+      do {
+        const reply = await this.redis.scan(cursor, {
+          MATCH: prefix,
+          COUNT: 100,
+        });
+        cursor = reply.cursor;
+        keys.push(...reply.keys);
+      } while (cursor !== '0');
+    } catch (err) {
+      return [];
+    }
+
+    return keys;
+  }
 
   private getPetKey(id: string): string {
     return `pet:${id}`;
   }
 
-  private async invalidateSinglePetCache(petId: string) {
-    if (petId) {
-      await this.safeDel(this.getPetKey(petId));
-    }
+  private async invalidateSinglePetCache(id: string) {
+    await this.safeDel(this.getPetKey(id));
   }
 
   private async invalidatePetListCaches() {
-    if (!this.redis.isOpen) return;
-    try {
-      let cursor = '0';
-      const matchPattern = 'pets:*';
-      do {
-        const reply = await this.redis.scan(cursor, {
-          MATCH: matchPattern,
-          COUNT: 100,
-        });
-        cursor = reply.cursor;
-        const keys = reply.keys;
-        if (keys.length > 0) {
-          await this.redis.del(keys);
-        }
-      } while (cursor !== '0');
-    } catch (err) {}
+    const keys = await this.safeScan('pets:*');
+    if (keys.length > 0) {
+      await this.safeDel(keys);
+    }
   }
 
   async create(petDataToSave: CreatePetDto | any): Promise<Pet> {
     try {
       const pet = await this.petModel.create(petDataToSave);
-
-      if (!pet) {
-        throw new InternalServerErrorException('Không thể tạo pet trong DB');
-      }
 
       await this.invalidatePetListCaches();
 
@@ -92,11 +95,10 @@ export class PetRepository {
 
   async findAll(): Promise<Pet[]> {
     const cacheKey = 'pets:all';
+
     try {
       const cached = await this.safeGet(cacheKey);
-      if (cached) {
-        return JSON.parse(cached);
-      }
+      if (cached) return JSON.parse(cached);
 
       const pets = await this.petModel.find().exec();
 
@@ -105,18 +107,17 @@ export class PetRepository {
       });
 
       return pets;
-    } catch (error) {
+    } catch {
       return this.petModel.find().exec();
     }
   }
 
   async getAllPets(data: GetAllPetsDto): Promise<PaginatedPetsResponse<Pet>> {
     const cacheKey = `pets:list:${JSON.stringify(data)}`;
+
     try {
       const cached = await this.safeGet(cacheKey);
-      if (cached) {
-        return JSON.parse(cached);
-      }
+      if (cached) return JSON.parse(cached);
 
       const { page, limit, search, species, gender, sort_field, sort_order } =
         data;
@@ -124,6 +125,7 @@ export class PetRepository {
       const safePage = Math.max(Number(page) || 1, 1);
       const safeLimit = Math.max(Number(limit) || 15, 1);
       const skip = (safePage - 1) * safeLimit;
+
       const filter: any = {};
 
       if (search) {
@@ -134,11 +136,7 @@ export class PetRepository {
       if (gender) filter.gender = gender;
 
       const sort: any = {};
-      if (sort_field) {
-        sort[sort_field] = sort_order === 'asc' ? 1 : -1;
-      } else {
-        sort['createdAt'] = -1;
-      }
+      sort[sort_field || 'createdAt'] = sort_order === 'asc' ? 1 : -1;
 
       const [items, total] = await Promise.all([
         this.petModel
@@ -150,12 +148,7 @@ export class PetRepository {
         this.petModel.countDocuments(filter).exec(),
       ]);
 
-      const response = {
-        items,
-        total,
-        page: safePage,
-        limit: safeLimit,
-      };
+      const response = { items, total, page: safePage, limit: safeLimit };
 
       await this.safeSet(cacheKey, JSON.stringify(response), {
         EX: this.listCacheTTL,
@@ -163,17 +156,16 @@ export class PetRepository {
 
       return response;
     } catch (err) {
-      throw new Error(err);
+      throw new InternalServerErrorException(err);
     }
   }
 
   async findById(pet_id: string): Promise<Pet | null> {
     const cacheKey = this.getPetKey(pet_id);
+
     try {
       const cached = await this.safeGet(cacheKey);
-      if (cached) {
-        return JSON.parse(cached);
-      }
+      if (cached) return JSON.parse(cached);
 
       const pet = await this.petModel.findOne({ id: pet_id }).exec();
 
@@ -184,21 +176,17 @@ export class PetRepository {
       }
 
       return pet;
-    } catch (error) {
+    } catch {
       return this.petModel.findOne({ id: pet_id }).exec();
     }
   }
 
   async findByIds(pet_ids: string[]): Promise<Pet[]> {
-    if (!pet_ids || pet_ids.length === 0) {
-      return [];
-    }
+    if (!pet_ids || pet_ids.length === 0) return [];
 
     try {
-      const pets = await this.petModel.find({ id: { $in: pet_ids } }).exec();
-      return pets;
-    } catch (error) {
-      console.error('Error finding pets by IDs:', error);
+      return await this.petModel.find({ id: { $in: pet_ids } }).exec();
+    } catch {
       return [];
     }
   }
@@ -244,11 +232,10 @@ export class PetRepository {
 
   async findBySpecies(species: string): Promise<Pet[]> {
     const cacheKey = `pets:species:${species}`;
+
     try {
       const cached = await this.safeGet(cacheKey);
-      if (cached) {
-        return JSON.parse(cached);
-      }
+      if (cached) return JSON.parse(cached);
 
       const pets = await this.petModel.find({ species }).exec();
 
@@ -257,18 +244,17 @@ export class PetRepository {
       });
 
       return pets;
-    } catch (error) {
+    } catch {
       return this.petModel.find({ species }).exec();
     }
   }
 
   async findByOwnerId(user_id: string): Promise<Pet[]> {
     const cacheKey = `pets:owner:${user_id}`;
+
     try {
       const cached = await this.safeGet(cacheKey);
-      if (cached) {
-        return JSON.parse(cached);
-      }
+      if (cached) return JSON.parse(cached);
 
       const pets = await this.petModel
         .find({ 'owner.user_id': user_id })
@@ -288,11 +274,10 @@ export class PetRepository {
 
   async count(): Promise<number> {
     const cacheKey = 'pets:count';
+
     try {
       const cached = await this.safeGet(cacheKey);
-      if (cached) {
-        return JSON.parse(cached);
-      }
+      if (cached) return JSON.parse(cached);
 
       const count = await this.petModel.countDocuments().exec();
 
@@ -301,7 +286,7 @@ export class PetRepository {
       });
 
       return count;
-    } catch (error) {
+    } catch {
       return this.petModel.countDocuments().exec();
     }
   }

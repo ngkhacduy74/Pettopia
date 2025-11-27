@@ -17,90 +17,90 @@ import redisClient from '../../common/redis/redis.module.js';
 
 @Injectable()
 export class ShiftRepository {
-  private redis: typeof redisClient;
+  private redis = redisClient;
   private readonly cacheTTL = 3600;
   private readonly listCacheTTL = 600;
 
   constructor(
     @InjectModel(Shift.name) private shiftModel: Model<ShiftDocument>,
-  ) {
-    this.redis = redisClient;
+  ) {}
+
+  private isRedisReady(): boolean {
+    return this.redis && this.redis.isOpen;
   }
 
   private async safeGet(key: string): Promise<string | null> {
     try {
-      if (!this.redis.isOpen) return null;
+      if (!this.isRedisReady()) return null;
       return await this.redis.get(key);
-    } catch (error) {
+    } catch {
       return null;
     }
   }
 
   private async safeSet(key: string, value: string, options?: any) {
     try {
-      if (!this.redis.isOpen) return;
+      if (!this.isRedisReady()) return;
       await this.redis.set(key, value, options);
-    } catch (error) {}
+    } catch {}
   }
 
   private async safeDel(keys: string | string[]) {
     try {
-      if (!this.redis.isOpen) return;
+      if (!this.isRedisReady()) return;
       await this.redis.del(keys);
-    } catch (error) {}
+    } catch {}
   }
-
   private getShiftKey(id: string): string {
     return `shift:${id}`;
   }
 
   private async invalidateSingleShiftCache(id: string) {
-    if (id) {
-      await this.safeDel(this.getShiftKey(id));
-    }
+    if (id) await this.safeDel(this.getShiftKey(id));
   }
 
   private async invalidateClinicShiftListCache(clinic_id: string) {
-    if (!clinic_id || !this.redis.isOpen) return;
+    if (!clinic_id || !this.isRedisReady()) return;
 
     try {
       await this.redis.del(`shifts:count:clinic:${clinic_id}`);
 
       let cursor = '0';
-      const matchPattern = `shifts:clinic:${clinic_id}:*`;
+      const match = `shifts:clinic:${clinic_id}:*`;
+
       do {
         const reply = await this.redis.scan(cursor, {
-          MATCH: matchPattern,
+          MATCH: match,
           COUNT: 100,
         });
+
         cursor = reply.cursor;
-        const keys = reply.keys;
-        if (keys.length > 0) {
-          await this.redis.del(keys);
+
+        if (reply.keys.length > 0) {
+          await this.redis.del(reply.keys);
         }
       } while (cursor !== '0');
-    } catch (err) {}
+    } catch {}
   }
 
   async createClinicShift(dto: CreateClinicShiftDto): Promise<ShiftDocument> {
     try {
-      const existingShift = await this.shiftModel.findOne({
+      const exists = await this.shiftModel.findOne({
         clinic_id: dto.clinic_id,
         shift: dto.shift,
       });
 
-      if (existingShift) {
+      if (exists) {
         throw new BadRequestException(
           `Ca làm việc '${dto.shift}' đã tồn tại cho phòng khám này`,
         );
       }
 
-      const newShift = new this.shiftModel(dto);
-      const result = await newShift.save();
+      const newShift = await this.shiftModel.create(dto);
 
-      await this.invalidateClinicShiftListCache(result.clinic_id);
+      await this.invalidateClinicShiftListCache(newShift.clinic_id);
 
-      return result;
+      return newShift;
     } catch (err) {
       if (err instanceof BadRequestException) throw err;
       throw new InternalServerErrorException(
@@ -113,21 +113,15 @@ export class ShiftRepository {
     page: number,
     limit: number,
     clinic_id: string,
-  ): Promise<{
-    data: any;
-    total: number;
-    page: number;
-    limit: number;
-  }> {
+  ): Promise<{ data: any; total: number; page: number; limit: number }> {
     const cacheKey = `shifts:clinic:${clinic_id}:${page}:${limit}`;
     const skip = (page - 1) * limit;
-    const query = { clinic_id };
 
     try {
       const cached = await this.safeGet(cacheKey);
-      if (cached) {
-        return JSON.parse(cached);
-      }
+      if (cached) return JSON.parse(cached);
+
+      const query = { clinic_id };
 
       const [data, total] = await Promise.all([
         this.shiftModel
@@ -135,9 +129,8 @@ export class ShiftRepository {
           .sort({ createdAt: -1 })
           .skip(skip)
           .limit(limit)
-          .lean()
-          .exec(),
-        this.shiftModel.countDocuments(query).exec(),
+          .lean(),
+        this.shiftModel.countDocuments(query),
       ]);
 
       const response = { data, total, page, limit };
@@ -159,27 +152,27 @@ export class ShiftRepository {
     page?: number,
     limit?: number,
   ): Promise<{ data: any[]; total: number }> {
-    const pageKey = page !== undefined ? page : 'all';
-    const limitKey = limit !== undefined ? limit : 'all';
+    const pageKey = page ?? 'all';
+    const limitKey = limit ?? 'all';
+
     const cacheKey = `shifts:clinic:${clinic_id}:${pageKey}:${limitKey}`;
 
     try {
       const cached = await this.safeGet(cacheKey);
-      if (cached) {
-        return JSON.parse(cached);
-      }
+      if (cached) return JSON.parse(cached);
 
-      let response: { data: any[]; total: number };
+      let response;
+
       if (page !== undefined && limit !== undefined) {
         const skip = (page - 1) * limit;
-        const [shifts, total] = await Promise.all([
+        const [data, total] = await Promise.all([
           this.shiftModel.find({ clinic_id }).skip(skip).limit(limit).lean(),
           this.shiftModel.countDocuments({ clinic_id }),
         ]);
-        response = { data: shifts, total };
+        response = { data, total };
       } else {
-        const shifts = await this.shiftModel.find({ clinic_id }).lean();
-        response = { data: shifts, total: shifts.length };
+        const data = await this.shiftModel.find({ clinic_id }).lean();
+        response = { data, total: data.length };
       }
 
       await this.safeSet(cacheKey, JSON.stringify(response), {
@@ -199,8 +192,10 @@ export class ShiftRepository {
     clinic_id: string,
   ): Promise<any> {
     const cacheKey = this.getShiftKey(shift_id);
+
     try {
       const cached = await this.safeGet(cacheKey);
+
       if (cached) {
         const shift = JSON.parse(cached);
         return shift.clinic_id === clinic_id ? shift : null;
@@ -215,6 +210,7 @@ export class ShiftRepository {
           EX: this.cacheTTL,
         });
       }
+
       return shift;
     } catch (err) {
       throw new InternalServerErrorException(
@@ -228,20 +224,21 @@ export class ShiftRepository {
     dto: UpdateClinicShiftDto,
   ): Promise<ShiftDocument> {
     try {
-      const updatedShift = await this.shiftModel
-        .findOneAndUpdate({ id: id }, dto, { new: true })
+      const updated = await this.shiftModel
+        .findOneAndUpdate({ id }, dto, { new: true })
         .exec();
 
-      if (!updatedShift) {
+      if (!updated) {
         throw new NotFoundException(`Không tìm thấy ca làm việc với ID: ${id}`);
       }
 
       await this.invalidateSingleShiftCache(id);
-      await this.invalidateClinicShiftListCache(updatedShift.clinic_id);
+      await this.invalidateClinicShiftListCache(updated.clinic_id);
 
-      return updatedShift;
+      return updated;
     } catch (err) {
       if (err instanceof NotFoundException) throw err;
+
       throw new InternalServerErrorException(
         err.message || 'Lỗi cơ sở dữ liệu khi cập nhật ca làm việc',
       );
@@ -250,22 +247,21 @@ export class ShiftRepository {
 
   async deleteClinicShift(id: string): Promise<any> {
     try {
-      const deletedShift = await this.shiftModel
-        .findOneAndDelete({ id: id })
-        .exec();
+      const deleted = await this.shiftModel.findOneAndDelete({ id }).exec();
 
-      if (!deletedShift) {
+      if (!deleted) {
         throw new NotFoundException(
           `Không tìm thấy ca làm việc với ID: ${id} để xóa`,
         );
       }
 
       await this.invalidateSingleShiftCache(id);
-      await this.invalidateClinicShiftListCache(deletedShift.clinic_id);
+      await this.invalidateClinicShiftListCache(deleted.clinic_id);
 
-      return deletedShift;
+      return deleted;
     } catch (err) {
       if (err instanceof NotFoundException) throw err;
+
       throw new InternalServerErrorException(
         err.message || 'Lỗi cơ sở dữ liệu khi xóa ca làm việc',
       );
@@ -277,22 +273,23 @@ export class ShiftRepository {
     is_active: boolean,
   ): Promise<ShiftDocument> {
     try {
-      const updatedShift = await this.shiftModel
-        .findOneAndUpdate({ id: id }, { is_active: is_active }, { new: true })
+      const updated = await this.shiftModel
+        .findOneAndUpdate({ id }, { is_active }, { new: true })
         .exec();
 
-      if (!updatedShift) {
+      if (!updated) {
         throw new NotFoundException(
           `Không tìm thấy ca làm việc với ID: ${id} để cập nhật trạng thái`,
         );
       }
 
       await this.invalidateSingleShiftCache(id);
-      await this.invalidateClinicShiftListCache(updatedShift.clinic_id);
+      await this.invalidateClinicShiftListCache(updated.clinic_id);
 
-      return updatedShift;
+      return updated;
     } catch (err) {
       if (err instanceof NotFoundException) throw err;
+
       throw new InternalServerErrorException(
         err.message || 'Lỗi cơ sở dữ liệu khi cập nhật trạng thái ca làm việc',
       );
@@ -301,13 +298,12 @@ export class ShiftRepository {
 
   async getShiftById(id: string): Promise<any> {
     const cacheKey = this.getShiftKey(id);
+
     try {
       const cached = await this.safeGet(cacheKey);
-      if (cached) {
-        return JSON.parse(cached);
-      }
+      if (cached) return JSON.parse(cached);
 
-      const result = await this.shiftModel.findOne({ id: id }).lean().exec();
+      const result = await this.shiftModel.findOne({ id }).lean();
 
       if (result) {
         await this.safeSet(cacheKey, JSON.stringify(result), {
@@ -325,15 +321,12 @@ export class ShiftRepository {
 
   async countShiftByClinicId(clinic_id: string): Promise<number> {
     const cacheKey = `shifts:count:clinic:${clinic_id}`;
+
     try {
       const cached = await this.safeGet(cacheKey);
-      if (cached) {
-        return JSON.parse(cached);
-      }
+      if (cached) return JSON.parse(cached);
 
-      const count = await this.shiftModel.countDocuments({
-        clinic_id: clinic_id,
-      });
+      const count = await this.shiftModel.countDocuments({ clinic_id });
 
       await this.safeSet(cacheKey, JSON.stringify(count), {
         EX: this.listCacheTTL,

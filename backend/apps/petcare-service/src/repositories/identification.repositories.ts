@@ -11,40 +11,40 @@ import redisClient from '../common/redis/redis.module.js';
 
 @Injectable()
 export class IdentificationRepository {
-  private redis: typeof redisClient;
+  private redis = redisClient;
   private readonly cacheTTL = 3600;
 
   constructor(
     @InjectModel(Identification.name)
     private identificationModel: Model<IdentificationDocument>,
-  ) {
-    this.redis = redisClient;
+  ) {}
+
+  private isRedisReady(): boolean {
+    return this.redis && this.redis.isOpen;
   }
 
-  // --- CÁC HÀM HELPER AN TOÀN (SAFE WRAPPERS) ---
   private async safeGet(key: string): Promise<string | null> {
     try {
-      if (!this.redis.isOpen) return null;
+      if (!this.isRedisReady()) return null;
       return await this.redis.get(key);
-    } catch (error) {
+    } catch {
       return null;
     }
   }
 
   private async safeSet(key: string, value: string, options?: any) {
     try {
-      if (!this.redis.isOpen) return;
+      if (!this.isRedisReady()) return;
       await this.redis.set(key, value, options);
-    } catch (error) {}
+    } catch {}
   }
 
   private async safeDel(keys: string | string[]) {
     try {
-      if (!this.redis.isOpen) return;
+      if (!this.isRedisReady()) return;
       await this.redis.del(keys);
-    } catch (error) {}
+    } catch {}
   }
-  // --- KẾT THÚC HELPER ---
 
   private getKeyByPetId(pet_id: string): string {
     return `identification:pet:${pet_id}`;
@@ -55,17 +55,12 @@ export class IdentificationRepository {
   }
 
   private async invalidateCache(pet_id: string, identification_id: string) {
-    const keysToDelete: string[] = [];
-    if (pet_id) {
-      keysToDelete.push(this.getKeyByPetId(pet_id));
-    }
-    if (identification_id) {
-      keysToDelete.push(this.getKeyByIdentify(identification_id));
-    }
+    const keys: string[] = [];
 
-    if (keysToDelete.length > 0) {
-      await this.safeDel(keysToDelete);
-    }
+    if (pet_id) keys.push(this.getKeyByPetId(pet_id));
+    if (identification_id) keys.push(this.getKeyByIdentify(identification_id));
+
+    if (keys.length) await this.safeDel(keys);
   }
 
   async create(data: any): Promise<any> {
@@ -80,6 +75,7 @@ export class IdentificationRepository {
             { EX: this.cacheTTL },
           );
         }
+
         if (saved.identification_id) {
           await this.safeSet(
             this.getKeyByIdentify(saved.identification_id),
@@ -97,11 +93,10 @@ export class IdentificationRepository {
 
   async findByPetId(pet_id: string): Promise<Identification | null> {
     const cacheKey = this.getKeyByPetId(pet_id);
+
     try {
       const cached = await this.safeGet(cacheKey);
-      if (cached) {
-        return JSON.parse(cached);
-      }
+      if (cached) return JSON.parse(cached);
 
       const result = await this.identificationModel.findOne({ pet_id }).lean();
 
@@ -135,6 +130,7 @@ export class IdentificationRepository {
       if (oldDoc) {
         await this.invalidateCache(oldDoc.pet_id, oldDoc.identification_id);
       }
+
       if (updated) {
         await this.invalidateCache(updated.pet_id, updated.identification_id);
       }
@@ -149,16 +145,13 @@ export class IdentificationRepository {
 
   async checkIdExist(id_identify: string): Promise<Identification | null> {
     const cacheKey = this.getKeyByIdentify(id_identify);
+
     try {
       const cached = await this.safeGet(cacheKey);
-      if (cached) {
-        return JSON.parse(cached);
-      }
+      if (cached) return JSON.parse(cached);
 
       const result = await this.identificationModel
-        .findOne({
-          identification_id: id_identify,
-        })
+        .findOne({ identification_id: id_identify })
         .lean();
 
       if (result) {
