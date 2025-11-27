@@ -23,8 +23,10 @@ const user_decorator_1 = require("../decorators/user.decorator");
 const microservices_2 = require("@nestjs/microservices");
 let HealthcareController = class HealthcareController {
     healthcareService;
-    constructor(healthcareService) {
+    petcareService;
+    constructor(healthcareService, petcareService) {
         this.healthcareService = healthcareService;
+        this.petcareService = petcareService;
     }
     async createAppointment(data, userId) {
         this.healthcareService.emit({ cmd: 'createAppointment' }, {
@@ -100,6 +102,15 @@ let HealthcareController = class HealthcareController {
             message: 'Yêu cầu tạo lịch hẹn hộ khách hàng đang được xử lý.',
         };
     }
+    async createPetForCustomer(data, staffId) {
+        const ownerId = data.customer_id || data.owner_id;
+        const payload = {
+            ...data,
+            owner_id: ownerId,
+            created_by: staffId,
+        };
+        return await (0, rxjs_1.lastValueFrom)(this.petcareService.send({ cmd: 'createPet' }, payload));
+    }
     async getTodayAppointmentsForClinic(clinicId, date, statuses) {
         if (!clinicId) {
             throw new microservices_2.RpcException({
@@ -123,11 +134,27 @@ let HealthcareController = class HealthcareController {
         }
         return await (0, rxjs_1.lastValueFrom)(this.healthcareService.send({ cmd: 'getTodayAppointmentsForClinic' }, payload));
     }
+    async getMyAppointments(vetId) {
+        return await (0, rxjs_1.lastValueFrom)(this.healthcareService.send({ cmd: 'getMyAppointments' }, { vetId }));
+    }
     async assignVetAndStart(appointmentId, vetId) {
         return await (0, rxjs_1.lastValueFrom)(this.healthcareService.send({ cmd: 'assignVetAndStart' }, {
             appointmentId,
             vetId,
         }));
+    }
+    async assignPetToAppointment(appointmentId, body, clinicId) {
+        return await (0, rxjs_1.lastValueFrom)(this.healthcareService.send({ cmd: 'assignPetToAppointment' }, {
+            appointmentId,
+            petId: body.pet_id,
+            clinicId,
+        }));
+    }
+    async confirmAppointment(appointmentId) {
+        return await (0, rxjs_1.lastValueFrom)(this.healthcareService.send({ cmd: 'confirmAppointment' }, { appointmentId }));
+    }
+    async checkInAppointment(appointmentId) {
+        return await (0, rxjs_1.lastValueFrom)(this.healthcareService.send({ cmd: 'checkInAppointment' }, { appointmentId }));
     }
     async createMedicalRecordWithMedications(appointmentId, vetId, clinicId, body) {
         const medicalRecordData = {
@@ -247,7 +274,18 @@ __decorate([
 ], HealthcareController.prototype, "createAppointmentForCustomer", null);
 __decorate([
     (0, common_1.UseGuards)(jwtAuth_guard_1.JwtAuthGuard, role_guard_1.RoleGuard),
-    (0, roles_decorator_1.Roles)(roles_decorator_1.Role.CLINIC, roles_decorator_1.Role.STAFF, roles_decorator_1.Role.ADMIN, roles_decorator_1.Role.VET),
+    (0, roles_decorator_1.Roles)(roles_decorator_1.Role.CLINIC, roles_decorator_1.Role.STAFF, roles_decorator_1.Role.ADMIN),
+    (0, common_1.Post)('/pets'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.CREATED),
+    __param(0, (0, common_1.Body)()),
+    __param(1, (0, user_decorator_1.UserToken)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", Promise)
+], HealthcareController.prototype, "createPetForCustomer", null);
+__decorate([
+    (0, common_1.UseGuards)(jwtAuth_guard_1.JwtAuthGuard, role_guard_1.RoleGuard),
+    (0, roles_decorator_1.Roles)(roles_decorator_1.Role.CLINIC, roles_decorator_1.Role.STAFF, roles_decorator_1.Role.ADMIN),
     (0, common_1.Get)('/appointments/today'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
     __param(0, (0, user_decorator_1.UserToken)('clinic_id')),
@@ -260,6 +298,16 @@ __decorate([
 __decorate([
     (0, common_1.UseGuards)(jwtAuth_guard_1.JwtAuthGuard, role_guard_1.RoleGuard),
     (0, roles_decorator_1.Roles)(roles_decorator_1.Role.VET),
+    (0, common_1.Get)('/appointments/my'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    __param(0, (0, user_decorator_1.UserToken)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], HealthcareController.prototype, "getMyAppointments", null);
+__decorate([
+    (0, common_1.UseGuards)(jwtAuth_guard_1.JwtAuthGuard, role_guard_1.RoleGuard),
+    (0, roles_decorator_1.Roles)(roles_decorator_1.Role.VET, roles_decorator_1.Role.CLINIC, roles_decorator_1.Role.STAFF),
     (0, common_1.Post)('/appointments/:id/assign-vet'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
     __param(0, (0, common_1.Param)('id')),
@@ -268,6 +316,38 @@ __decorate([
     __metadata("design:paramtypes", [String, String]),
     __metadata("design:returntype", Promise)
 ], HealthcareController.prototype, "assignVetAndStart", null);
+__decorate([
+    (0, common_1.UseGuards)(jwtAuth_guard_1.JwtAuthGuard, role_guard_1.RoleGuard),
+    (0, roles_decorator_1.Roles)(roles_decorator_1.Role.CLINIC, roles_decorator_1.Role.STAFF, roles_decorator_1.Role.ADMIN),
+    (0, common_1.Post)('/appointments/:id/assign-pet'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)()),
+    __param(2, (0, user_decorator_1.UserToken)('clinic_id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object, String]),
+    __metadata("design:returntype", Promise)
+], HealthcareController.prototype, "assignPetToAppointment", null);
+__decorate([
+    (0, common_1.UseGuards)(jwtAuth_guard_1.JwtAuthGuard, role_guard_1.RoleGuard),
+    (0, roles_decorator_1.Roles)(roles_decorator_1.Role.CLINIC, roles_decorator_1.Role.STAFF, roles_decorator_1.Role.ADMIN),
+    (0, common_1.Post)('/appointments/:id/confirm'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], HealthcareController.prototype, "confirmAppointment", null);
+__decorate([
+    (0, common_1.UseGuards)(jwtAuth_guard_1.JwtAuthGuard, role_guard_1.RoleGuard),
+    (0, roles_decorator_1.Roles)(roles_decorator_1.Role.CLINIC, roles_decorator_1.Role.STAFF, roles_decorator_1.Role.ADMIN),
+    (0, common_1.Post)('/appointments/:id/check-in'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], HealthcareController.prototype, "checkInAppointment", null);
 __decorate([
     (0, common_1.UseGuards)(jwtAuth_guard_1.JwtAuthGuard, role_guard_1.RoleGuard),
     (0, roles_decorator_1.Roles)(roles_decorator_1.Role.VET),
@@ -307,6 +387,8 @@ __decorate([
 exports.HealthcareController = HealthcareController = __decorate([
     (0, common_1.Controller)('api/v1/healthcare'),
     __param(0, (0, common_1.Inject)('HEALTHCARE_SERVICE')),
-    __metadata("design:paramtypes", [microservices_1.ClientProxy])
+    __param(1, (0, common_1.Inject)('PETCARE_SERVICE')),
+    __metadata("design:paramtypes", [microservices_1.ClientProxy,
+        microservices_1.ClientProxy])
 ], HealthcareController);
 //# sourceMappingURL=healthcare.controller.js.map

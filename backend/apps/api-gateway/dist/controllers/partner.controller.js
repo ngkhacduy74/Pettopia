@@ -89,6 +89,16 @@ let PartnerController = class PartnerController {
             message: 'Yêu cầu gửi lời mời thành viên đang được xử lý.',
         };
     }
+    async acceptClinicInvitation(token, vet_id) {
+        return await (0, rxjs_1.lastValueFrom)(this.partnerService.send({ cmd: 'acceptClinicMemberInvitation' }, { token, vet_id }));
+    }
+    async declineClinicInvitation(token) {
+        this.partnerService.emit({ cmd: 'declineClinicMemberInvitation' }, { token });
+        return {
+            statusCode: common_1.HttpStatus.ACCEPTED,
+            message: 'Yêu cầu từ chối lời mời đang được xử lý.',
+        };
+    }
     async getClinicById(idClinic) {
         return await (0, rxjs_1.lastValueFrom)(this.partnerService.send({ cmd: 'getClinicById' }, { id: idClinic }));
     }
@@ -122,40 +132,11 @@ let PartnerController = class PartnerController {
             message: 'Yêu cầu cập nhật thông tin phòng khám đang được xử lý.',
         };
     }
-    async updateClinicActiveStatus(idClinic, is_active) {
-        const payload = { id: idClinic, is_active };
-        this.partnerService.emit({ cmd: 'updateClinicActiveStatus' }, payload);
-        return {
-            statusCode: common_1.HttpStatus.ACCEPTED,
-            message: 'Yêu cầu cập nhật trạng thái hoạt động đang được xử lý.',
-        };
-    }
-    async acceptClinicInvitation(token, vet_id) {
-        this.partnerService.emit({ cmd: 'acceptClinicMemberInvitation' }, { token, vet_id });
-        return {
-            statusCode: common_1.HttpStatus.ACCEPTED,
-            message: 'Yêu cầu chấp nhận lời mời đang được xử lý.',
-        };
-    }
-    async declineClinicInvitation(token) {
-        this.partnerService.emit({ cmd: 'declineClinicMemberInvitation' }, { token });
-        return {
-            statusCode: common_1.HttpStatus.ACCEPTED,
-            message: 'Yêu cầu từ chối lời mời đang được xử lý.',
-        };
-    }
-    async vetRegister(data, user_id) {
-        this.partnerService.emit({ cmd: 'registerVet' }, { ...data, user_id });
-        return {
-            statusCode: common_1.HttpStatus.ACCEPTED,
-            message: 'Yêu cầu đăng ký Vet đang được xử lý.',
-        };
-    }
-    async getAllVetForm(page = 1, limit = 10, status) {
-        return await (0, rxjs_1.lastValueFrom)(this.partnerService.send({ cmd: 'getAllVetForm' }, { page, limit, status }));
-    }
     async getVetFormById(id) {
         return await (0, rxjs_1.lastValueFrom)(this.partnerService.send({ cmd: 'getVetFormById' }, { id }));
+    }
+    async vetRegister(data, user_id) {
+        return await (0, rxjs_1.lastValueFrom)(this.partnerService.send({ cmd: 'registerVet' }, { ...data, user_id }));
     }
     async createService(data, clinic_id) {
         this.partnerService.emit({ cmd: 'createService' }, { data, clinic_id });
@@ -333,6 +314,27 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], PartnerController.prototype, "inviteClinicMember", null);
 __decorate([
+    (0, common_1.UseGuards)(jwtAuth_guard_1.JwtAuthGuard, role_guard_1.RoleGuard),
+    (0, roles_decorator_1.Roles)(roles_decorator_1.Role.USER, roles_decorator_1.Role.VET),
+    (0, common_1.Post)('/clinic/invitations/:token/accept'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    __param(0, (0, common_1.Param)('token')),
+    __param(1, (0, user_decorator_1.UserToken)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", Promise)
+], PartnerController.prototype, "acceptClinicInvitation", null);
+__decorate([
+    (0, common_1.UseGuards)(jwtAuth_guard_1.JwtAuthGuard, role_guard_1.RoleGuard),
+    (0, roles_decorator_1.Roles)(roles_decorator_1.Role.VET),
+    (0, common_1.Post)('/clinic/invitations/:token/decline'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.ACCEPTED),
+    __param(0, (0, common_1.Param)('token')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], PartnerController.prototype, "declineClinicInvitation", null);
+__decorate([
     (0, common_1.UseGuards)(jwtAuth_guard_1.JwtAuthGuard),
     (0, common_1.Get)('/clinic/:id'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
@@ -392,57 +394,6 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], PartnerController.prototype, "updateClinicInfo", null);
 __decorate([
-    (0, common_1.Patch)('/clinic/active/:id'),
-    (0, common_1.HttpCode)(common_1.HttpStatus.ACCEPTED),
-    __param(0, (0, common_1.Param)('id')),
-    __param(1, (0, common_1.Body)('is_active')),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, Boolean]),
-    __metadata("design:returntype", Promise)
-], PartnerController.prototype, "updateClinicActiveStatus", null);
-__decorate([
-    (0, common_1.UseGuards)(jwtAuth_guard_1.JwtAuthGuard, role_guard_1.RoleGuard),
-    (0, roles_decorator_1.Roles)(roles_decorator_1.Role.USER, roles_decorator_1.Role.VET),
-    (0, common_1.Post)('/clinic/invitations/:token/accept'),
-    (0, common_1.HttpCode)(common_1.HttpStatus.ACCEPTED),
-    __param(0, (0, common_1.Param)('token')),
-    __param(1, (0, user_decorator_1.UserToken)('id')),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, String]),
-    __metadata("design:returntype", Promise)
-], PartnerController.prototype, "acceptClinicInvitation", null);
-__decorate([
-    (0, common_1.UseGuards)(jwtAuth_guard_1.JwtAuthGuard, role_guard_1.RoleGuard),
-    (0, roles_decorator_1.Roles)(roles_decorator_1.Role.VET),
-    (0, common_1.Post)('/clinic/invitations/:token/decline'),
-    (0, common_1.HttpCode)(common_1.HttpStatus.ACCEPTED),
-    __param(0, (0, common_1.Param)('token')),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
-    __metadata("design:returntype", Promise)
-], PartnerController.prototype, "declineClinicInvitation", null);
-__decorate([
-    (0, common_1.UseGuards)(jwtAuth_guard_1.JwtAuthGuard, role_guard_1.RoleGuard),
-    (0, roles_decorator_1.Roles)(roles_decorator_1.Role.USER),
-    (0, common_1.Post)('/vet/register'),
-    (0, common_1.HttpCode)(common_1.HttpStatus.ACCEPTED),
-    __param(0, (0, common_1.Body)()),
-    __param(1, (0, user_decorator_1.UserToken)('id')),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, String]),
-    __metadata("design:returntype", Promise)
-], PartnerController.prototype, "vetRegister", null);
-__decorate([
-    (0, common_1.Get)('/vet/form'),
-    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
-    __param(0, (0, common_1.Query)('page', new common_1.ParseIntPipe({ optional: true }))),
-    __param(1, (0, common_1.Query)('limit', new common_1.ParseIntPipe({ optional: true }))),
-    __param(2, (0, common_1.Query)('status')),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, Object, String]),
-    __metadata("design:returntype", Promise)
-], PartnerController.prototype, "getAllVetForm", null);
-__decorate([
     (0, common_1.Get)('/vet/form/:id'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
     __param(0, (0, common_1.Param)('id')),
@@ -450,6 +401,17 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", Promise)
 ], PartnerController.prototype, "getVetFormById", null);
+__decorate([
+    (0, common_1.UseGuards)(jwtAuth_guard_1.JwtAuthGuard, role_guard_1.RoleGuard),
+    (0, roles_decorator_1.Roles)(roles_decorator_1.Role.USER),
+    (0, common_1.Post)('/vet/register'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    __param(0, (0, common_1.Body)()),
+    __param(1, (0, user_decorator_1.UserToken)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", Promise)
+], PartnerController.prototype, "vetRegister", null);
 __decorate([
     (0, common_1.UseGuards)(jwtAuth_guard_1.JwtAuthGuard, role_guard_1.RoleGuard),
     (0, roles_decorator_1.Roles)(roles_decorator_1.Role.CLINIC),
