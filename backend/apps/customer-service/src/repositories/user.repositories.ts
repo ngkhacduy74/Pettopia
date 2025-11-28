@@ -17,6 +17,9 @@ export class UsersRepository {
   async findOneById(id: string): Promise<User | null> {
     return this.userModel.findOne({ id }).lean().exec();
   }
+  async findOneByIdNotAdmin(id:string):Promise<User| null>{
+    return this.userModel.findOne({ id }).select({ password: 0, __v: 0, secretKey: 0 ,is_active:0,reward_point:0,role:0}).lean().exec();
+  }
 
   async findOneByUsername(username: string): Promise<User | null> {
     return this.userModel.findOne({ username }).select('+password').exec();

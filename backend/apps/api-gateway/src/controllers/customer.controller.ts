@@ -7,6 +7,8 @@ import {
   HttpCode,
   HttpStatus,
   Inject,
+  InternalServerErrorException,
+  NotFoundException,
   Param,
   ParseIntPipe,
   Patch,
@@ -36,14 +38,35 @@ export class CustomerController {
     return user;
   }
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles(Role.ADMIN, Role.STAFF)
+  @Roles(Role.ADMIN, Role.STAFF, Role.CLINIC)
   @Get(':id')
   @HttpCode(HttpStatus.OK)
-  async getUserById(@Param('id') idUser: string) {
-    const user = await lastValueFrom(
-      this.customerService.send({ cmd: 'getUserById' }, { id: idUser }),
-    );
-    return user;
+  async getUserById(
+    @Param('id') idUser: string,
+    @UserToken('role') roles: string | string[]
+  ) {
+    try {
+      const roleArray = Array.isArray(roles) ? roles : [roles];
+      
+      const user = await lastValueFrom(
+        this.customerService.send(
+          { cmd: 'getUserById' }, 
+          { 
+            id: idUser,
+            role: roleArray
+          }
+        )
+      );
+      
+      if (!user) {
+        throw new NotFoundException('Không tìm thấy người dùng');
+      }
+      
+      return user;
+    } catch (error) {
+      console.error('Lỗi khi lấy thông tin người dùng:', error);
+      throw new InternalServerErrorException('Có lỗi xảy ra khi xử lý yêu cầu');
+    }
   }
 
   @UseGuards(JwtAuthGuard, RoleGuard)

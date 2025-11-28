@@ -47,10 +47,6 @@ export class ServiceRepository {
     } catch {}
   }
 
-  // ============================================================
-  // Key Helpers
-  // ============================================================
-
   private getServiceKey(id: string): string {
     return `service:${id}`;
   }
@@ -80,10 +76,6 @@ export class ServiceRepository {
     } catch {}
   }
 
-  // ============================================================
-  // CREATE SERVICE
-  // ============================================================
-
   async createService(
     data: CreateServiceDto,
     clinic_id: string,
@@ -100,10 +92,6 @@ export class ServiceRepository {
       );
     }
   }
-
-  // ============================================================
-  // GET ALL SERVICES (paginated)
-  // ============================================================
 
   async getAllService(
     page: number,
@@ -141,10 +129,6 @@ export class ServiceRepository {
     }
   }
 
-  // ============================================================
-  // GET SERVICES BY CLINIC (simple version)
-  // ============================================================
-
   async findServicesByClinicId(
     clinicId: string,
     skip: number,
@@ -176,10 +160,6 @@ export class ServiceRepository {
     }
   }
 
-  // ============================================================
-  // COUNT ACTIVE SERVICES BY CLINIC
-  // ============================================================
-
   async countServicesByClinicId(clinicId: string): Promise<number> {
     const cacheKey = `services:count:clinic:${clinicId}`;
 
@@ -203,10 +183,6 @@ export class ServiceRepository {
       );
     }
   }
-
-  // ============================================================
-  // UPDATE SERVICE
-  // ============================================================
 
   async updateService(
     serviceId: string,
@@ -237,10 +213,6 @@ export class ServiceRepository {
     }
   }
 
-  // ============================================================
-  // REMOVE SERVICE
-  // ============================================================
-
   async removeService(serviceId: string, clinic_id: string): Promise<any> {
     try {
       const result = await this.serviceModel.deleteOne({
@@ -262,10 +234,6 @@ export class ServiceRepository {
       );
     }
   }
-
-  // ============================================================
-  // UPDATE STATUS
-  // ============================================================
 
   async updateServiceStatus(id: string, is_active: boolean): Promise<Service> {
     try {
@@ -291,10 +259,6 @@ export class ServiceRepository {
       );
     }
   }
-
-  // ============================================================
-  // GET SERVICES BY CLINIC (full version)
-  // ============================================================
 
   async getServicesByClinicId(
     clinic_id: string,
@@ -334,10 +298,6 @@ export class ServiceRepository {
       );
     }
   }
-
-  // ============================================================
-  // GET SERVICE BY ID
-  // ============================================================
 
   async getServiceById(id: string): Promise<Service | null> {
     const cacheKey = this.getServiceKey(id);

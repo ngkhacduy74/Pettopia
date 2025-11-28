@@ -3,7 +3,7 @@ import {
   Injectable,
   HttpStatus, // Thêm HttpStatus
 } from '@nestjs/common';
-import { User } from '../schemas/user.schema';
+import { User, UserRole } from '../schemas/user.schema';
 import * as bcrypt from 'bcrypt';
 import { RpcException } from '@nestjs/microservices'; // Chỉ cần RpcException
 import { UsersRepository } from '../repositories/user.repositories';
@@ -18,28 +18,42 @@ import {
 export class AppService {
   constructor(private userRepositories: UsersRepository) {}
 
-  async getUserById(id: string): Promise<User> {
-    try {
-      const user = await this.userRepositories.findOneById(id);
-      console.log('userReopsasd', user);
-      if (!user) {
-        throw new RpcException({
-          status: HttpStatus.NOT_FOUND,
-          message: `Không tìm thấy người dùng với id: ${id}`,
-        });
-      }
-      return user;
-    } catch (err) {
-      if (err instanceof RpcException) {
-        throw err;
-      }
+async getUserById(id: string, role?: string | string[]): Promise<User | null> {
+  try {
+    let user: User | null = null;
+    
+  
+    const userRoles = Array.isArray(role) ? role : [role];
+
+    const isAdminOrStaff = userRoles.includes(UserRole.ADMIN) || userRoles.includes(UserRole.STAFF);
+
+    if (isAdminOrStaff) {
+
+      user = await this.userRepositories.findOneById(id);
+    } else {
+
+      user = await this.userRepositories.findOneByIdNotAdmin(id);
+    }
+
+    if (!user) {
       throw new RpcException({
-        status: HttpStatus.INTERNAL_SERVER_ERROR,
-        message:
-          err.message || `Lỗi khi lấy thông tin người dùng với id: ${id}`,
+        status: HttpStatus.NOT_FOUND,
+        message: `Không tìm thấy người dùng với id: ${id}`,
       });
     }
+
+    return user;
+
+  } catch (err) {
+
+    console.error('ERROR LOG:', err); 
+    if (err instanceof RpcException) throw err;
+    throw new RpcException({
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        message: err.message
+    });
   }
+}
 
   async getUserByUsername(username: string): Promise<User> {
     try {

@@ -28,36 +28,32 @@ import { handleRpcError } from '../common/error.detail';
 export class AppController {
   constructor(private readonly appService: AppService) {}
   @MessagePattern({ cmd: 'getUserById' })
-  async getUserById(@Payload() data: GetUserByIdDto): Promise<User> {
+  async getUserById(@Payload() data: any): Promise<User | null> {
     try {
-      const result = await this.appService.getUserById(data.id);
+      console.log('Received getUserById request with data:', data);
+      const result = await this.appService.getUserById(data.id, data.role);
+      console.log('User found:', result ? 'Yes' : 'No');
       return result;
     } catch (err) {
+      console.error('Error in handleGetUserById:', {
+        error: err.message,
+        stack: err.stack
+      });
       handleRpcError('AppController.getUserById', err);
+      return null;
     }
-  }@MessagePattern({ cmd: 'updateUserPasswordById' })
-async updateUserPasswordById(
-  @Payload() data: { id: string; newPassword: string },
-): Promise<{ success: boolean }> {
-  try {
-    return await this.appService.updatePasswordById(
-      data.id,
-      data.newPassword,
-    );
-  } catch (err) {
-    handleRpcError('AppController.updateUserPasswordById', err);
   }
-}
 
   @MessagePattern({ cmd: 'getUserByUsername' })
   async getUserByUsername(
     @Payload() data: GetUserByUsernameDto,
-  ): Promise<User> {
+  ): Promise<User | null> {
     try {
       const result = await this.appService.getUserByUsername(data.username);
       return result;
     } catch (err) {
       handleRpcError('AppController.getUserByUsername', err);
+      return null;
     }
   }
   @MessagePattern({ cmd: 'getUserByEmail' })
