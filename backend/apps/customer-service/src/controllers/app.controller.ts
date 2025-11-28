@@ -11,7 +11,6 @@ import { CheckPhoneExistDto } from '../dto/request/check-phone-exist.dto';
 import { CreateUserDto } from '../dto/user/create-user.dto';
 import { DeleteUserByIdDto } from '../dto/request/delete-user-by-id.dto';
 import { UpdateUserStatusDto } from '../dto/request/update-user-status.dto';
-import { UpdateProfileDto } from '../dto/user/update-profile.dto';
 import {
   GetAllUsersDto,
   PaginatedUsersResponse,
@@ -36,7 +35,20 @@ export class AppController {
     } catch (err) {
       handleRpcError('AppController.getUserById', err);
     }
+  }@MessagePattern({ cmd: 'updateUserPasswordById' })
+async updateUserPasswordById(
+  @Payload() data: { id: string; newPassword: string },
+): Promise<{ success: boolean }> {
+  try {
+    return await this.appService.updatePasswordById(
+      data.id,
+      data.newPassword,
+    );
+  } catch (err) {
+    handleRpcError('AppController.updateUserPasswordById', err);
   }
+}
+
   @MessagePattern({ cmd: 'getUserByUsername' })
   async getUserByUsername(
     @Payload() data: GetUserByUsernameDto,
@@ -171,22 +183,16 @@ export class AppController {
     }
   }
   @MessagePattern({ cmd: 'updateUserPassword' })
-async updateUserPassword(@Payload() data: { email: string; newPassword: string }): Promise<{ success: boolean }> {
-  try {
-    return await this.appService.updatePasswordByEmail(data.email, data.newPassword);
-  } catch (err) {
-    handleRpcError('AppController.updateUserPassword', err);
+  async updateUserPassword(
+    @Payload() data: { email: string; newPassword: string },
+  ): Promise<{ success: boolean }> {
+    try {
+      return await this.appService.updatePasswordByEmail(
+        data.email,
+        data.newPassword,
+      );
+    } catch (err) {
+      handleRpcError('AppController.updateUserPassword', err);
+    }
   }
-}
-@MessagePattern({ cmd: 'updateUserProfile' })
-async updateUserProfile(
-  @Payload() payload: { userId: string; data: UpdateProfileDto },
-): Promise<User> {
-  try {
-    const { userId, data } = payload;
-    return await this.appService.updateProfile(userId, data);
-  } catch (err) {
-    handleRpcError('AppController.updateUserProfile', err);
-  }
-}
 }

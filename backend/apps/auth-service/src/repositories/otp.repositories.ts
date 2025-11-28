@@ -3,10 +3,13 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Otp, OtpDocument, OtpMethod } from '../schemas/otp.schema';
-
+import redisClient from '../common/redis/redis.module.js';
 @Injectable()
 export class OtpRepository {
-  constructor(@InjectModel(Otp.name) private otpModel: Model<OtpDocument>) {}
+  private redis: typeof redisClient;
+  constructor(@InjectModel(Otp.name) private otpModel: Model<OtpDocument>) {
+    this.redis = redisClient;
+  }
 
   async createOtp(
     target: string,

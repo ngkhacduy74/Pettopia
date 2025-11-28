@@ -6,10 +6,11 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { ClinicService } from '../../services/clinic/clinic.service';
-import { MessagePattern, Payload, RpcException } from '@nestjs/microservices';
+import { MessagePattern, Payload, RpcException, EventPattern } from '@nestjs/microservices';
 import { handleRpcError } from 'src/common/error.detail';
 import { ServiceService } from 'src/services/clinic/service.service';
 import { CreateServiceDto } from 'src/dto/clinic/services/create-service.dto';
+
 @UsePipes(
   new ValidationPipe({
     transform: true,
@@ -24,16 +25,12 @@ export class ServiceController {
     private readonly serviceService: ServiceService,
   ) {}
 
-  @MessagePattern({ cmd: 'createService' })
+  @EventPattern({ cmd: 'createService' })
   async createService(
     @Payload() data: { data: CreateServiceDto; clinic_id: string },
-  ): Promise<any> {
+  ) {
     try {
-      const result = await this.clinicService.createService(
-        data.data,
-        data.clinic_id,
-      );
-      return result;
+      await this.clinicService.createService(data.data, data.clinic_id);
     } catch (err) {
       handleRpcError('PartnerController.createService', err);
     }
@@ -52,7 +49,7 @@ export class ServiceController {
     }
   }
 
-  @MessagePattern({ cmd: 'update_service' })
+  @EventPattern({ cmd: 'update_service' })
   async updateService(
     @Payload()
     payload: {
@@ -60,31 +57,26 @@ export class ServiceController {
       updateServiceDto: any;
       clinic_id: string;
     },
-  ): Promise<any> {
+  ) {
     try {
       const { serviceId, updateServiceDto, clinic_id } = payload;
-      const result = await this.clinicService.updateService(
+      await this.clinicService.updateService(
         serviceId,
         updateServiceDto,
         clinic_id,
       );
-      return result;
     } catch (err) {
       handleRpcError('PartnerController.updateService', err);
     }
   }
 
-  @MessagePattern({ cmd: 'remove_service' })
+  @EventPattern({ cmd: 'remove_service' })
   async removeService(
     @Payload() payload: { serviceId: string; clinic_id: string },
-  ): Promise<any> {
+  ) {
     try {
       const { serviceId, clinic_id } = payload;
-      const result = await this.clinicService.removeService(
-        serviceId,
-        clinic_id,
-      );
-      return result;
+      await this.clinicService.removeService(serviceId, clinic_id);
     } catch (err) {
       handleRpcError('PartnerController.removeService', err);
     }
@@ -165,34 +157,18 @@ export class ServiceController {
     }
   }
 
-  @MessagePattern({ cmd: 'updateServiceStatus' })
+  @EventPattern({ cmd: 'updateServiceStatus' })
   async updateServiceStatus(
     @Payload() payload: { id: string; is_active: boolean },
-  ): Promise<any> {
+  ) {
     try {
       const { id, is_active } = payload;
-      const result = await this.clinicService.updateServiceStatus(
-        id,
-        is_active,
-      );
-      return result;
+      await this.clinicService.updateServiceStatus(id, is_active);
     } catch (err) {
       handleRpcError('PartnerController.updateServiceStatus', err);
     }
   }
-  // @MessagePattern({ cmd: 'getServicesByClinicId' })
-  // async getServicesByClinicId(
-  //   @Payload() data: { clinic_id: string },
-  // ): Promise<any> {
-  //   try {
-  //     const result = await this.serviceService.getServicesByClinicId(
-  //       data.clinic_id,
-  //     );
-  //     return result;
-  //   } catch (err) {
-  //     handleRpcError('PartnerController.getServicesByClinicId', err);
-  //   }
-  // }
+
   @MessagePattern({ cmd: 'getServiceById' })
   async getServiceById(@Payload() data: { id: string }): Promise<any> {
     try {

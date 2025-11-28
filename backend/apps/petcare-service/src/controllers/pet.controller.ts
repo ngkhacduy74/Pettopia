@@ -11,7 +11,7 @@ import { GetPetByIdDto } from '../dto/pet/get-pet-by-id.dto';
 export class PetController {
   private readonly logger = new Logger(PetController.name);
 
-  constructor(private readonly petService: PetService) {}
+  constructor(private readonly petService: PetService) { }
 
   // @Post(':userId')
   // @HttpCode(HttpStatus.CREATED)
@@ -79,6 +79,16 @@ export class PetController {
     }
   }
 
+  @MessagePattern({ cmd: 'getPetsByIds' })
+  async getPetsByIds(data: { ids: string[] }): Promise<PetResponseDto[]> {
+    try {
+      return await this.petService.findByIds(data.ids);
+    } catch (error) {
+      this.logger.error('Error fetching pets by IDs:', error);
+      return [{ message: 'Failed to fetch pets', error: error.message }] as any;
+    }
+  }
+
   // @Get(':pet_id')
   // async findById(@Param('pet_id') pet_id: string): Promise<PetResponseDto> {
   //   return this.petService.findById(pet_id);
@@ -127,6 +137,25 @@ export class PetController {
     } catch (error) {
       this.logger.error('Error deleting pet:', error);
       return { message: 'Failed to delete pet', error: error.message } as any;
+    }
+  }
+
+  @MessagePattern({ cmd: 'addMedicalRecordToPet' })
+  async addMedicalRecordToPet(data: {
+    pet_id: string;
+    medical_record_id: string;
+  }): Promise<any> {
+    try {
+      return await this.petService.addMedicalRecord(
+        data.pet_id,
+        data.medical_record_id,
+      );
+    } catch (error) {
+      this.logger.error('Error adding medical record to pet:', error);
+      return {
+        message: 'Failed to add medical record to pet',
+        error: error.message,
+      } as any;
     }
   }
 }

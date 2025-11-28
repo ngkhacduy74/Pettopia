@@ -19,21 +19,33 @@ import { ClientProxy } from '@nestjs/microservices';
 import { Role, Roles } from 'src/decorators/roles.decorator';
 import { JwtAuthGuard } from 'src/guard/jwtAuth.guard';
 import { RoleGuard } from 'src/guard/role.guard';
+import { UserToken } from 'src/decorators/user.decorator';
 
 @Controller('api/v1/customer')
 export class CustomerController {
   constructor(
     @Inject('CUSTOMER_SERVICE') private readonly customerService: ClientProxy,
   ) {}
-  // @UseGuards(JwtAuthGuard)
-  @Get(':id')
+  @UseGuards(JwtAuthGuard)
+  @Get('/profile')
   @HttpCode(HttpStatus.OK)
-  async getUserById(@Param('id') id: string) {
+  async getUserProfile(@UserToken('id') id: string) {
     const user = await lastValueFrom(
       this.customerService.send({ cmd: 'getUserById' }, { id }),
     );
     return user;
   }
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.ADMIN, Role.STAFF)
+  @Get(':id')
+  @HttpCode(HttpStatus.OK)
+  async getUserById(@Param('id') idUser: string) {
+    const user = await lastValueFrom(
+      this.customerService.send({ cmd: 'getUserById' }, { id: idUser }),
+    );
+    return user;
+  }
+
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(Role.ADMIN)
   @Delete(':id')

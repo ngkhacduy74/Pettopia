@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import { GoogleGenerativeAI, GenerativeModel } from '@google/generative-ai';
+import { ClientsModule, Transport } from '@nestjs/microservices';
 import { GeminiService } from './gemini.service';
 import { GeminiController } from './gemini.controller';
 import { ConversationService } from './conversation.service';
@@ -15,6 +16,48 @@ import {
     ConfigModule,
     MongooseModule.forFeature([
       { name: Conversation.name, schema: ConversationSchema },
+    ]),
+    ClientsModule.registerAsync([
+      {
+        name: 'HEALTHCARE_SERVICE',
+        imports: [ConfigModule],
+        inject: [ConfigService],
+        useFactory: (configService: ConfigService) => ({
+          transport: Transport.RMQ,
+          options: {
+            urls: [
+              configService.get<string>(
+                'RMQ_URL',
+                'amqp://guest:guest@rabbitmq:5672',
+              ),
+            ],
+            queue: 'healthcare_service_queue',
+            queueOptions: {
+              durable: true,
+            },
+          },
+        }),
+      },
+      {
+        name: 'PARTNER_SERVICE',
+        imports: [ConfigModule],
+        inject: [ConfigService],
+        useFactory: (configService: ConfigService) => ({
+          transport: Transport.RMQ,
+          options: {
+            urls: [
+              configService.get<string>(
+                'RMQ_URL',
+                'amqp://guest:guest@rabbitmq:5672',
+              ),
+            ],
+            queue: 'partner_service_queue',
+            queueOptions: {
+              durable: true,
+            },
+          },
+        }),
+      },
     ]),
   ],
   controllers: [GeminiController],
@@ -50,5 +93,3 @@ import {
   ],
 })
 export class GeminiModule {}
-
-

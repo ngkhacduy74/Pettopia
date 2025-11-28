@@ -41,24 +41,8 @@ export class AuditLogs {
   delete_time?: Date;
 }
 export const AuditLogsSchema = SchemaFactory.createForClass(AuditLogs);
-@Schema({ _id: false })
-export class Location {
-  @Prop({ type: String, enum: ['Point'], required: true, default: 'Point' })
-  type: 'Point';
 
-  @Prop({
-    type: [Number],
-    required: true,
-    index: '2dsphere',
-    validate: {
-      validator: (v: number[]) => v.length === 2,
-      message: 'Coordinates must be an array of [lng, lat]',
-    },
-  })
-  coordinates: number[];
-}
 
-export const LocationSchema = SchemaFactory.createForClass(Location);
 
 @Schema({
   timestamps: true,
@@ -125,8 +109,7 @@ export class User {
   @Prop({ type: AddressSchema })
   address: Address;
 
-  @Prop({ type: LocationSchema, required: false })
-  location?: Location;
+  
 
   @Prop({ type: Number, default: 0, min: [0, 'Reward point must be positive'] })
   reward_point: number;

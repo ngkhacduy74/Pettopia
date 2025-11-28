@@ -16,7 +16,7 @@ import axios from 'axios';
 import { ForgotPasswordDto } from 'src/dtos/forgot-password.dto';
 import { ResetPasswordDto } from '../dtos/reset-password.dto';
 import { ChangePasswordDto } from '../dtos/change-password.dto';
-import { OtpService } from './otp.service';  
+import { OtpService } from './otp.service';
 import { MailTemplateService } from './mail.template.service';
 @Injectable()
 export class AuthService {
@@ -40,9 +40,7 @@ export class AuthService {
           isEmail
             ? { cmd: 'getUserByEmailForAuth' }
             : { cmd: 'getUserByUsername' },
-          isEmail
-            ? { email_address: identifier }
-            : { username: identifier },
+          isEmail ? { email_address: identifier } : { username: identifier },
         ),
       ).catch((error) => {
         console.error(
@@ -64,7 +62,7 @@ export class AuthService {
           'Not Found',
         );
       }
-  
+
       const isMatch = await bcrypt.compare(data.password, exist_user.password);
       console.log('isMatch123132', isMatch);
       if (!isMatch) {
@@ -185,8 +183,6 @@ export class AuthService {
       });
 
       const { password, ...userWithoutPassword } = savedUser;
-
-      // Gửi email chào mừng (kèm username và mật khẩu, nhắc nhở bảo mật)
       try {
         await this.mailTemplateService.sendUserWelcomeEmail(
           userWithoutPassword.email?.email_address || data.email_address,
@@ -223,7 +219,7 @@ export class AuthService {
     try {
       const user = await lastValueFrom(
         this.customerClient.send(
-          { cmd: 'getUserByEmail' },  
+          { cmd: 'getUserByEmail' },
           { email_address: data.email },
         ),
       );
@@ -252,7 +248,10 @@ export class AuthService {
   async resetPassword(data: ResetPasswordDto): Promise<any> {
     try {
       // Verify OTP
-      const verifyResult = await this.otpService.verifyEmailOtp(data.email, data.otp);
+      const verifyResult = await this.otpService.verifyEmailOtp(
+        data.email,
+        data.otp,
+      );
       if (!verifyResult.success) {
         throw createRpcError(
           HttpStatus.BAD_REQUEST,
@@ -265,10 +264,9 @@ export class AuthService {
       const salt = await bcrypt.genSalt(10);
       const hashPass = await bcrypt.hash(data.newPassword, salt);
 
-      // Update password qua customer service
       const updateResult = await lastValueFrom(
         this.customerClient.send(
-          { cmd: 'updateUserPassword' },  // Giả định customer service có cmd này, bạn cần implement nếu chưa có
+          { cmd: 'updateUserPassword' }, 
           { email: data.email, newPassword: hashPass },
         ),
       ).catch((error) => {
@@ -305,19 +303,24 @@ export class AuthService {
   async changePassword(data: ChangePasswordDto & { userId: string }) {
     try {
       const user = await lastValueFrom(
-        this.customerClient.send(
-          { cmd: 'getUserById' },
-          { id: data.userId },
-        ),
+        this.customerClient.send({ cmd: 'getUserById' }, { id: data.userId }),
       );
 
       if (!user) {
-        throw createRpcError(HttpStatus.NOT_FOUND, 'Người dùng không tồn tại', 'Not Found');
+        throw createRpcError(
+          HttpStatus.NOT_FOUND,
+          'Người dùng không tồn tại',
+          'Not Found',
+        );
       }
 
       const isMatch = await bcrypt.compare(data.oldPassword, user.password);
       if (!isMatch) {
-        throw createRpcError(HttpStatus.UNAUTHORIZED, 'Mật khẩu cũ không đúng', 'Unauthorized');
+        throw createRpcError(
+          HttpStatus.UNAUTHORIZED,
+          'Mật khẩu cũ không đúng',
+          'Unauthorized',
+        );
       }
 
       const salt = await bcrypt.genSalt(10);

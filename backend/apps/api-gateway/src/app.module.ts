@@ -17,83 +17,146 @@ import { PaymentController } from './controllers/payment.controller';
     ConfigModule.forRoot({
       isGlobal: true,
     }),
-    ClientsModule.register([
+    ClientsModule.registerAsync([
       {
         name: 'AUTH_SERVICE',
-        transport: Transport.TCP,
-        options: {
-          host:
-            process.env.NODE_ENV === 'production'
-              ? 'auth-service'
-              : 'localhost',
-          port: 5001,
-        },
+        imports: [ConfigModule],
+        inject: [ConfigService],
+        useFactory: (configService: ConfigService) => ({
+          transport: Transport.RMQ,
+          options: {
+            urls: [
+              configService.get<string>(
+                'RMQ_URL',
+                'amqp://guest:guest@rabbitmq:5672',
+              ),
+            ],
+            queue: 'auth_service_queue',
+            queueOptions: {
+              durable: true,
+            },
+          },
+        }),
       },
       {
         name: 'CUSTOMER_SERVICE',
-        transport: Transport.TCP,
-        options: {
-          host:
-            process.env.NODE_ENV === 'production'
-              ? 'customer-service'
-              : 'localhost',
-          port: 5002,
-        },
+        imports: [ConfigModule],
+        inject: [ConfigService],
+        useFactory: (configService: ConfigService) => ({
+          transport: Transport.RMQ,
+          options: {
+            urls: [
+              configService.get<string>(
+                'RMQ_URL',
+                'amqp://guest:guest@rabbitmq:5672',
+              ),
+            ],
+            queue: 'customer_service_queue',
+            queueOptions: {
+              durable: true,
+            },
+          },
+        }),
       },
       {
         name: 'PETCARE_SERVICE',
-        transport: Transport.TCP,
-        options: {
-          host:
-            process.env.NODE_ENV === 'production'
-              ? 'petcare-service'
-              : 'localhost',
-          port: 5003,
-        },
+        imports: [ConfigModule],
+        inject: [ConfigService],
+        useFactory: (configService: ConfigService) => ({
+          transport: Transport.RMQ,
+          options: {
+            urls: [
+              configService.get<string>(
+                'RMQ_URL',
+                'amqp://guest:guest@rabbitmq:5672',
+              ),
+            ],
+            queue: 'petcare_service_queue',
+            queueOptions: {
+              durable: true,
+            },
+          },
+        }),
       },
       {
         name: 'PARTNER_SERVICE',
-        transport: Transport.TCP,
-        options: {
-          host:
-            process.env.NODE_ENV === 'production'
-              ? 'partner-service'
-              : 'localhost',
-          port: 5004,
-        },
+        imports: [ConfigModule],
+        inject: [ConfigService],
+        useFactory: (configService: ConfigService) => ({
+          transport: Transport.RMQ,
+          options: {
+            urls: [
+              configService.get<string>(
+                'RMQ_URL',
+                'amqp://guest:guest@rabbitmq:5672',
+              ),
+            ],
+            queue: 'partner_service_queue',
+            queueOptions: {
+              durable: true,
+            },
+          },
+        }),
       },
       {
         name: 'HEALTHCARE_SERVICE',
-        transport: Transport.TCP,
-        options: {
-          host:
-            process.env.NODE_ENV === 'production'
-              ? 'healthcare-service'
-              : 'localhost',
-          port: 5005,
-        },
+        imports: [ConfigModule],
+        inject: [ConfigService],
+        useFactory: (configService: ConfigService) => ({
+          transport: Transport.RMQ,
+          options: {
+            urls: [
+              configService.get<string>(
+                'RMQ_URL',
+                'amqp://guest:guest@rabbitmq:5672',
+              ),
+            ],
+            queue: 'healthcare_service_queue',
+            queueOptions: {
+              durable: true,
+            },
+          },
+        }),
       },
       {
         name: 'COMMUNICATION_SERVICE',
-        transport: Transport.TCP,
-        options: {
-          host:
-            process.env.NODE_ENV === 'production'
-              ? 'communication-service'
-              : 'localhost',
-          port: 5006,
-        },
+        imports: [ConfigModule],
+        inject: [ConfigService],
+        useFactory: (configService: ConfigService) => ({
+          transport: Transport.RMQ,
+          options: {
+            urls: [
+              configService.get<string>(
+                'RMQ_URL',
+                'amqp://guest:guest@rabbitmq:5672',
+              ),
+            ],
+            queue: 'communication_service_queue',
+            queueOptions: {
+              durable: true,
+            },
+          },
+        }),
       },
       {
         name: 'BILLING_SERVICE',
-        transport: Transport.TCP,
-        options: {
-          host:
-            process.env.NODE_ENV === 'production'
-              ? 'billing-service'
-              : 'localhost',
-          port: 5007,
-        },
+        imports: [ConfigModule],
+        inject: [ConfigService],
+        useFactory: (configService: ConfigService) => ({
+          transport: Transport.RMQ,
+          options: {
+            urls: [
+              configService.get<string>(
+                'RMQ_URL',
+                'amqp://guest:guest@rabbitmq:5672',
+              ),
+            ],
+            queue: 'billing_service_queue',
+            queueOptions: {
+              durable: true,
+            },
+          },
+        }),
       },
     ]),
     JwtModule.registerAsync({

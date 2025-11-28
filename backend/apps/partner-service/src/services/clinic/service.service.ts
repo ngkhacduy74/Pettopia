@@ -1,24 +1,12 @@
 import { RpcException } from '@nestjs/microservices';
 import { HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { CreateServiceDto } from 'src/dto/clinic/services/create-service.dto';
-import { ServiceRepository } from 'src/repositories/clinic/service.repositories';
+
 import { ClinicService } from './clinic.service';
 import { ClinicsRepository } from 'src/repositories/clinic/clinic.repositories';
-import { lastValueFrom } from 'rxjs';
+import { ServiceRepository } from 'src/repositories/clinic/service.repositories';
+import { createRpcError } from 'src/common/error.detail';
 
-const createRpcError = (
-  statusCode: number,
-  message: string,
-  error: string,
-  details?: any,
-) => {
-  return new RpcException({
-    statusCode,
-    message,
-    error,
-    ...(details && { details }),
-  });
-};
 
 @Injectable()
 export class ServiceService {
@@ -26,7 +14,7 @@ export class ServiceService {
     private readonly serviceRepositories: ServiceRepository,
     private readonly clinicService: ClinicService,
     private readonly clinicRepositories: ClinicsRepository,
-  ) {}
+  ) { }
 
   async getAllServicesByClinicId(
     clinic_id: string,

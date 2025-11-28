@@ -39,10 +39,10 @@ export class ClinicInvitationRepository {
 
   async findByToken(token: string): Promise<ClinicInvitation | null> {
     try {
-      return await this.invitationModel.findOne({ token }).exec();
-    } catch (error) {
+      return await this.invitationModel.findOne({ token }).lean().exec();
+    } catch (err: any) {
       throw new InternalServerErrorException(
-        error.message || 'Không thể tìm lời mời theo token.',
+        err.message || 'Không thể tìm lời mời theo token.',
       );
     }
   }
@@ -58,10 +58,11 @@ export class ClinicInvitationRepository {
           invited_email,
           status: ClinicInvitationStatus.PENDING,
         })
+        .lean()
         .exec();
-    } catch (error) {
+    } catch (err: any) {
       throw new InternalServerErrorException(
-        error.message || 'Không thể tìm lời mời đang chờ.',
+        err.message || 'Không thể tìm lời mời đang chờ.',
       );
     }
   }
@@ -91,9 +92,8 @@ export class ClinicInvitationRepository {
 
       return updated;
     } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw error;
-      }
+      if (error instanceof NotFoundException) throw error;
+
       throw new InternalServerErrorException(
         error.message || 'Không thể cập nhật trạng thái lời mời.',
       );
@@ -121,9 +121,8 @@ export class ClinicInvitationRepository {
 
       return updated;
     } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw error;
-      }
+      if (error instanceof NotFoundException) throw error;
+
       throw new InternalServerErrorException(
         error.message || 'Không thể cập nhật trạng thái lời mời.',
       );
@@ -132,16 +131,16 @@ export class ClinicInvitationRepository {
 
   async cancelPendingInvitation(id: string): Promise<void> {
     try {
-      await this.invitationModel.updateOne(
-        { id, status: ClinicInvitationStatus.PENDING },
-        { status: ClinicInvitationStatus.CANCELLED },
-      );
-    } catch (error) {
+      await this.invitationModel
+        .findOneAndUpdate(
+          { id, status: ClinicInvitationStatus.PENDING },
+          { $set: { status: ClinicInvitationStatus.CANCELLED } },
+        )
+        .exec();
+    } catch (error: any) {
       throw new InternalServerErrorException(
         error.message || 'Không thể huỷ lời mời.',
       );
     }
   }
 }
-
-

@@ -8,7 +8,7 @@ import { ClinicInvitationRole } from 'src/schemas/clinic/clinic-invitation.schem
 export class ClinicInvitationController {
   constructor(
     private readonly clinicInvitationService: ClinicInvitationService,
-  ) {}
+  ) { }
 
   @MessagePattern({ cmd: 'createClinicMemberInvitation' })
   async createClinicMemberInvitation(
@@ -21,7 +21,9 @@ export class ClinicInvitationController {
     },
   ) {
     try {
+      console.log("lịausldjasd", data)
       return await this.clinicInvitationService.createInvitation(data);
+
     } catch (error) {
       handleRpcError(
         'ClinicInvitationController.createClinicMemberInvitation',

@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { IsArray, IsNotEmpty, IsOptional, IsString, ValidateNested } from 'class-validator';
+import { IsArray, IsNotEmpty, IsOptional, IsString, ValidateNested, IsUUID } from 'class-validator';
 
 export class CreateChatCompletionRequest {
   @IsArray()
@@ -14,6 +14,18 @@ export class CreateChatCompletionRequest {
   @IsString()
   @IsOptional()
   conversationId?: string;
+
+  @IsString()
+  @IsUUID('4')
+  @IsOptional()
+  clinicId?: string;
+
+  @IsString()
+  @IsOptional()
+  vetId?: string;
+
+  @IsOptional()
+  role?: string | string[]; 
 }
 
 export class ChatCompletionMessageDto {

@@ -1,5 +1,6 @@
 import { Controller, UsePipes, ValidationPipe } from '@nestjs/common';
-import { MessagePattern, Payload } from '@nestjs/microservices';
+import { MessagePattern, Payload, RpcException } from '@nestjs/microservices';
+import { HttpStatus } from '@nestjs/common';
 import { GeminiService } from './gemini.service';
 import { ConversationService } from './conversation.service';
 import { CreateChatCompletionRequest } from '../openai/dto/create-chat-completion.request';
@@ -8,7 +9,7 @@ import { CreateChatCompletionRequest } from '../openai/dto/create-chat-completio
   new ValidationPipe({
     transform: true,
     whitelist: true,
-    forbidNonWhitelisted: true,
+    forbidNonWhitelisted: false, // Cho phép các field không định nghĩa để tránh lỗi
   }),
 )
 @Controller()
@@ -20,7 +21,22 @@ export class GeminiController {
 
   @MessagePattern({ cmd: 'createGeminiChatCompletion' })
   async createChatCompletion(@Payload() body: CreateChatCompletionRequest) {
-    return this.geminiService.createChatCompletion(body);
+    try {
+      return await this.geminiService.createChatCompletion(body);
+    } catch (error) {
+      if (error instanceof RpcException) {
+        throw error;
+      }      
+
+      console.error('Unexpected error in createChatCompletion:', error);
+
+      throw new RpcException({
+        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+        message: error?.message || 'Failed to create chat completion',
+        error: 'Internal Server Error',
+        timestamp: new Date().toISOString(),
+      });
+    }
   }
 
   @MessagePattern({ cmd: 'getGeminiConversationHistory' })

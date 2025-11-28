@@ -2,11 +2,15 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
+import { ConfigService } from '@nestjs/config';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  const port = process.env.PETCARE_PORT;
-  const tcp_port = parseInt(process.env.TCP_PETCARE_PORT || '5003', 10);
+
+  const configService = app.get(ConfigService);
+
+  const port = configService.get<number>('PETCARE_PORT') || 3003;
+
   app.useGlobalPipes(
     new ValidationPipe({
       transform: true,
@@ -15,12 +19,25 @@ async function bootstrap() {
       forbidUnknownValues: true,
     }),
   );
+
   app.connectMicroservice<MicroserviceOptions>({
-    transport: Transport.TCP,
-    options: { host: '0.0.0.0', port: tcp_port },
+    transport: Transport.RMQ,
+    options: {
+      urls: [
+        configService.get<string>(
+          'RMQ_URL',
+          'amqp://guest:guest@rabbitmq:5672',
+        ),
+      ],
+      queue: 'petcare_service_queue',
+      queueOptions: {
+        durable: true,
+      },
+    },
   });
+
   await app.startAllMicroservices();
-  await app.listen(port!);
+  await app.listen(port);
   console.log('Pet-service run successfull');
 }
 

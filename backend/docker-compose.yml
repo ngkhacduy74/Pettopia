@@ -53,8 +53,10 @@ services:
     image: pantsel/konga
     container_name: konga-gui
     depends_on:
-      - kong-gateway
-      - konga-db
+      konga-db:
+        condition: service_healthy
+      kong-gateway:
+        condition: service_started
     environment:
       DB_ADAPTER: "postgres"
       DB_HOST: "konga-db"
@@ -79,7 +81,11 @@ services:
       - konga_data:/var/lib/postgresql/data
     networks:
       - pettopia-network
-
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U konga -d konga"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
   api-gateway-1:
     build:
       context: ./apps/api-gateway
@@ -89,8 +95,15 @@ services:
     ports:
       - "3333:3000"
     env_file: apps/api-gateway/.env
+    depends_on:
+      redis:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
     environment:
       - NODE_ENV=production
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
     networks:
       - pettopia-network
 
@@ -101,8 +114,15 @@ services:
     image: ${DOCKER_HUB}/pettopia-api-gateway:latest
     container_name: api-gateway-2
     env_file: apps/api-gateway/.env
+    depends_on:
+      redis:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
     environment:
       - NODE_ENV=production
+      - REDIS_HOST=redis # <--- Thêm dòng này
+      - REDIS_PORT=6379
     networks:
       - pettopia-network
 
@@ -113,6 +133,12 @@ services:
     image: ${DOCKER_HUB}/pettopia-auth-service:latest
     container_name: auth-service
     env_file: apps/auth-service/.env
+    depends_on:
+      redis:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+    restart: always
     environment:
       - NODE_ENV=production
     networks:
@@ -125,6 +151,11 @@ services:
     image: ${DOCKER_HUB}/pettopia-billing-service:latest
     container_name: billing-service
     env_file: apps/billing-service/.env
+    depends_on:
+      redis:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
     environment:
       - NODE_ENV=production
     networks:
@@ -137,6 +168,11 @@ services:
     image: ${DOCKER_HUB}/pettopia-communication-service:latest
     container_name: communication-service
     env_file: apps/communication-service/.env
+    depends_on:
+      redis:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
     environment:
       - NODE_ENV=production
     networks:
@@ -149,6 +185,11 @@ services:
     image: ${DOCKER_HUB}/pettopia-customer-service:latest
     container_name: customer-service
     env_file: apps/customer-service/.env
+    depends_on:
+      redis:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
     environment:
       - NODE_ENV=production
     networks:
@@ -161,6 +202,11 @@ services:
     image: ${DOCKER_HUB}/pettopia-healthcare-service:latest
     container_name: healthcare-service
     env_file: apps/healthcare-service/.env
+    depends_on:
+      redis:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
     environment:
       - NODE_ENV=production
     networks:
@@ -173,6 +219,11 @@ services:
     image: ${DOCKER_HUB}/pettopia-partner-service:latest
     container_name: partner-service
     env_file: apps/partner-service/.env
+    depends_on:
+      redis:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
     environment:
       - NODE_ENV=production
     networks:
@@ -185,6 +236,11 @@ services:
     image: ${DOCKER_HUB}/pettopia-petcare-service:latest
     container_name: petcare-service
     env_file: apps/petcare-service/.env
+    depends_on:
+      redis:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
     environment:
       - NODE_ENV=production
     networks:
@@ -235,9 +291,8 @@ services:
     image: grafana/grafana:9.2.0
     container_name: grafana
     ports:
-      - "3000:3000"
+      - "3001:3000"
     volumes:
-      # Trỏ đến file config bạn sẽ tạo ở Bước 4
       - ./monitoring/grafana/provisioning/:/etc/grafana/provisioning/
       - grafana_data:/var/lib/grafana
     environment:
@@ -249,6 +304,42 @@ services:
     networks:
       - pettopia-network
     restart: always
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    networks:
+      - pettopia-network
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: always
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: redis-commander
+    depends_on:
+      - redis
+    environment:
+      - REDIS_HOSTS=local:redis:6379
+    ports:
+      - "8081:8081"
+    networks:
+      - pettopia-network
+    restart: always
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    container_name: rabbitmq
+    networks:
+      - pettopia-network
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    restart: always
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 networks:
   pettopia-network:
@@ -260,3 +351,4 @@ volumes:
   prometheus_data:
   loki_data:
   grafana_data:
+  redis_data:
