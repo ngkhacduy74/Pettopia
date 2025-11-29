@@ -132,7 +132,7 @@ export class ClinicInvitationService {
             email: invited_email,
             clinicName: clinic.clinic_name,
             role: normalizedRole,
-            inviteLink: `${process.env.APP_URL}/api/v1/partner/invitations/${token}/accept`,
+            inviteLink: `${process.env.APP_URL}/api/v1/partner/clinic/invitations/${token}/accept`,
             expiresAt: expiresAt.toISOString(),
           },
         ),

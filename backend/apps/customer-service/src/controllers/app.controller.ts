@@ -32,15 +32,9 @@ export class AppController {
     try {
       console.log('Received getUserById request with data:', data);
       const result = await this.appService.getUserById(data.id, data.role);
-      console.log('User found:', result ? 'Yes' : 'No');
       return result;
     } catch (err) {
-      console.error('Error in handleGetUserById:', {
-        error: err.message,
-        stack: err.stack
-      });
-      handleRpcError('AppController.getUserById', err);
-      return null;
+      throw handleRpcError('AppController.getUserById', err);
     }
   }
 
