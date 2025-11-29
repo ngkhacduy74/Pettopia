@@ -37,22 +37,11 @@ export class ClinicsRepository {
     this.redis = redisClient;
   }
 
-  // ========================================================================
-  // CORE HELPERS: XỬ LÝ FAIL-SAFE CHO REDIS
-  // ========================================================================
-
-  /**
-   * Kiểm tra xem Redis có đang kết nối và sẵn sàng không
-   */
   private get isRedisReady(): boolean {
     // Kiểm tra biến redis tồn tại VÀ trạng thái kết nối là isOpen
     return !!this.redis && (this.redis as any).isOpen === true;
   }
 
-  /**
-   * Lấy dữ liệu từ Redis an toàn.
-   * Nếu Redis lỗi hoặc không kết nối -> Trả về null (để fallback sang Mongo)
-   */
   private async safeCacheGet<T>(key: string): Promise<T | null> {
     if (!this.isRedisReady) return null;
 
@@ -67,10 +56,7 @@ export class ClinicsRepository {
     }
   }
 
-  /**
-   * Lưu dữ liệu vào Redis an toàn.
-   * Nếu Redis lỗi -> Bỏ qua, không throw lỗi.
-   */
+
   private async safeCacheSet(
     key: string,
     value: any,

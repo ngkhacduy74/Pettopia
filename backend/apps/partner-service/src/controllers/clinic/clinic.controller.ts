@@ -58,19 +58,20 @@ export class ClinicController {
     }
   }
   
-  @EventPattern({ cmd: 'updateClinicActiveStatus' })
-  async updateClinicActiveStatus(
-    @Payload() data: { id: string; is_active: boolean },
-  ) {
-    try {
-      await this.clinicService.updateClinicActiveStatus(
-        data.id,
-        data.is_active,
-      );
-    } catch (err) {
-      handleRpcError('ClinicController.updateClinicActiveStatus', err);
-    }
+ @MessagePattern({ cmd: 'updateClinicActiveStatus' })
+async updateClinicActiveStatus(
+  @Payload() data: { id: string; is_active: boolean },
+) {
+  try {
+    return await this.clinicService.updateClinicActiveStatus(
+      data.id,
+      data.is_active,
+    );
+  } catch (err) {
+    throw handleRpcError('ClinicController.updateClinicActiveStatus', err);
   }
+}
+
   
   @MessagePattern({ cmd: 'findAllClinic' })
   async findAllClinic(

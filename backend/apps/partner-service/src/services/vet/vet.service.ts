@@ -1,12 +1,14 @@
 import {
   BadRequestException,
+  HttpStatus,
   Inject,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
-import { ClientProxy } from '@nestjs/microservices';
+import { ClientProxy, RpcException } from '@nestjs/microservices';
 import { lastValueFrom } from 'rxjs';
+import { createRpcError } from 'src/common/error.detail';
 import { CreateVetDto } from 'src/dto/vet/create-vet.dto';
 import { UpdateStatusVetDto } from 'src/dto/vet/update-vet-form';
 import { VetRegisterDto } from 'src/dto/vet/vet-register-form';
@@ -44,6 +46,91 @@ export class VetService {
       );
     }
   }
+  async getVetById(id: string): Promise<any> {
+  try {
+    if (!id) {
+      throw createRpcError(
+        HttpStatus.BAD_REQUEST,
+        'ID của bác sĩ thú y không được để trống',
+        'Bad Request',
+      );
+    }
+
+    const result = await this.vetRepositories.findVetById(id);
+
+    if (!result) {
+      throw createRpcError(
+        HttpStatus.NOT_FOUND,
+        `Không tìm thấy bác sĩ thú y với ID: ${id}`,
+        'Not Found',
+      );
+    }
+
+    return {
+      status: 'success',
+      message: 'Lấy thông tin bác sĩ thú y thành công',
+      data: result,
+    };
+  } catch (error) {
+    if (error instanceof RpcException) {
+      throw error;
+    }
+
+    throw createRpcError(
+      HttpStatus.INTERNAL_SERVER_ERROR,
+      'Đã xảy ra lỗi khi lấy thông tin bác sĩ thú y',
+      'Internal Server Error',
+      error?.message || error,
+    );
+  }
+}
+async getVetByClinic(clinic_id: string, vet_id: string): Promise<any> {
+  try {
+    if (!clinic_id || !vet_id) {
+      throw createRpcError(
+        HttpStatus.BAD_REQUEST,
+        'clinic_id và vet_id không được để trống',
+        'Bad Request'
+      );
+    }
+    const clinic = await this.vetRepositories.findOneVetByClinic(clinic_id, vet_id);
+    if (!clinic) {
+      throw createRpcError(
+        HttpStatus.FORBIDDEN,
+        'Bác sĩ này không thuộc phòng khám của bạn',
+        'Forbidden'
+      );
+    }
+
+    const vet = await this.vetRepositories.findVetById(vet_id);
+
+    if (!vet) {
+      throw createRpcError(
+        HttpStatus.NOT_FOUND,
+        `Không tìm thấy bác sĩ thú y với ID: ${vet_id}`,
+        'Not Found'
+      );
+    }
+
+    return {
+      status: 'success',
+      message: 'Lấy thông tin bác sĩ thuộc phòng khám thành công',
+      data: vet,
+    };
+
+  } catch (error) {
+    if (error instanceof RpcException) {
+      throw error;
+    }
+    throw createRpcError(
+      HttpStatus.INTERNAL_SERVER_ERROR,
+      'Lỗi hệ thống khi lấy thông tin bác sĩ',
+      'Internal Server Error',
+      error?.message || error,
+    );
+  }
+}
+
   async updateVetFormStatus(body: UpdateStatusVetDto): Promise<any> {
     try {
       const { id, review_by, status, note } = body;
@@ -80,11 +167,7 @@ export class VetService {
 
           try {
             const newVet = await this.vetRepositories.createVet(newVetData);
-            console.log(
-              `[updateVetFormStatus] Bác sĩ mới được tạo: ${newVet.id}`,
-            );
-
-            // Thêm role Vet cho user
+           
             await lastValueFrom(
               this.customerService.send(
                 { cmd: 'add_user_role' },
@@ -119,7 +202,6 @@ export class VetService {
         data: updatedVetForm,
       };
     } catch (error) {
-      console.error('[updateVetFormStatus] Lỗi:', error);
       throw new InternalServerErrorException(
         error.message ||
         'Cập nhật trạng thái hồ sơ bác sĩ thất bại. Vui lòng thử lại sau.',

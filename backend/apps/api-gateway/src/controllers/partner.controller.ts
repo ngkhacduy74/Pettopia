@@ -277,6 +277,17 @@ export class PartnerController {
       ),
     );
   }
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.STAFF, Role.ADMIN,Role.CLINIC)
+  @Get('/vet/:id')
+  @HttpCode(HttpStatus.OK)
+  async getVetById(@Param('id') id:string ,
+  @UserToken('role') roles: string[],
+  @UserToken('clinic_id') clinic_id: string,) {
+    return await lastValueFrom(
+      this.partnerService.send({ cmd: 'getVetById' }, {  roles,clinic_id,vet_id:id }),
+    );
+  } 
 
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(Role.USER)
