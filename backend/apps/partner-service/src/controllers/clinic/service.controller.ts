@@ -32,7 +32,7 @@ export class ServiceController {
     try {
       await this.clinicService.createService(data.data, data.clinic_id);
     } catch (err) {
-      handleRpcError('PartnerController.createService', err);
+     throw handleRpcError('PartnerController.createService', err);
     }
   }
 
@@ -45,7 +45,7 @@ export class ServiceController {
       const result = await this.serviceService.getAllService(page, limit);
       return result;
     } catch (err) {
-      handleRpcError('ServiceController.getAllService', err);
+     throw handleRpcError('ServiceController.getAllService', err);
     }
   }
 
@@ -66,7 +66,7 @@ export class ServiceController {
         clinic_id,
       );
     } catch (err) {
-      handleRpcError('PartnerController.updateService', err);
+    throw  handleRpcError('PartnerController.updateService', err);
     }
   }
 
@@ -78,7 +78,7 @@ export class ServiceController {
       const { serviceId, clinic_id } = payload;
       await this.clinicService.removeService(serviceId, clinic_id);
     } catch (err) {
-      handleRpcError('PartnerController.removeService', err);
+     throw handleRpcError('PartnerController.removeService', err);
     }
   }
 
@@ -94,7 +94,7 @@ export class ServiceController {
         limit,
       );
     } catch (err) {
-      handleRpcError('ServiceController.getAllServicesFollowClinicId', err);
+      throw handleRpcError('ServiceController.getAllServicesFollowClinicId', err);
     }
   }
 
@@ -110,7 +110,7 @@ export class ServiceController {
         limit,
       );
     } catch (err) {
-      handleRpcError('ServiceController.getServicesByClinicId', err);
+     throw handleRpcError('ServiceController.getServicesByClinicId', err);
     }
   }
 
@@ -153,21 +153,22 @@ export class ServiceController {
         data: result,
       };
     } catch (err) {
-      handleRpcError('ServiceController.getServicesByClinicId', err);
+     throw handleRpcError('ServiceController.getServicesByClinicId', err);
     }
   }
 
-  @EventPattern({ cmd: 'updateServiceStatus' })
-  async updateServiceStatus(
-    @Payload() payload: { id: string; is_active: boolean },
-  ) {
-    try {
-      const { id, is_active } = payload;
-      await this.clinicService.updateServiceStatus(id, is_active);
-    } catch (err) {
-      handleRpcError('PartnerController.updateServiceStatus', err);
-    }
+ @MessagePattern({ cmd: 'updateServiceStatus' })
+async updateServiceStatus(
+  @Payload() payload: { id: string; is_active: boolean },
+) {
+  try {
+    const { id, is_active } = payload;
+    return await this.clinicService.updateServiceStatus(id, is_active); 
+  } catch (err) {
+    throw handleRpcError('PartnerController.updateServiceStatus', err);
   }
+}
+
 
   @MessagePattern({ cmd: 'getServiceById' })
   async getServiceById(@Payload() data: { id: string }): Promise<any> {
@@ -175,7 +176,7 @@ export class ServiceController {
       const result = await this.serviceService.getServiceById(data.id);
       return result;
     } catch (err) {
-      handleRpcError('PartnerController.getServiceById', err);
+    throw  handleRpcError('PartnerController.getServiceById', err);
     }
   }
 }
