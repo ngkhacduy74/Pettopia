@@ -643,4 +643,36 @@ export class ClinicsRepository {
       );
     }
   }
+
+  async removeMemberFromClinic(
+    clinicId: string,
+    memberId: string,
+  ): Promise<ClinicDocument> {
+    try {
+      const updatedClinic = await this.clinicModel
+        .findOneAndUpdate(
+          { id: clinicId },
+          {
+            $pull: { member_ids: memberId },
+            $set: { updatedAt: new Date() },
+          },
+          { new: true },
+        )
+        .exec();
+
+      if (!updatedClinic) {
+        throw new NotFoundException(
+          `Không tìm thấy phòng khám với id: ${clinicId}`,
+        );
+      }
+
+      await this.invalidateClinicCache(updatedClinic);
+      return updatedClinic;
+    } catch (error) {
+      if (error instanceof NotFoundException) throw error;
+      throw new InternalServerErrorException(
+        error.message || 'Không thể xóa thành viên khỏi phòng khám.',
+      );
+    }
+  }
 }

@@ -27,7 +27,7 @@ import { UserToken } from 'src/decorators/user.decorator';
 export class CustomerController {
   constructor(
     @Inject('CUSTOMER_SERVICE') private readonly customerService: ClientProxy,
-  ) {}
+  ) { }
   @UseGuards(JwtAuthGuard)
   @Get('/profile')
   @HttpCode(HttpStatus.OK)
@@ -47,21 +47,21 @@ export class CustomerController {
   ) {
     try {
       const roleArray = Array.isArray(roles) ? roles : [roles];
-      
+
       const user = await lastValueFrom(
         this.customerService.send(
-          { cmd: 'getUserById' }, 
-          { 
+          { cmd: 'getUserById' },
+          {
             id: idUser,
             role: roleArray
           }
         )
       );
-      
+
       if (!user) {
         throw new NotFoundException('Không tìm thấy người dùng');
       }
-      
+
       return user;
     } catch (error) {
       console.error('Lỗi khi lấy thông tin người dùng:', error);
@@ -111,7 +111,11 @@ export class CustomerController {
     @Query('reward_point', new ParseIntPipe({ optional: true }))
     reward_point?: number,
     @Query('phone_number') phone_number?: string,
+    @Query('is_active') is_active?: string,
   ) {
+    if (is_active !== undefined) {
+      status = is_active === 'true' ? 'active' : 'deactive';
+    }
     const dto = {
       page,
       limit,

@@ -765,8 +765,15 @@ export class AppointmentService {
     try {
       let result: { data: any[]; total: number };
 
-      // Phân quyền dựa trên role
-      if (this.hasRole(role, 'User')) {
+      // Chuyển đổi role thành mảng nếu là chuỗi
+      const roles = Array.isArray(role) ? role : [role];
+      
+      // Kiểm tra quyền
+      const isAdminOrStaff = roles.some(r => ['Admin', 'Staff'].includes(r));
+      const isClinic = roles.includes('Clinic');
+      const isUser = roles.includes('User');
+
+      if (isUser) {
         // USER: chỉ xem appointments của chính mình
         if (!userId) {
           throw new RpcException({
@@ -779,8 +786,8 @@ export class AppointmentService {
           page,
           limit,
         );
-      } else if (this.hasRole(role, 'Clinic')) {
-        // CLINIC: xem appointments của phòng khám mình
+      } else if (isClinic) {
+        // CLINIC: chỉ xem appointments của phòng khám mình
         if (!clinicId) {
           throw new RpcException({
             status: HttpStatus.BAD_REQUEST,
@@ -792,7 +799,7 @@ export class AppointmentService {
           page,
           limit,
         );
-      } else if (this.isAdminOrStaff(role)) {
+      } else if (isAdminOrStaff) {
         // ADMIN/STAFF: xem tất cả appointments
         result = await this.appointmentRepositories.findAll(page, limit);
       } else {

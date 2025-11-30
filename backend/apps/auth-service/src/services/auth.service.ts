@@ -25,7 +25,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly otpService: OtpService,
     private readonly mailTemplateService: MailTemplateService,
-  ) {}
+  ) { }
 
   async login(data: LoginDto): Promise<any> {
     console.log('data customer service', data);
@@ -60,6 +60,14 @@ export class AuthService {
           HttpStatus.NOT_FOUND,
           'Tài khoản không tồn tại',
           'Not Found',
+        );
+      }
+
+      if (exist_user.is_active === false) {
+        throw createRpcError(
+          HttpStatus.FORBIDDEN,
+          'Tài khoản đã bị khóa',
+          'Forbidden',
         );
       }
 
@@ -266,7 +274,7 @@ export class AuthService {
 
       const updateResult = await lastValueFrom(
         this.customerClient.send(
-          { cmd: 'updateUserPassword' }, 
+          { cmd: 'updateUserPassword' },
           { email: data.email, newPassword: hashPass },
         ),
       ).catch((error) => {
