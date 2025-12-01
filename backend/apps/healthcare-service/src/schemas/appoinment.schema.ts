@@ -45,6 +45,13 @@ export class Appointment {
   })
   id: string;
 
+  @Prop({
+    type: String,
+    required: false,
+    index: true,
+  })
+  booking_group_id?: string;
+
   // Người đặt lịch (khách hàng)
   @Prop({
     type: String,

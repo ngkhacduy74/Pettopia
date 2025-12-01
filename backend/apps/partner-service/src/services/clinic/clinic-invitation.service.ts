@@ -146,12 +146,8 @@ export class ClinicInvitationService {
       expires_at: expiresAt,
       status: ClinicInvitationStatus.PENDING,
     });
-    console.log('invitation:1222212', invitation);
-    // 5. Gửi email qua AUTH_SERVICE (best-effort)
     try {
-      console.log(
-        '[ClinicInvitationService] Sending clinic member invitation email...',
-      );
+
 
       await lastValueFrom(
         this.authService.send(
@@ -160,7 +156,7 @@ export class ClinicInvitationService {
             email: invited_email,
             clinicName: clinic.clinic_name,
             role: normalizedRole,
-            inviteLink: `${process.env.APP_URL}/api/v1/partner/clinic/invitations/${token}/accept`,
+            inviteLink: `${process.env.APP_URL}/vet/${token}/accepted`,
             expiresAt: expiresAt.toISOString(),
           },
         ),

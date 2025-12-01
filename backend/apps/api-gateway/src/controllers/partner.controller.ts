@@ -532,7 +532,29 @@ export class PartnerController {
     return await lastValueFrom(
       this.partnerService.send({ cmd: 'updateClinicForm' }, payload),
     );
+  }@UseGuards(JwtAuthGuard, RoleGuard)
+@Roles(Role.CLINIC)
+@Get('/clinic/members/vets')
+@HttpCode(HttpStatus.OK)
+async getClinicMembers(
+  @UserToken('clinic_id') clinicId: string,
+  @Query('page', new ParseIntPipe({ optional: true })) page = 1,
+  @Query('limit', new ParseIntPipe({ optional: true })) limit = 10,
+) {
+  if (!clinicId) {
+    throw new BadRequestException('Thiếu thông tin phòng khám');
   }
+  return await lastValueFrom(
+    this.partnerService.send(
+      { cmd: 'getClinicMembers' }, 
+      { 
+        clinic_id: clinicId,
+        page,
+        limit
+      }
+    ),
+  );
+}
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(Role.CLINIC)
   @Delete('/clinic/members/:memberId')

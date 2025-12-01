@@ -9,7 +9,7 @@ export class AppointmentRepository {
   constructor(
     @InjectModel(Appointment.name)
     private appointmentModel: Model<AppointmentDocument>,
-  ) {}
+  ) { }
 
   async create(appointmentData: any): Promise<Appointment> {
     try {
@@ -17,6 +17,20 @@ export class AppointmentRepository {
     } catch (error) {
       throw new InternalServerErrorException(
         error.message || 'Lỗi cơ sở dữ liệu khi tạo lịch hẹn',
+      );
+    }
+  }
+
+  async insertMany(appointments: any[]): Promise<Appointment[]> {
+    try {
+      return (await this.appointmentModel.insertMany(appointments)) as any;
+    } catch (error) {
+      console.error('❌ Error in insertMany:', JSON.stringify(error, null, 2));
+      if (error.errors) {
+        console.error('Validation Errors:', JSON.stringify(error.errors, null, 2));
+      }
+      throw new InternalServerErrorException(
+        error.message || 'Lỗi cơ sở dữ liệu khi tạo nhiều lịch hẹn',
       );
     }
   }
