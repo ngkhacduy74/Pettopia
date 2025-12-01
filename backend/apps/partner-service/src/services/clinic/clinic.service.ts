@@ -440,7 +440,7 @@ export class ClinicService {
     }
   }
 
-  async findAllClinic(page = 1, limit = 10): Promise<any> {
+  async findAllClinic(page = 1, limit = 10, isAdmin: boolean = false): Promise<any> {
     try {
       const skip = (page - 1) * limit;
 
@@ -464,27 +464,41 @@ export class ClinicService {
         }),
       ]);
 
+      // Filter sensitive information for non-admin users
+      const filteredData = data.map(clinic => {
+        if (isAdmin) {
+          return clinic; // Return all data for admin users
+        }
+
+        return {
+          id: clinic.id,
+          clinic_name: clinic.clinic_name,
+          address: clinic.address,
+          phone: clinic.phone,
+          email: clinic.email,
+          description: clinic.description,
+          logo: clinic.logo,
+          images: clinic.images,
+          is_active: clinic.is_active,
+        };
+      });
+
       return {
         status: 'success',
         message: 'Lấy danh sách phòng khám thành công',
-        data,
         pagination: {
           total,
           page,
           limit,
           totalPages: Math.ceil(total / limit),
         },
+        data: filteredData,
       };
-    } catch (error) {
-      if (error instanceof RpcException) {
-        throw error;
-      }
-
+    } catch (err) {
       throw createRpcError(
         HttpStatus.INTERNAL_SERVER_ERROR,
-        'Đã xảy ra lỗi khi lấy danh sách phòng khám',
+        err.message || 'Lỗi khi lấy danh sách phòng khám',
         'Internal Server Error',
-        error.message,
       );
     }
   }

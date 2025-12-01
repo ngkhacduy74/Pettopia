@@ -214,16 +214,22 @@ export class PartnerController {
 
   @Get('/clinic')
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles(Role.ADMIN, Role.STAFF)
+  @Roles(Role.ADMIN, Role.STAFF, Role.USER)
   @HttpCode(HttpStatus.OK)
   async findAllClinic(
-    @Query('page', new ParseIntPipe({ optional: true }))
-    page: number = 1,
-    @Query('limit', new ParseIntPipe({ optional: true }))
-    limit: number = 10,
+    @Query('page', new ParseIntPipe({ optional: true })) page: number = 1,
+    @Query('limit', new ParseIntPipe({ optional: true })) limit: number = 10,
+    @UserToken('role') userRole: string,
   ): Promise<any> {
     return await lastValueFrom(
-      this.partnerService.send({ cmd: 'findAllClinic' }, { page, limit }),
+      this.partnerService.send(
+        { cmd: 'findAllClinic' }, 
+        { 
+          page, 
+          limit, 
+          isAdmin: [Role.ADMIN, Role.STAFF].includes(userRole as Role) 
+        }
+      ),
     );
   }
 

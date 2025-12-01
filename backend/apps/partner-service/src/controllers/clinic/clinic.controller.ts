@@ -81,12 +81,13 @@ export class ClinicController {
 
   @MessagePattern({ cmd: 'findAllClinic' })
   async findAllClinic(
-    @Payload() data: { page?: number; limit?: number },
+    @Payload() data: { page?: number; limit?: number; isAdmin?: boolean },
   ): Promise<any> {
     try {
       const result = await this.clinicService.findAllClinic(
         data.page,
         data.limit,
+        data.isAdmin,
       );
       return result;
     } catch (err) {
