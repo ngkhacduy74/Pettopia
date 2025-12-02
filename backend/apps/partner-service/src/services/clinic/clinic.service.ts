@@ -901,12 +901,31 @@ export class ClinicService {
           (cr: any) => cr.clinic_id === clinic_id,
         );
 
+        // Lấy thông tin người dùng từ customer-service (email, phone, fullname, is_active)
+        let userInfo: any = null;
+        try {
+          const userResult = await lastValueFrom(
+            this.customerService.send(
+              { cmd: 'getUserById' },
+              { id: vet.id, role: ['Staff'] }, // request with elevated role to include is_active
+            ),
+          );
+          userInfo = userResult;
+        } catch (err) {
+          // Nếu lỗi, log và tiếp tục với thông tin vet cơ bản
+          console.warn('Không lấy được user info cho member', member_id, err?.message || err);
+        }
+
         return {
           member_id: vet.id,
           role: memberRole?.role || 'unknown',
           joined_at: memberRole?.joined_at || null,
           specialty: vet.specialty,
           exp: vet.exp,
+          fullname: userInfo?.fullname || null,
+          email: userInfo?.email?.email_address || null,
+          phone: userInfo?.phone?.phone_number || null,
+          is_active: typeof userInfo?.is_active === 'boolean' ? userInfo.is_active : null,
         };
       }),
     );

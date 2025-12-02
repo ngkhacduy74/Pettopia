@@ -19,7 +19,6 @@ export enum Gender {
   OTHER = 'other',
 }
 
-// Đây là DTO cho địa chỉ. KHÔNG DÙNG DECORATOR CỦA MONGOOSE.
 export class AddressDto {
   @IsString({ message: 'Thành phố phải là chuỗi ký tự.' })
   @IsNotEmpty({ message: 'Thành phố không được để trống.' })
