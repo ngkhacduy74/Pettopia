@@ -163,6 +163,19 @@ export class AppController {
       handleRpcError('UserController.removeRoleFromUser', err);
     }
   }
+
+  @MessagePattern({ cmd: 'check_user_role' })
+  async checkUserRole(
+    @Payload() payload: { userId: string; role: string },
+  ): Promise<any> {
+    try {
+      const { userId, role } = payload;
+      const result = await this.appService.hasUserRole(userId, role);
+      return result;
+    } catch (err) {
+      handleRpcError('UserController.checkUserRole', err);
+    }
+  }
   @MessagePattern({ cmd: 'total-detail-account' })
   async totalDetailAccount(): Promise<any> {
     try {

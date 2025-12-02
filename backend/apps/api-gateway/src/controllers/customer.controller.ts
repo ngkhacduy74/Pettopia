@@ -71,6 +71,30 @@ export class CustomerController {
 
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(Role.ADMIN)
+  @Get(':id/has-role')
+  @HttpCode(HttpStatus.OK)
+  async hasRole(
+    @Param('id') id: string,
+    @Query('role') role: string,
+  ) {
+    if (!role) {
+      return {
+        statusCode: HttpStatus.BAD_REQUEST,
+        message: 'Thiếu tham số role',
+      };
+    }
+    const result = await lastValueFrom(
+      this.customerService.send(
+        { cmd: 'check_user_role' },
+        { userId: id, role },
+      ),
+    );
+    return {
+      message: `Kiểm tra role ${role} cho user ${id}`,
+      data: result,
+    };
+  }
+
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
   async deleteUserById(@Param('id') id: string) {

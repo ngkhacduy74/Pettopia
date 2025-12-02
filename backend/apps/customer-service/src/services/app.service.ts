@@ -269,6 +269,26 @@ async getUserById(id: string, role?: string | string[]): Promise<User | null> {
       });
     }
   }
+
+  async hasUserRole(userId: string, role: string): Promise<{ hasRole: boolean; user?: User }> {
+    try {
+      const user = await this.userRepositories.findOneById(userId);
+      if (!user) {
+        throw new RpcException({
+          status: HttpStatus.NOT_FOUND,
+          message: `Không tìm thấy người dùng với id: ${userId}`,
+        });
+      }
+      const hasRole = Array.isArray(user.role) ? user.role.includes(role) : user.role === role;
+      return { hasRole, user };
+    } catch (err) {
+      if (err instanceof RpcException) throw err;
+      throw new RpcException({
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        message: err.message || 'Lỗi khi kiểm tra role của người dùng',
+      });
+    }
+  }
   async totalDetailAccount(): Promise<any> {
     try {
       const total_user = await this.userRepositories.totalDetailAccount();

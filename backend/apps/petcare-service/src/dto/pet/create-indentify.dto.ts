@@ -5,6 +5,7 @@ import {
   IsIn,
   ValidateNested,
   IsDate,
+  IsOptional,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -24,6 +25,10 @@ export class Address {
   @IsString()
   @IsNotEmpty({ message: 'Ward of Identify is not empty' })
   ward: string;
+  @Prop({ type: String, required: false, trim: true })
+  @IsString()
+  @IsOptional()
+  description?: string;
 }
 
 export const AddressSchema = SchemaFactory.createForClass(Address);

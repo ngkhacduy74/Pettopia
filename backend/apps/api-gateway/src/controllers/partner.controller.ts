@@ -29,7 +29,7 @@ import { ClinicUpdateGuard } from 'src/guard/clinic-update.guard';
 export class PartnerController {
   constructor(
     @Inject('PARTNER_SERVICE') private readonly partnerService: ClientProxy,
-  ) { }
+  ) {}
   @UseGuards(JwtAuthGuard)
   @Post('/clinic/register')
   @HttpCode(HttpStatus.CREATED)
@@ -223,12 +223,12 @@ export class PartnerController {
   ): Promise<any> {
     return await lastValueFrom(
       this.partnerService.send(
-        { cmd: 'findAllClinic' }, 
-        { 
-          page, 
-          limit, 
-          isAdmin: [Role.ADMIN, Role.STAFF].includes(userRole as Role) 
-        }
+        { cmd: 'findAllClinic' },
+        {
+          page,
+          limit,
+          isAdmin: [Role.ADMIN, Role.STAFF].includes(userRole as Role),
+        },
       ),
     );
   }
@@ -307,11 +307,16 @@ export class PartnerController {
   @Roles(Role.STAFF, Role.ADMIN, Role.CLINIC)
   @Get('/vet/:id')
   @HttpCode(HttpStatus.OK)
-  async getVetById(@Param('id') id: string,
+  async getVetById(
+    @Param('id') id: string,
     @UserToken('role') roles: string[],
-    @UserToken('clinic_id') clinic_id: string,) {
+    @UserToken('clinic_id') clinic_id: string,
+  ) {
     return await lastValueFrom(
-      this.partnerService.send({ cmd: 'getVetById' }, { roles, clinic_id, vet_id: id }),
+      this.partnerService.send(
+        { cmd: 'getVetById' },
+        { roles, clinic_id, vet_id: id },
+      ),
     );
   }
 
@@ -532,29 +537,30 @@ export class PartnerController {
     return await lastValueFrom(
       this.partnerService.send({ cmd: 'updateClinicForm' }, payload),
     );
-  }@UseGuards(JwtAuthGuard, RoleGuard)
-@Roles(Role.CLINIC)
-@Get('/clinic/members/vets')
-@HttpCode(HttpStatus.OK)
-async getClinicMembers(
-  @UserToken('clinic_id') clinicId: string,
-  @Query('page', new ParseIntPipe({ optional: true })) page = 1,
-  @Query('limit', new ParseIntPipe({ optional: true })) limit = 10,
-) {
-  if (!clinicId) {
-    throw new BadRequestException('Thiếu thông tin phòng khám');
   }
-  return await lastValueFrom(
-    this.partnerService.send(
-      { cmd: 'getClinicMembers' }, 
-      { 
-        clinic_id: clinicId,
-        page,
-        limit
-      }
-    ),
-  );
-}
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.CLINIC)
+  @Get('/clinic/members/vets')
+  @HttpCode(HttpStatus.OK)
+  async getClinicMembers(
+    @UserToken('clinic_id') clinicId: string,
+    @Query('page', new ParseIntPipe({ optional: true })) page = 1,
+    @Query('limit', new ParseIntPipe({ optional: true })) limit = 10,
+  ) {
+    if (!clinicId) {
+      throw new BadRequestException('Thiếu thông tin phòng khám');
+    }
+    return await lastValueFrom(
+      this.partnerService.send(
+        { cmd: 'getClinicMembers' },
+        {
+          clinic_id: clinicId,
+          page,
+          limit,
+        },
+      ),
+    );
+  }
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(Role.CLINIC)
   @Delete('/clinic/members/:memberId')
