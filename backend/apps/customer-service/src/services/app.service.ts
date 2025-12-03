@@ -9,6 +9,7 @@ import { RpcException } from '@nestjs/microservices'; // Chỉ cần RpcExceptio
 import { UsersRepository } from '../repositories/user.repositories';
 import { CreateUserDto } from '../dto/user/create-user.dto';
 import { UserStatus } from '../dto/request/update-user-status.dto';
+import { UpdateUserDto } from '../dto/request/update-user.dto';
 import {
   GetAllUsersDto,
   PaginatedUsersResponse,
@@ -16,44 +17,44 @@ import {
 
 @Injectable()
 export class AppService {
-  constructor(private userRepositories: UsersRepository) {}
+  constructor(private userRepositories: UsersRepository) { }
 
-async getUserById(id: string, role?: string | string[]): Promise<User | null> {
-  try {
-    let user: User | null = null;
-    
-  
-    const userRoles = Array.isArray(role) ? role : [role];
+  async getUserById(id: string, role?: string | string[]): Promise<User | null> {
+    try {
+      let user: User | null = null;
 
-    const isAdminOrStaff = userRoles.includes(UserRole.ADMIN) || userRoles.includes(UserRole.STAFF);
 
-    if (isAdminOrStaff) {
+      const userRoles = Array.isArray(role) ? role : [role];
 
-      user = await this.userRepositories.findOneById(id);
-    } else {
+      const isAdminOrStaff = userRoles.includes(UserRole.ADMIN) || userRoles.includes(UserRole.STAFF);
 
-      user = await this.userRepositories.findOneByIdNotAdmin(id);
-    }
+      if (isAdminOrStaff) {
 
-    if (!user) {
+        user = await this.userRepositories.findOneById(id);
+      } else {
+
+        user = await this.userRepositories.findOneByIdNotAdmin(id);
+      }
+
+      if (!user) {
+        throw new RpcException({
+          status: HttpStatus.NOT_FOUND,
+          message: `Không tìm thấy người dùng với id: ${id}`,
+        });
+      }
+
+      return user;
+
+    } catch (err) {
+
+      console.error('ERROR LOG:', err);
+      if (err instanceof RpcException) throw err;
       throw new RpcException({
-        status: HttpStatus.NOT_FOUND,
-        message: `Không tìm thấy người dùng với id: ${id}`,
-      });
-    }
-
-    return user;
-
-  } catch (err) {
-
-    console.error('ERROR LOG:', err); 
-    if (err instanceof RpcException) throw err;
-    throw new RpcException({
         status: HttpStatus.INTERNAL_SERVER_ERROR,
         message: err.message
-    });
+      });
+    }
   }
-}
 
   async getUserByUsername(username: string): Promise<User> {
     try {
@@ -299,7 +300,7 @@ async getUserById(id: string, role?: string | string[]): Promise<User | null> {
         });
       }
       return total_user;
-    } catch (err) {}
+    } catch (err) { }
   }
 
   async addRoleAutomatically(userId: string, role: string): Promise<any> {
@@ -327,43 +328,62 @@ async getUserById(id: string, role?: string | string[]): Promise<User | null> {
     }
   }
   async updatePasswordByEmail(email: string, newPassword: string): Promise<{ success: boolean }> {
-  try {
-    const user = await this.userRepositories.updatePasswordByEmail(email, newPassword);
-    if (!user) {
+    try {
+      const user = await this.userRepositories.updatePasswordByEmail(email, newPassword);
+      if (!user) {
+        throw new RpcException({
+          status: HttpStatus.NOT_FOUND,
+          message: `Không tìm thấy người dùng với email: ${email}`,
+        });
+      }
+      return { success: true };
+    } catch (err) {
+      if (err instanceof RpcException) {
+        throw err;
+      }
       throw new RpcException({
-        status: HttpStatus.NOT_FOUND,
-        message: `Không tìm thấy người dùng với email: ${email}`,
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        message: err.message || 'Lỗi khi cập nhật mật khẩu',
       });
     }
-    return { success: true };
-  } catch (err) {
-    if (err instanceof RpcException) {
-      throw err;
+  }
+  async updatePasswordById(id: string, newPassword: string): Promise<{ success: boolean }> {
+    try {
+      const user = await this.userRepositories.updatePasswordById(id, newPassword);
+      if (!user) {
+        throw new RpcException({
+          status: HttpStatus.NOT_FOUND,
+          message: `Không tìm thấy người dùng với id: ${id}`,
+        });
+      }
+      return { success: true };
+    } catch (err) {
+      if (err instanceof RpcException) {
+        throw err;
+      }
+      throw new RpcException({
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        message: err.message || 'Lỗi khi cập nhật mật khẩu',
+      });
     }
-    throw new RpcException({
-      status: HttpStatus.INTERNAL_SERVER_ERROR,
-      message: err.message || 'Lỗi khi cập nhật mật khẩu',
-    });
+  }
+  async updateUser(id: string, updateData: UpdateUserDto): Promise<User> {
+    try {
+      const updatedUser = await this.userRepositories.updateUser(id, updateData);
+      if (!updatedUser) {
+        throw new RpcException({
+          status: HttpStatus.NOT_FOUND,
+          message: `Không tìm thấy người dùng với id: ${id}`,
+        });
+      }
+      return updatedUser;
+    } catch (err) {
+      if (err instanceof RpcException) throw err;
+      throw new RpcException({
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        message: err.message || 'Lỗi khi cập nhật thông tin người dùng',
+      });
+    }
   }
 }
-async updatePasswordById(id: string, newPassword: string): Promise<{ success: boolean }> {
-  try {
-    const user = await this.userRepositories.updatePasswordById(id, newPassword);
-    if (!user) {
-      throw new RpcException({
-        status: HttpStatus.NOT_FOUND,
-        message: `Không tìm thấy người dùng với id: ${id}`,
-      });
-    }
-    return { success: true };
-  } catch (err) {
-    if (err instanceof RpcException) {
-      throw err;
-    }
-    throw new RpcException({
-      status: HttpStatus.INTERNAL_SERVER_ERROR,
-      message: err.message || 'Lỗi khi cập nhật mật khẩu',
-    });
-  } 
-}
-}
+

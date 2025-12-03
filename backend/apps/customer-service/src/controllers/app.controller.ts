@@ -11,10 +11,12 @@ import { CheckPhoneExistDto } from '../dto/request/check-phone-exist.dto';
 import { CreateUserDto } from '../dto/user/create-user.dto';
 import { DeleteUserByIdDto } from '../dto/request/delete-user-by-id.dto';
 import { UpdateUserStatusDto } from '../dto/request/update-user-status.dto';
+import { UpdateUserPayloadDto } from '../dto/request/update-user-payload.dto';
 import {
   GetAllUsersDto,
   PaginatedUsersResponse,
 } from '../dto/request/get-all-user.dto';
+import { UpdateUserDto } from '../dto/request/update-user.dto';
 import { handleRpcError } from '../common/error.detail';
 
 @UsePipes(
@@ -26,7 +28,7 @@ import { handleRpcError } from '../common/error.detail';
 )
 @Controller()
 export class AppController {
-  constructor(private readonly appService: AppService) {}
+  constructor(private readonly appService: AppService) { }
   @MessagePattern({ cmd: 'getUserById' })
   async getUserById(@Payload() data: any): Promise<User | null> {
     try {
@@ -196,6 +198,19 @@ export class AppController {
       );
     } catch (err) {
       handleRpcError('AppController.updateUserPassword', err);
+    }
+  }
+
+  @MessagePattern({ cmd: 'updateUser' })
+  async updateUser(
+    @Payload() payload: UpdateUserPayloadDto,
+  ): Promise<User> {
+    try {
+      console.log('AppController.updateUser payload:', payload);
+      const { id, updateData } = payload;
+      return await this.appService.updateUser(id, updateData);
+    } catch (err) {
+      handleRpcError('AppController.updateUser', err);
     }
   }
 }

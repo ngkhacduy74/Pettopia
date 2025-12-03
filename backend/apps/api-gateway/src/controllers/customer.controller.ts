@@ -3,6 +3,7 @@ import {
   Controller,
   DefaultValuePipe,
   Delete,
+  ForbiddenException,
   Get,
   HttpCode,
   HttpStatus,
@@ -102,6 +103,62 @@ export class CustomerController {
       this.customerService.send({ cmd: 'deleteUserById' }, { id }),
     );
     return user;
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch('profile')
+  @HttpCode(HttpStatus.OK)
+  async updateMyProfile(
+    @UserToken('id') id: string,
+    @Body() body: any,
+  ) {
+    console.log('CustomerController.updateMyProfile id:', id, 'body:', body);
+    return await lastValueFrom(
+      this.customerService.send({ cmd: 'updateUser' }, { id, updateData: body }),
+    );
+  }
+
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.ADMIN, Role.STAFF)
+  @Patch(':id')
+  @HttpCode(HttpStatus.OK)
+  async updateUser(
+    @Param('id') id: string,
+    @Body() body: any,
+    @UserToken('role') requesterRole: string | string[],
+  ) {
+    try {
+      // Check if target user exists and get their role
+      const targetUser = await lastValueFrom(
+        this.customerService.send({ cmd: 'getUserById' }, { id, role: requesterRole })
+      );
+
+      if (!targetUser) {
+        throw new NotFoundException('User not found');
+      }
+
+      // Check permission
+      const roles = Array.isArray(requesterRole) ? requesterRole : [requesterRole];
+      const isStaff = roles.includes(Role.STAFF);
+      const isAdmin = roles.includes(Role.ADMIN);
+
+      if (isStaff && !isAdmin) {
+        const targetRoles = Array.isArray(targetUser.role) ? targetUser.role : [targetUser.role];
+        if (targetRoles.includes(Role.ADMIN)) {
+          throw new ForbiddenException('Staff cannot update Admin account');
+        }
+      }
+
+      // Proceed to update
+      return await lastValueFrom(
+        this.customerService.send({ cmd: 'updateUser' }, { id, updateData: body })
+      );
+    } catch (error) {
+      if (error instanceof ForbiddenException || error instanceof NotFoundException) {
+        throw error;
+      }
+      throw error;
+    }
   }
 
   @UseGuards(JwtAuthGuard, RoleGuard)
