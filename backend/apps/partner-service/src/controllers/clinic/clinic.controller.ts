@@ -15,18 +15,24 @@ import { UpdateStatusClinicDto } from 'src/dto/clinic/clinic/update-status.dto';
 )
 @Controller()
 export class ClinicController {
-  constructor(private readonly clinicService: ClinicService) {}
+  constructor(private readonly clinicService: ClinicService) { }
 
   @MessagePattern({ cmd: 'getAllClinicForm' })
-  async getAllClinicForm(): Promise<any> {
+  async getAllClinicForm(
+    @Payload() data: { page: number; limit: number; status?: string },
+  ): Promise<any> {
     try {
-      const result = await this.clinicService.findAllClinicForm();
+      const result = await this.clinicService.findAllClinicForm(
+        data.page,
+        data.limit,
+        data.status,
+      );
       return result;
     } catch (err) {
       handleRpcError('ClinicController.getAllClinicForm', err);
     }
   }
-  
+
   @EventPattern({ cmd: 'registerClinic' })
   async createClinicForm(CreateClinicFormData: any) {
     try {
@@ -57,36 +63,38 @@ export class ClinicController {
       handleRpcError('ClinicController.updateStatusClinicForm', err);
     }
   }
-  
-  @EventPattern({ cmd: 'updateClinicActiveStatus' })
+
+  @MessagePattern({ cmd: 'updateClinicActiveStatus' })
   async updateClinicActiveStatus(
     @Payload() data: { id: string; is_active: boolean },
   ) {
     try {
-      await this.clinicService.updateClinicActiveStatus(
+      return await this.clinicService.updateClinicActiveStatus(
         data.id,
         data.is_active,
       );
     } catch (err) {
-      handleRpcError('ClinicController.updateClinicActiveStatus', err);
+      throw handleRpcError('ClinicController.updateClinicActiveStatus', err);
     }
   }
-  
+
+
   @MessagePattern({ cmd: 'findAllClinic' })
   async findAllClinic(
-    @Payload() data: { page?: number; limit?: number },
+    @Payload() data: { page?: number; limit?: number; isAdmin?: boolean },
   ): Promise<any> {
     try {
       const result = await this.clinicService.findAllClinic(
         data.page,
         data.limit,
+        data.isAdmin,
       );
       return result;
     } catch (err) {
       handleRpcError('ClinicController.findAllClinic', err);
     }
   }
-  
+
   @MessagePattern({ cmd: 'getClinicById' })
   async getClinicById(@Payload() data: { id: string }): Promise<any> {
     try {
@@ -96,7 +104,7 @@ export class ClinicController {
       handleRpcError('ClinicController.getClinicById', err);
     }
   }
-  
+
   @EventPattern({ cmd: 'updateClinicFormByMail' })
   async updateClinicFormByMail(@Payload() data: any) {
     try {
@@ -105,7 +113,7 @@ export class ClinicController {
       handleRpcError('ClinicController.updateClinicFormByMail', err);
     }
   }
-  
+
   @MessagePattern({ cmd: 'getClinicByVerificationToken' })
   async getClinicByVerificationToken(@Payload() data: any): Promise<any> {
     try {
@@ -122,7 +130,7 @@ export class ClinicController {
       handleRpcError('PartnerController.getClinicByVerificationToken', error);
     }
   }
-  
+
   @EventPattern({ cmd: 'updateClinicForm' })
   async updateClinicForm(@Payload() data: any) {
     try {
@@ -141,6 +149,29 @@ export class ClinicController {
       return result;
     } catch (err) {
       handleRpcError('ClinicController.getClinicMembers', err);
+    }
+  }
+  @MessagePattern({ cmd: 'removeMemberFromClinic' })
+  async removeMemberFromClinic(
+    @Payload() data: { clinicId: string; memberId: string },
+  ): Promise<any> {
+    try {
+      const result = await this.clinicService.removeMember(
+        data.clinicId,
+        data.memberId,
+      );
+      return result;
+    } catch (err) {
+      handleRpcError('ClinicController.removeMemberFromClinic', err);
+    }
+  }
+  @MessagePattern({ cmd: 'updateClinicInfo' })
+  async updateClinicInfo(@Payload() data: any): Promise<any> {
+    try {
+      const result = await this.clinicService.updateClinicInfo(data);
+      return result;
+    } catch (err) {
+      handleRpcError('ClinicController.updateClinicInfo', err);
     }
   }
 }

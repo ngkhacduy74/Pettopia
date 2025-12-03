@@ -16,7 +16,7 @@ import {
   AppointmentShift,
   AppointmentCreatedBy,
 } from 'src/schemas/appoinment.schema';
-import { lastValueFrom } from 'rxjs';
+import { lastValueFrom, timeout } from 'rxjs';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import {
@@ -579,26 +579,26 @@ export class AppointmentService {
 
     try {
       const clinic = await lastValueFrom(
-        this.partnerService.send({ cmd: 'getClinicById' }, { id: clinic_id }),
+        this.partnerService
+          .send({ cmd: 'getClinicById' }, { id: clinic_id })
+          .pipe(timeout(5000)),
       ).catch((err) => {
-        console.error('❌ Error getClinicById:', err);
         throw new RpcException({
           status: HttpStatus.BAD_REQUEST,
-          message: 'Lỗi khi lấy thông tin phòng khám',
+          message: 'Lỗi khi lấy thông tin phòng khám (Timeout/Error)',
         });
       });
-      console.log('>>> [createAppointment] clinic:', JSON.stringify(clinic));
 
       let services: any[] = [];
       if (hasServices) {
-        console.log('>>> [createAppointment] BEFORE validateClinicServices');
         services = await lastValueFrom(
-          this.partnerService.send(
-            { cmd: 'validateClinicServices' },
-            { clinic_id, service_ids },
-          ),
+          this.partnerService
+            .send(
+              { cmd: 'validateClinicServices' },
+              { clinic_id, service_ids },
+            )
+            .pipe(timeout(5000)),
         ).catch((err) => {
-          console.error('❌ Error validateClinicServices:', err);
           throw new RpcException({
             status: HttpStatus.BAD_REQUEST,
             message:
@@ -609,18 +609,16 @@ export class AppointmentService {
           '>>> [createAppointment] services:',
           JSON.stringify(services),
         );
-      } else {
-        console.log('>>> [createAppointment] skip validateClinicServices');
       }
 
-      console.log('>>> [createAppointment] BEFORE getClinicShiftById');
       const shift = await lastValueFrom(
-        this.partnerService.send(
-          { cmd: 'getClinicShiftById' },
-          { clinic_id, shift_id },
-        ),
+        this.partnerService
+          .send(
+            { cmd: 'getClinicShiftById' },
+            { clinic_id, shift_id },
+          )
+          .pipe(timeout(5000)),
       ).catch((err) => {
-        console.error('❌ Error getClinicShiftById:', err);
         throw new RpcException({
           status: HttpStatus.BAD_REQUEST,
           message: 'Lỗi khi lấy thông tin ca khám',
@@ -671,27 +669,88 @@ export class AppointmentService {
         this.hasRole(userRole, 'Staff') ||
         this.hasRole(userRole, 'Admin');
 
-      const newAppointmentData: any = {
-        ...data,
-        user_id,
-        date: appointmentDate,
-        shift: shift.data.shift,
-        status: AppointmentStatus.Pending_Confirmation,
-        service_ids: hasServices ? service_ids : [],
-        pet_ids: pet_ids && pet_ids.length > 0 ? pet_ids : [],
-      };
-      console.log('newAppointmentData:', JSON.stringify(newAppointmentData));
-      if (isUserRole) {
-        newAppointmentData.customer = user_id;
-        newAppointmentData.created_by = AppointmentCreatedBy.Customer;
-      } else if (isPartnerRole) {
-        newAppointmentData.partner = user_id;
-        newAppointmentData.created_by = AppointmentCreatedBy.Partner;
+      if (pet_ids && pet_ids.length > 0) {
+        console.log('>>> [createAppointment] Validating pets ownership...');
+        for (const petId of pet_ids) {
+          const pet = await lastValueFrom(
+            this.petcareService
+              .send({ cmd: 'getPetById' }, { id: petId })
+              .pipe(timeout(5000)),
+          ).catch((err) => {
+            throw new RpcException({
+              status: HttpStatus.BAD_REQUEST,
+              message: `Lỗi khi lấy thông tin thú cưng (ID: ${petId})`,
+            });
+          });
+
+          if (!pet) {
+            throw new RpcException({
+              status: HttpStatus.NOT_FOUND,
+              message: `Thú cưng với ID ${petId} không tồn tại`,
+            });
+          }
+
+          if (pet.customer_id !== user_id) {
+            throw new RpcException({
+              status: HttpStatus.FORBIDDEN,
+              message: `Thú cưng (ID: ${petId}) không thuộc về người dùng này`,
+            });
+          }
+        }
+        console.log('>>> [createAppointment] All pets validated.');
       }
 
-      const result =
-        await this.appointmentRepositories.create(newAppointmentData);
-      console.log('result123123fdsdf:', JSON.stringify(result));
+      const bookingGroupId = uuid.v4();
+      const appointmentsToCreate: any[] = [];
+
+      const petIdsToProcess = (pet_ids && pet_ids.length > 0) ? pet_ids : [];
+
+      if (petIdsToProcess.length === 0) {
+        const newAppointmentData: any = {
+          ...data,
+          id: uuid.v4(),
+          user_id,
+          date: appointmentDate,
+          shift: shift.data.shift,
+          status: AppointmentStatus.Pending_Confirmation,
+          service_ids: hasServices ? service_ids : [],
+          pet_ids: [],
+          booking_group_id: bookingGroupId,
+        };
+        if (isUserRole) {
+          newAppointmentData.created_by = AppointmentCreatedBy.Customer;
+        } else if (isPartnerRole) {
+          newAppointmentData.created_by = AppointmentCreatedBy.Partner;
+        }
+        appointmentsToCreate.push(newAppointmentData);
+      } else {
+        for (const petId of petIdsToProcess) {
+          const newAppointmentData: any = {
+            ...data,
+            id: uuid.v4(),
+            user_id,
+            date: appointmentDate,
+            shift: shift.data.shift,
+            status: AppointmentStatus.Pending_Confirmation,
+            service_ids: hasServices ? service_ids : [],
+            pet_ids: [petId],
+            booking_group_id: bookingGroupId,
+          };
+
+          if (isUserRole) {
+            newAppointmentData.created_by = AppointmentCreatedBy.Customer;
+          } else if (isPartnerRole) {
+            newAppointmentData.created_by = AppointmentCreatedBy.Partner;
+          }
+          appointmentsToCreate.push(newAppointmentData);
+        }
+      }
+
+      console.log('appointmentsToCreate:', JSON.stringify(appointmentsToCreate));
+
+      const result = await this.appointmentRepositories.insertMany(appointmentsToCreate);
+      console.log('Created appointments count:', result.length);
+
       const appointmentDateFormatted = appointmentDate.toLocaleDateString(
         'vi-VN',
         { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' },
@@ -705,23 +764,26 @@ export class AppointmentService {
             ? services.map((s) => s.name)
             : ['Khám tổng quát/Chưa chỉ định'];
 
-        await lastValueFrom(
-          this.authService.send(
-            { cmd: 'sendAppointmentConfirmation' },
-            {
-              email: userEmail,
-              appointmentDetails: {
-                userName: userName,
-                appointmentDate: appointmentDateFormatted,
-                appointmentTime: `${shift.data.start_time} - ${shift.data.end_time}`,
-                clinicName: clinic.data.clinic_name,
-                clinicAddress: clinic.data.address,
-                services: serviceNames,
-                appointmentId: result.id,
+        const firstAppointment = result[0];
+        if (firstAppointment) {
+          await lastValueFrom(
+            this.authService.send(
+              { cmd: 'sendAppointmentConfirmation' },
+              {
+                email: userEmail,
+                appointmentDetails: {
+                  userName: userName,
+                  appointmentDate: appointmentDateFormatted,
+                  appointmentTime: `${shift.data.start_time} - ${shift.data.end_time}`,
+                  clinicName: clinic.data.clinic_name,
+                  clinicAddress: clinic.data.address,
+                  services: serviceNames,
+                  appointmentId: firstAppointment.id,
+                },
               },
-            },
-          ),
-        );
+            ),
+          );
+        }
       } catch (emailError) {
         console.error('Không thể gửi email xác nhận:', emailError);
       }
@@ -765,8 +827,15 @@ export class AppointmentService {
     try {
       let result: { data: any[]; total: number };
 
-      // Phân quyền dựa trên role
-      if (this.hasRole(role, 'User')) {
+      // Chuyển đổi role thành mảng nếu là chuỗi
+      const roles = Array.isArray(role) ? role : [role];
+
+      // Kiểm tra quyền
+      const isAdminOrStaff = roles.some(r => ['Admin', 'Staff'].includes(r));
+      const isClinic = roles.includes('Clinic');
+      const isUser = roles.includes('User');
+
+      if (isUser) {
         // USER: chỉ xem appointments của chính mình
         if (!userId) {
           throw new RpcException({
@@ -779,8 +848,8 @@ export class AppointmentService {
           page,
           limit,
         );
-      } else if (this.hasRole(role, 'Clinic')) {
-        // CLINIC: xem appointments của phòng khám mình
+      } else if (isClinic) {
+        // CLINIC: chỉ xem appointments của phòng khám mình
         if (!clinicId) {
           throw new RpcException({
             status: HttpStatus.BAD_REQUEST,
@@ -792,7 +861,7 @@ export class AppointmentService {
           page,
           limit,
         );
-      } else if (this.isAdminOrStaff(role)) {
+      } else if (isAdminOrStaff) {
         // ADMIN/STAFF: xem tất cả appointments
         result = await this.appointmentRepositories.findAll(page, limit);
       } else {

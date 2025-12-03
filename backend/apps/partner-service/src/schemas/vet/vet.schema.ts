@@ -11,7 +11,13 @@ export class SocialLink {
   linkedin?: string;
 }
 export const SocialLinkSchema = SchemaFactory.createForClass(SocialLink);
-
+export enum UserRole {
+  ADMIN = 'Admin',
+  STAFF = 'Staff',
+  USER ="User",
+  VET ='Vet',
+  Clinic='Clinic'
+}
 @Schema({ _id: false })
 export class Certification {
   @Prop({ type: String, required: true, trim: true })

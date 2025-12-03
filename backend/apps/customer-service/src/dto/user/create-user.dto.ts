@@ -28,6 +28,24 @@ class PhoneDto {
   verified?: boolean;
 }
 
+class AddressDto {
+  @IsString()
+  @IsNotEmpty()
+  city: string;
+
+  @IsString()
+  @IsNotEmpty()
+  district: string;
+
+  @IsString()
+  @IsNotEmpty()
+  ward: string;
+
+  @IsString()
+  @IsOptional()
+  description?: string;
+}
+
 export class CreateUserDto {
   @IsString()
   @IsNotEmpty({ message: 'Họ tên không được để trống.' })
@@ -60,7 +78,8 @@ export class CreateUserDto {
   @ValidateNested()
   @Type(() => PhoneDto)
   phone: PhoneDto;
-  @IsString()
+  @ValidateNested()
+  @Type(() => AddressDto)
   @IsOptional()
-  address?: string;
+  address?: AddressDto;
 }

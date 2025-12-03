@@ -11,10 +11,12 @@ import { CheckPhoneExistDto } from '../dto/request/check-phone-exist.dto';
 import { CreateUserDto } from '../dto/user/create-user.dto';
 import { DeleteUserByIdDto } from '../dto/request/delete-user-by-id.dto';
 import { UpdateUserStatusDto } from '../dto/request/update-user-status.dto';
+import { UpdateUserPayloadDto } from '../dto/request/update-user-payload.dto';
 import {
   GetAllUsersDto,
   PaginatedUsersResponse,
 } from '../dto/request/get-all-user.dto';
+import { UpdateUserDto } from '../dto/request/update-user.dto';
 import { handleRpcError } from '../common/error.detail';
 
 @UsePipes(
@@ -26,38 +28,28 @@ import { handleRpcError } from '../common/error.detail';
 )
 @Controller()
 export class AppController {
-  constructor(private readonly appService: AppService) {}
+  constructor(private readonly appService: AppService) { }
   @MessagePattern({ cmd: 'getUserById' })
-  async getUserById(@Payload() data: GetUserByIdDto): Promise<User> {
+  async getUserById(@Payload() data: any): Promise<User | null> {
     try {
-      const result = await this.appService.getUserById(data.id);
+      console.log('Received getUserById request with data:', data);
+      const result = await this.appService.getUserById(data.id, data.role);
       return result;
     } catch (err) {
-      handleRpcError('AppController.getUserById', err);
+      throw handleRpcError('AppController.getUserById', err);
     }
-  }@MessagePattern({ cmd: 'updateUserPasswordById' })
-async updateUserPasswordById(
-  @Payload() data: { id: string; newPassword: string },
-): Promise<{ success: boolean }> {
-  try {
-    return await this.appService.updatePasswordById(
-      data.id,
-      data.newPassword,
-    );
-  } catch (err) {
-    handleRpcError('AppController.updateUserPasswordById', err);
   }
-}
 
   @MessagePattern({ cmd: 'getUserByUsername' })
   async getUserByUsername(
     @Payload() data: GetUserByUsernameDto,
-  ): Promise<User> {
+  ): Promise<User | null> {
     try {
       const result = await this.appService.getUserByUsername(data.username);
       return result;
     } catch (err) {
       handleRpcError('AppController.getUserByUsername', err);
+      return null;
     }
   }
   @MessagePattern({ cmd: 'getUserByEmail' })
@@ -173,6 +165,19 @@ async updateUserPasswordById(
       handleRpcError('UserController.removeRoleFromUser', err);
     }
   }
+
+  @MessagePattern({ cmd: 'check_user_role' })
+  async checkUserRole(
+    @Payload() payload: { userId: string; role: string },
+  ): Promise<any> {
+    try {
+      const { userId, role } = payload;
+      const result = await this.appService.hasUserRole(userId, role);
+      return result;
+    } catch (err) {
+      handleRpcError('UserController.checkUserRole', err);
+    }
+  }
   @MessagePattern({ cmd: 'total-detail-account' })
   async totalDetailAccount(): Promise<any> {
     try {
@@ -193,6 +198,19 @@ async updateUserPasswordById(
       );
     } catch (err) {
       handleRpcError('AppController.updateUserPassword', err);
+    }
+  }
+
+  @MessagePattern({ cmd: 'updateUser' })
+  async updateUser(
+    @Payload() payload: UpdateUserPayloadDto,
+  ): Promise<User> {
+    try {
+      console.log('AppController.updateUser payload:', payload);
+      const { id, updateData } = payload;
+      return await this.appService.updateUser(id, updateData);
+    } catch (err) {
+      handleRpcError('AppController.updateUser', err);
     }
   }
 }

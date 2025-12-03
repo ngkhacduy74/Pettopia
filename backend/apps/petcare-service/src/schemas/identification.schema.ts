@@ -1,11 +1,11 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { prototype } from 'events';
 import { Document } from 'mongoose';
 @Schema({ _id: false })
 export class Address {
   @Prop({ type: String, required: true, trim: true }) city: string;
   @Prop({ type: String, required: true, trim: true }) district: string;
   @Prop({ type: String, required: true, trim: true }) ward: string;
+  @Prop({ type: String, required: false, trim: true }) description?: string;
 }
 export const AddressSchema = SchemaFactory.createForClass(Address);
 @Schema({ versionKey: false })

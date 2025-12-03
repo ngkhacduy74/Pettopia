@@ -6,9 +6,16 @@ export class Address {
   @Prop({ type: String, required: true, trim: true }) city: string;
   @Prop({ type: String, required: true, trim: true }) district: string;
   @Prop({ type: String, required: true, trim: true }) ward: string;
+  @Prop({ type: String, required: false, trim: true }) description?: string;
 }
 export const AddressSchema = SchemaFactory.createForClass(Address);
-
+export enum UserRole {
+  ADMIN = 'Admin',
+  STAFF = 'Staff',
+  USER ="User",
+  VET ='Vet',
+  Clinic='Clinic'
+}
 @Schema({ _id: false })
 export class Email {
   @Prop({
@@ -97,9 +104,8 @@ export class User {
   password: string;
 
   @Prop({
-    type: [String],
-    enum: ['User', 'Admin', 'Staff', 'Vet', 'Clinic'],
-    default: ['User'],
+    type: [String], 
+    default: UserRole.USER,
   })
   role: string[];
 

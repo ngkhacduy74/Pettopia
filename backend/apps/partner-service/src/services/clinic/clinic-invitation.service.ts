@@ -42,6 +42,7 @@ export class ClinicInvitationService {
 
     // Dùng client đã được đăng ký sẵn trong AppModule (ClientsModule.registerAsync)
     @Inject('AUTH_SERVICE') private readonly authService: ClientProxy,
+    @Inject('CUSTOMER_SERVICE') private readonly customerService: ClientProxy,
   ) { }
 
   async createInvitation(payload: CreateClinicInvitationPayload) {
@@ -69,6 +70,33 @@ export class ClinicInvitationService {
     }
 
     const normalizedRole = this.normalizeRole(role);
+
+    // 1.1 Check if email belongs to a Clinic account
+    try {
+      const user = await lastValueFrom(
+        this.customerService.send(
+          { cmd: 'getUserByEmail' },
+          { email_address: invited_email },
+        ),
+      ).catch(() => null);
+
+      if (user && user.role && user.role.includes('Clinic')) {
+        throw createRpcError(
+          HttpStatus.BAD_REQUEST,
+          'Không thể mời tài khoản phòng khám khác.',
+          'Bad Request',
+        );
+      }
+    } catch (error) {
+      if (error?.message === 'Không thể mời tài khoản phòng khám khác.') {
+        throw error;
+      }
+      // Ignore other errors (e.g. user not found or service unavailable)
+      console.warn(
+        `[ClinicInvitationService] Failed to check user role for ${invited_email}:`,
+        error?.message,
+      );
+    }
 
     // 2. Kiểm tra clinic có tồn tại không
     const clinic = await this.clinicsRepository.getClinicById(clinic_id);
@@ -118,12 +146,8 @@ export class ClinicInvitationService {
       expires_at: expiresAt,
       status: ClinicInvitationStatus.PENDING,
     });
-    console.log('invitation:1222212', invitation);
-    // 5. Gửi email qua AUTH_SERVICE (best-effort)
     try {
-      console.log(
-        '[ClinicInvitationService] Sending clinic member invitation email...',
-      );
+
 
       await lastValueFrom(
         this.authService.send(
@@ -132,7 +156,7 @@ export class ClinicInvitationService {
             email: invited_email,
             clinicName: clinic.clinic_name,
             role: normalizedRole,
-            inviteLink: `${process.env.APP_URL}/api/v1/partner/invitations/${token}/accept`,
+            inviteLink: `${process.env.APP_URL}/vet/${token}/accepted`,
             expiresAt: expiresAt.toISOString(),
           },
         ),

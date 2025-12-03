@@ -12,10 +12,13 @@ import {
 
 @Injectable()
 export class UsersRepository {
-  constructor(@InjectModel(User.name) private userModel: Model<UserDocument>) {}
+  constructor(@InjectModel(User.name) private userModel: Model<UserDocument>) { }
 
   async findOneById(id: string): Promise<User | null> {
     return this.userModel.findOne({ id }).lean().exec();
+  }
+  async findOneByIdNotAdmin(id: string): Promise<User | null> {
+    return this.userModel.findOne({ id }).select({ password: 0, __v: 0, secretKey: 0, is_active: 0, reward_point: 0, role: 0 }).lean().exec();
   }
 
   async findOneByUsername(username: string): Promise<User | null> {
@@ -195,19 +198,30 @@ export class UsersRepository {
       .findOneAndUpdate({ id }, { password: newPassword }, { new: true })
       .exec();
   }
-  async updateProfile(id: string, updateData: Partial<User>): Promise<User | null> {
-  try {
-    const result = await this.userModel
-      .findOneAndUpdate(
-        { id },
-        { $set: updateData },
-        { new: true, runValidators: true }
-      )
-      .exec();
 
-    return result;
-  } catch (err) {
-    throw new Error(err.message || 'Lỗi khi cập nhật hồ sơ người dùng');
+  async updateUser(id: string, updateData: any): Promise<User | null> {
+    console.log('UsersRepository.updateUser id:', id, 'updateData:', updateData);
+    if (!updateData) {
+      return this.userModel.findOne({ id }).exec();
+    }
+    const updateFields: any = {};
+    if (updateData.fullname) updateFields.fullname = updateData.fullname;
+    if (updateData.dob) updateFields.dob = updateData.dob;
+    if (updateData.bio) updateFields.bio = updateData.bio;
+    if (updateData.address) updateFields.address = updateData.address;
+    if (updateData.is_active !== undefined) updateFields.is_active = updateData.is_active;
+
+    // Handle nested fields update carefully
+    if (updateData.phone_number) {
+      updateFields['phone.phone_number'] = updateData.phone_number;
+    }
+    if (updateData.email_address) {
+      updateFields['email.email_address'] = updateData.email_address;
+    }
+    console.log('UsersRepository.updateUser updateFields:', updateFields);
+
+    return this.userModel
+      .findOneAndUpdate({ id }, { $set: updateFields }, { new: true })
+      .exec();
   }
-}
 }

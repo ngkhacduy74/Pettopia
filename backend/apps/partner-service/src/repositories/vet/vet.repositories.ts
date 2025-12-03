@@ -1,12 +1,14 @@
 // src/users/users.repository.ts
 import {
   BadRequestException,
+  HttpStatus,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+import { createRpcError } from 'src/common/error.detail';
 import { CreateClinicFormDto } from 'src/dto/clinic/clinic/create-clinic-form.dto';
 import { CreateClinicDto } from 'src/dto/clinic/clinic/create-clinic.dto';
 import { UpdateStatusClinicDto } from 'src/dto/clinic/clinic/update-status.dto';
@@ -33,7 +35,9 @@ export class VetRepository {
     private vetFormModel: Model<VetRegisterDocument>,
     @InjectModel(Vet.name)
     private vetModel: Model<VetDocument>,
-  ) {}
+    @InjectModel(Clinic.name)
+    private clinicModel: Model<ClinicDocument>
+  ) { }
   async findVetById(user_id: string): Promise<any | null> {
     try {
       const vet = await this.vetModel.findOne({ id: user_id }).exec();
@@ -60,6 +64,19 @@ export class VetRepository {
       throw new InternalServerErrorException('Không thể truy vấn bác sĩ.');
     }
   }
+
+  async findOneVetByClinic(clinic_id: string, vet_id: string): Promise<any> {
+    try {
+      return await this.clinicModel.findOne({
+        id: clinic_id,
+        member_ids: vet_id,
+      });
+    } catch (err) {
+      console.error('Error findOneVetByClinic:', err.message);
+      throw err;
+    }
+  }
+
 
   async create(vetRegisterData: VetRegisterDto, user_id: string): Promise<any> {
     try {
@@ -210,6 +227,37 @@ export class VetRepository {
 
       throw new InternalServerErrorException(
         error.message || 'Không thể cập nhật danh sách phòng khám của bác sĩ.',
+      );
+    }
+  }
+
+  async removeClinicFromVet(vetId: string, clinicId: string): Promise<VetDocument> {
+    try {
+      const updatedVet = await this.vetModel
+        .findOneAndUpdate(
+          { id: vetId },
+          {
+            $pull: { clinic_id: clinicId },
+            $set: { updatedAt: new Date() },
+          },
+          { new: true },
+        )
+        .exec();
+
+      if (!updatedVet) {
+        throw new NotFoundException(
+          `Không tìm thấy hồ sơ bác sĩ với id: ${vetId}`,
+        );
+      }
+
+      return updatedVet;
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+
+      throw new InternalServerErrorException(
+        error.message || 'Không thể xóa phòng khám khỏi hồ sơ bác sĩ.',
       );
     }
   }

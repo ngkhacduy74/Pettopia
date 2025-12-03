@@ -32,6 +32,41 @@ export class ClinicService {
     @Inject('AUTH_SERVICE') private readonly authService: ClientProxy,
   ) { }
 
+
+  async findAllClinicForm(
+    page: number = 1,
+    limit: number = 10,
+    status?: string,
+  ): Promise<any> {
+    try {
+      page = Number(page);
+      limit = Number(limit);
+      const skip = (page - 1) * limit;
+
+      const filters = { status, skip, limit };
+
+      const { data, total } = await this.clinicRepositories.findAll(filters);
+
+      return {
+        status: 'success',
+        message: 'Lấy danh sách form đăng ký phòng khám thành công',
+        pagination: {
+          total,
+          page,
+          limit,
+          totalPages: Math.ceil(total / limit),
+        },
+        data,
+      };
+    } catch (err) {
+      throw createRpcError(
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        err.message || 'Lỗi khi lấy danh sách form đăng ký clinic',
+        'Internal Server Error',
+      );
+    }
+  }
+
   async createClinicForm(
     createClinicFormData: CreateClinicFormDto,
   ): Promise<any> {
@@ -79,6 +114,7 @@ export class ClinicService {
             this.clinicRepositories.existsClinicFormByResponsibleLicense(lic),
           ),
         );
+
         const anyTaken = checks.some((v) => v);
         if (anyTaken) {
           throw createRpcError(
@@ -352,7 +388,10 @@ export class ClinicService {
     }
   }
 
-  async updateClinicActiveStatus(id: string, is_active: boolean): Promise<any> {
+  async updateClinicActiveStatus(
+    id: string,
+    is_active: boolean,
+  ): Promise<any> {
     try {
       if (!id) {
         throw createRpcError(
@@ -400,7 +439,8 @@ export class ClinicService {
       );
     }
   }
-  async findAllClinic(page = 1, limit = 10): Promise<any> {
+
+  async findAllClinic(page = 1, limit = 10, isAdmin: boolean = false): Promise<any> {
     try {
       const skip = (page - 1) * limit;
 
@@ -424,60 +464,40 @@ export class ClinicService {
         }),
       ]);
 
+      // Filter sensitive information for non-admin users
+      const filteredData = data.map(clinic => {
+        if (isAdmin) {
+          return clinic; // Return all data for admin users
+        }
+
+        return {
+          id: clinic.id,
+          clinic_name: clinic.clinic_name,
+          address: clinic.address,
+          phone: clinic.phone,
+          email: clinic.email,
+          description: clinic.description,
+          logo: clinic.logo,
+          images: clinic.images,
+          is_active: clinic.is_active,
+        };
+      });
+
       return {
         status: 'success',
         message: 'Lấy danh sách phòng khám thành công',
-        data,
         pagination: {
           total,
           page,
           limit,
           totalPages: Math.ceil(total / limit),
         },
-      };
-    } catch (error) {
-      if (error instanceof RpcException) {
-        throw error;
-      }
-
-      throw createRpcError(
-        HttpStatus.INTERNAL_SERVER_ERROR,
-        'Đã xảy ra lỗi khi lấy danh sách phòng khám',
-        'Internal Server Error',
-        error.message,
-      );
-    }
-  }
-
-  async findAllClinicForm(
-    page: number = 1,
-    limit: number = 10,
-    status?: string,
-  ): Promise<any> {
-    try {
-      page = Number(page);
-      limit = Number(limit);
-      const skip = (page - 1) * limit;
-
-      const filters = { status, skip, limit };
-
-      const { data, total } = await this.clinicRepositories.findAll(filters);
-
-      return {
-        success: true,
-        message: 'Lấy danh sách form đăng ký phòng khám thành công',
-        pagination: {
-          total,
-          page,
-          limit,
-          totalPages: Math.ceil(total / limit),
-        },
-        data,
+        data: filteredData,
       };
     } catch (err) {
       throw createRpcError(
         HttpStatus.INTERNAL_SERVER_ERROR,
-        err.message || 'Lỗi khi lấy danh sách form đăng ký clinic',
+        err.message || 'Lỗi khi lấy danh sách phòng khám',
         'Internal Server Error',
       );
     }
@@ -881,12 +901,31 @@ export class ClinicService {
           (cr: any) => cr.clinic_id === clinic_id,
         );
 
+        // Lấy thông tin người dùng từ customer-service (email, phone, fullname, is_active)
+        let userInfo: any = null;
+        try {
+          const userResult = await lastValueFrom(
+            this.customerService.send(
+              { cmd: 'getUserById' },
+              { id: vet.id, role: ['Staff'] }, // request with elevated role to include is_active
+            ),
+          );
+          userInfo = userResult;
+        } catch (err) {
+          // Nếu lỗi, log và tiếp tục với thông tin vet cơ bản
+          console.warn('Không lấy được user info cho member', member_id, err?.message || err);
+        }
+
         return {
           member_id: vet.id,
           role: memberRole?.role || 'unknown',
           joined_at: memberRole?.joined_at || null,
           specialty: vet.specialty,
           exp: vet.exp,
+          fullname: userInfo?.fullname || null,
+          email: userInfo?.email?.email_address || null,
+          phone: userInfo?.phone?.phone_number || null,
+          is_active: typeof userInfo?.is_active === 'boolean' ? userInfo.is_active : null,
         };
       }),
     );
@@ -944,6 +983,78 @@ export class ClinicService {
         HttpStatus.INTERNAL_SERVER_ERROR,
         err.message || 'Lỗi khi kiểm tra phòng khám đã active hay chưa',
         'Internal Server Error',
+      );
+    }
+  }
+  async removeMember(clinicId: string, memberId: string): Promise<any> {
+    try {
+      if (!clinicId || !memberId) {
+        throw createRpcError(
+          HttpStatus.BAD_REQUEST,
+          'Thiếu thông tin phòng khám hoặc thành viên',
+          'Bad Request',
+        );
+      }
+
+      // 1. Check if clinic exists
+      const clinic = await this.clinicRepositories.getClinicById(clinicId);
+      if (!clinic) {
+        throw createRpcError(
+          HttpStatus.NOT_FOUND,
+          'Không tìm thấy phòng khám',
+          'Not Found',
+        );
+      }
+
+      // 2. Check if member is in clinic
+      if (!clinic.member_ids || !clinic.member_ids.includes(memberId)) {
+        throw createRpcError(
+          HttpStatus.BAD_REQUEST,
+          'Thành viên không thuộc phòng khám này',
+          'Bad Request',
+        );
+      }
+
+      // 3. Remove member from clinic
+      await this.clinicRepositories.removeMemberFromClinic(clinicId, memberId);
+
+      // 4. Remove clinic from vet
+      await this.vetRepositories.removeClinicFromVet(memberId, clinicId);
+
+      return {
+        status: 'success',
+        message: 'Đã xóa thành viên khỏi phòng khám thành công',
+      };
+    } catch (error) {
+      if (error instanceof RpcException) {
+        throw error;
+      }
+      throw createRpcError(
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        'Đã xảy ra lỗi khi xóa thành viên khỏi phòng khám',
+        'Internal Server Error',
+        error.message,
+      );
+    }
+  }
+  async updateClinicInfo(data: any): Promise<any> {
+    try {
+      const { id, ...updateData } = data;
+      const result = await this.clinicRepositories.updateClinic(id, updateData);
+      return {
+        status: 'success',
+        message: 'Cập nhật thông tin phòng khám thành công',
+        data: result,
+      };
+    } catch (error) {
+      if (error instanceof RpcException) {
+        throw error;
+      }
+      throw createRpcError(
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        'Đã xảy ra lỗi khi cập nhật thông tin phòng khám',
+        'Internal Server Error',
+        error.message,
       );
     }
   }

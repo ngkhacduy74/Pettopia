@@ -213,20 +213,44 @@ export class PartnerController {
   }
 
   @Get('/clinic')
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.ADMIN, Role.STAFF, Role.USER)
   @HttpCode(HttpStatus.OK)
   async findAllClinic(
-    @Query('page', new ParseIntPipe({ optional: true }))
-    page: number = 1,
-    @Query('limit', new ParseIntPipe({ optional: true }))
-    limit: number = 10,
+    @Query('page', new ParseIntPipe({ optional: true })) page: number = 1,
+    @Query('limit', new ParseIntPipe({ optional: true })) limit: number = 10,
+    @UserToken('role') userRole: string,
   ): Promise<any> {
     return await lastValueFrom(
-      this.partnerService.send({ cmd: 'findAllClinic' }, { page, limit }),
+      this.partnerService.send(
+        { cmd: 'findAllClinic' },
+        {
+          page,
+          limit,
+          isAdmin: [Role.ADMIN, Role.STAFF].includes(userRole as Role),
+        },
+      ),
+    );
+  }
+
+  @Patch('/clinic/me')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.CLINIC)
+  async updateMyClinicInfo(
+    @UserToken('id') clinic_id: string,
+    @Body() updateData: any,
+  ) {
+    const payload = { id: clinic_id, ...updateData };
+    return await lastValueFrom(
+      this.partnerService.send({ cmd: 'updateClinicInfo' }, payload),
     );
   }
 
   @Patch('/clinic/:id')
   @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.ADMIN, Role.STAFF)
   async updateClinicInfo(
     @Param('id') idClinic: string,
     @Body() updateData: any,
@@ -239,6 +263,8 @@ export class PartnerController {
 
   @Patch('/clinic/active/:id')
   @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.ADMIN, Role.STAFF)
   async updateClinicActiveStatus(
     @Param('id') idClinic: string,
     @Body('is_active') is_active: boolean,
@@ -249,9 +275,9 @@ export class PartnerController {
     );
   }
 
+  @Post('/clinic/invitations/:token/accept')
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(Role.USER, Role.VET)
-  @Post('/clinic/invitations/:token/accept')
   @HttpCode(HttpStatus.OK)
   async acceptClinicInvitation(
     @Param('token') token: string,
@@ -277,6 +303,22 @@ export class PartnerController {
       ),
     );
   }
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.STAFF, Role.ADMIN, Role.CLINIC)
+  @Get('/vet/:id')
+  @HttpCode(HttpStatus.OK)
+  async getVetById(
+    @Param('id') id: string,
+    @UserToken('role') roles: string[],
+    @UserToken('clinic_id') clinic_id: string,
+  ) {
+    return await lastValueFrom(
+      this.partnerService.send(
+        { cmd: 'getVetById' },
+        { roles, clinic_id, vet_id: id },
+      ),
+    );
+  }
 
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(Role.USER)
@@ -289,6 +331,8 @@ export class PartnerController {
   }
 
   @Get('/vet/form')
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.STAFF, Role.ADMIN, Role.CLINIC)
   @HttpCode(HttpStatus.OK)
   async getAllVetForm(
     @Query('page', new ParseIntPipe({ optional: true })) page = 1,
@@ -304,6 +348,8 @@ export class PartnerController {
   }
 
   @Get('/vet/form/:id')
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.STAFF, Role.ADMIN, Role.CLINIC)
   @HttpCode(HttpStatus.OK)
   async getVetFormById(@Param('id') id: string): Promise<any> {
     return await lastValueFrom(
@@ -490,6 +536,47 @@ export class PartnerController {
     const payload = { id, dto };
     return await lastValueFrom(
       this.partnerService.send({ cmd: 'updateClinicForm' }, payload),
+    );
+  }
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.CLINIC)
+  @Get('/clinic/members/vets')
+  @HttpCode(HttpStatus.OK)
+  async getClinicMembers(
+    @UserToken('clinic_id') clinicId: string,
+    @Query('page', new ParseIntPipe({ optional: true })) page = 1,
+    @Query('limit', new ParseIntPipe({ optional: true })) limit = 10,
+  ) {
+    if (!clinicId) {
+      throw new BadRequestException('Thiếu thông tin phòng khám');
+    }
+    return await lastValueFrom(
+      this.partnerService.send(
+        { cmd: 'getClinicMembers' },
+        {
+          clinic_id: clinicId,
+          page,
+          limit,
+        },
+      ),
+    );
+  }
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.CLINIC)
+  @Delete('/clinic/members/:memberId')
+  @HttpCode(HttpStatus.OK)
+  async removeClinicMember(
+    @Param('memberId') memberId: string,
+    @UserToken('clinic_id') clinicId: string,
+  ) {
+    if (!memberId || !clinicId) {
+      throw new BadRequestException('Thiếu thông tin bắt buộc');
+    }
+    return await lastValueFrom(
+      this.partnerService.send(
+        { cmd: 'removeMemberFromClinic' },
+        { clinicId, memberId },
+      ),
     );
   }
 }
