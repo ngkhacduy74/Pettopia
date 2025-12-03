@@ -16,15 +16,19 @@ exports.PetController = void 0;
 const common_1 = require("@nestjs/common");
 const rxjs_1 = require("rxjs");
 const microservices_1 = require("@nestjs/microservices");
+const roles_decorator_1 = require("../decorators/roles.decorator");
+const jwtAuth_guard_1 = require("../guard/jwtAuth.guard");
+const role_guard_1 = require("../guard/role.guard");
+const user_decorator_1 = require("../decorators/user.decorator");
 const platform_express_1 = require("@nestjs/platform-express");
 let PetController = class PetController {
     petService;
     constructor(petService) {
         this.petService = petService;
     }
-    async createPet(file, data) {
+    async createPet(file, data, user_id) {
         const fileBufferString = file ? file.buffer.toString('base64') : undefined;
-        return await (0, rxjs_1.lastValueFrom)(this.petService.send({ cmd: 'createPet' }, { ...data, fileBuffer: fileBufferString }));
+        return await (0, rxjs_1.lastValueFrom)(this.petService.send({ cmd: 'createPet' }, { ...data, user_id, fileBuffer: fileBufferString }));
     }
     async getAllPets() {
         return await (0, rxjs_1.lastValueFrom)(this.petService.send({ cmd: 'getAllPets' }, {}));
@@ -34,6 +38,9 @@ let PetController = class PetController {
     }
     async getPetById(pet_id) {
         return await (0, rxjs_1.lastValueFrom)(this.petService.send({ cmd: 'getPetById' }, { pet_id }));
+    }
+    async getMyPets(user_id) {
+        return await (0, rxjs_1.lastValueFrom)(this.petService.send({ cmd: 'getPetsByOwner' }, { user_id }));
     }
     async getPetsByOwner(user_id) {
         return await (0, rxjs_1.lastValueFrom)(this.petService.send({ cmd: 'getPetsByOwner' }, { user_id }));
@@ -48,9 +55,10 @@ let PetController = class PetController {
 };
 exports.PetController = PetController;
 __decorate([
+    (0, common_1.UseGuards)(jwtAuth_guard_1.JwtAuthGuard),
     (0, common_1.Post)('/create'),
     (0, common_1.UseInterceptors)((0, platform_express_1.FileInterceptor)('avatar', {
-        limits: { fileSize: 5 * 1024 * 1024 },
+        limits: { fileSize: 1 * 1024 * 1024 },
         fileFilter: (req, file, cb) => {
             if (!file.mimetype.match(/image\/(jpg|jpeg|png|gif)$/)) {
                 return cb(new Error('Only image files are allowed!'), false);
@@ -61,11 +69,14 @@ __decorate([
     (0, common_1.HttpCode)(common_1.HttpStatus.CREATED),
     __param(0, (0, common_1.UploadedFile)()),
     __param(1, (0, common_1.Body)()),
+    __param(2, (0, user_decorator_1.UserToken)('id')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:paramtypes", [Object, Object, String]),
     __metadata("design:returntype", Promise)
 ], PetController.prototype, "createPet", null);
 __decorate([
+    (0, common_1.UseGuards)(jwtAuth_guard_1.JwtAuthGuard, role_guard_1.RoleGuard),
+    (0, roles_decorator_1.Roles)(roles_decorator_1.Role.ADMIN, roles_decorator_1.Role.STAFF),
     (0, common_1.Get)('/all'),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
@@ -78,12 +89,21 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], PetController.prototype, "getPetCount", null);
 __decorate([
+    (0, common_1.UseGuards)(jwtAuth_guard_1.JwtAuthGuard),
     (0, common_1.Get)('/:id'),
     __param(0, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", Promise)
 ], PetController.prototype, "getPetById", null);
+__decorate([
+    (0, common_1.UseGuards)(jwtAuth_guard_1.JwtAuthGuard),
+    (0, common_1.Get)('/my'),
+    __param(0, (0, user_decorator_1.UserToken)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], PetController.prototype, "getMyPets", null);
 __decorate([
     (0, common_1.Get)('/owner/:user_id'),
     __param(0, (0, common_1.Param)('user_id')),
@@ -92,9 +112,10 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], PetController.prototype, "getPetsByOwner", null);
 __decorate([
+    (0, common_1.UseGuards)(jwtAuth_guard_1.JwtAuthGuard),
     (0, common_1.Patch)('/:id'),
     (0, common_1.UseInterceptors)((0, platform_express_1.FileInterceptor)('avatar', {
-        limits: { fileSize: 5 * 1024 * 1024 },
+        limits: { fileSize: 1 * 1024 * 1024 },
         fileFilter: (req, file, cb) => {
             if (!file.mimetype.match(/image\/(jpg|jpeg|png|gif)$/)) {
                 return cb(new Error('Only image files are allowed!'), false);
@@ -111,6 +132,7 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], PetController.prototype, "updatePet", null);
 __decorate([
+    (0, common_1.UseGuards)(jwtAuth_guard_1.JwtAuthGuard),
     (0, common_1.Delete)('/:id'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
     __param(0, (0, common_1.Param)('id')),

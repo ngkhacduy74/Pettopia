@@ -28,6 +28,7 @@ export class PetController {
   constructor(
     @Inject('PETCARE_SERVICE') private readonly petService: ClientProxy,
   ) {}
+  @UseGuards(JwtAuthGuard)
   @Post('/create')
   @UseInterceptors(
     FileInterceptor('avatar', {
@@ -44,16 +45,19 @@ export class PetController {
   async createPet(
     @UploadedFile() file: Express.Multer.File,
     @Body() data: any,
+    @UserToken('id') user_id: string, // ← LẤY TỪ TOKEN
   ) {
     const fileBufferString = file ? file.buffer.toString('base64') : undefined;
     return await lastValueFrom(
       this.petService.send(
         { cmd: 'createPet' },
         // Gửi chuỗi base64 đi
-        { ...data, fileBuffer: fileBufferString },
+        { ...data,user_id, fileBuffer: fileBufferString },
       ),
     );
   }
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.ADMIN, Role.STAFF)
   @Get('/all')
   async getAllPets() {
     return await lastValueFrom(this.petService.send({ cmd: 'getAllPets' }, {}));
@@ -65,11 +69,18 @@ export class PetController {
       this.petService.send({ cmd: 'getPetCount' }, {}),
     );
   }
-
+  @UseGuards(JwtAuthGuard)
   @Get('/:id')
   async getPetById(@Param('id') pet_id: string) {
     return await lastValueFrom(
       this.petService.send({ cmd: 'getPetById' }, { pet_id }),
+    );
+  }
+  @UseGuards(JwtAuthGuard)
+  @Get('/my')
+  async getMyPets(@UserToken('id') user_id: string) {
+    return await lastValueFrom(
+      this.petService.send({ cmd: 'getPetsByOwner' }, { user_id }), // giữ nguyên cmd
     );
   }
   @Get('/owner/:user_id')
@@ -78,7 +89,7 @@ export class PetController {
       this.petService.send({ cmd: 'getPetsByOwner' }, { user_id }),
     );
   }
-
+@UseGuards(JwtAuthGuard)
   @Patch('/:id')
   @UseInterceptors(
     FileInterceptor('avatar', {
@@ -105,7 +116,7 @@ export class PetController {
       ),
     );
   }
-
+  @UseGuards(JwtAuthGuard)
   @Delete('/:id')
   @HttpCode(HttpStatus.OK)
   async deletePet(@Param('id') pet_id: string) {

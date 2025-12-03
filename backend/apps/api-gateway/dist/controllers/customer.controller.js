@@ -79,6 +79,13 @@ let CustomerController = class CustomerController {
             data: result,
         };
     }
+    async updateUserProfile(id, updateData) {
+        const result = await (0, rxjs_1.lastValueFrom)(this.customerService.send({ cmd: 'updateUserProfile' }, { userId: id, data: updateData }));
+        return {
+            message: 'Cập nhật hồ sơ thành công',
+            data: result,
+        };
+    }
 };
 exports.CustomerController = CustomerController;
 __decorate([
@@ -172,6 +179,17 @@ __decorate([
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", Promise)
 ], CustomerController.prototype, "totalDetailAccount", null);
+__decorate([
+    (0, common_1.UseGuards)(jwtAuth_guard_1.JwtAuthGuard, role_guard_1.RoleGuard),
+    (0, roles_decorator_1.Roles)(roles_decorator_1.Role.ADMIN, roles_decorator_1.Role.USER, roles_decorator_1.Role.STAFF, roles_decorator_1.Role.VET, roles_decorator_1.Role.CLINIC),
+    (0, common_1.Patch)(':id/profile'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", Promise)
+], CustomerController.prototype, "updateUserProfile", null);
 exports.CustomerController = CustomerController = __decorate([
     (0, common_1.Controller)('api/v1/customer'),
     __param(0, (0, common_1.Inject)('CUSTOMER_SERVICE')),
