@@ -33,17 +33,16 @@ export class HealthcareController {
   @Post('/appointment')
   @HttpCode(HttpStatus.ACCEPTED)
   async createAppointment(@Body() data: any, @UserToken('id') userId: string) {
-    this.healthcareService.emit(
-      { cmd: 'createAppointment' },
-      {
-        data,
-        user_id: userId,
-      },
+
+    return await lastValueFrom(
+      this.healthcareService.send(
+        { cmd: 'createAppointment' },
+        {
+          data,
+          user_id: userId,
+        },
+      ),
     );
-    return {
-      statusCode: HttpStatus.ACCEPTED,
-      message: 'Yêu cầu tạo lịch hẹn đang được xử lý.',
-    };
   }
 
   @UseGuards(JwtAuthGuard, RoleGuard)

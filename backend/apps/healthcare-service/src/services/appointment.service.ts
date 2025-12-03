@@ -674,7 +674,7 @@ export class AppointmentService {
         for (const petId of pet_ids) {
           const pet = await lastValueFrom(
             this.petcareService
-              .send({ cmd: 'getPetById' }, { id: petId })
+              .send({ cmd: 'getPetById' }, { pet_id: petId })
               .pipe(timeout(5000)),
           ).catch((err) => {
             throw new RpcException({
@@ -690,7 +690,7 @@ export class AppointmentService {
             });
           }
 
-          if (pet.customer_id !== user_id) {
+          if (pet.owner.user_id !== user_id) {
             throw new RpcException({
               status: HttpStatus.FORBIDDEN,
               message: `Thú cưng (ID: ${petId}) không thuộc về người dùng này`,

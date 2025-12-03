@@ -21,7 +21,6 @@ export class ClinicInvitationController {
     },
   ) {
     try {
-      console.log("lịausldjasd", data)
       return await this.clinicInvitationService.createInvitation(data);
 
     } catch (error) {

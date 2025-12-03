@@ -11,7 +11,6 @@ import { CheckPhoneExistDto } from '../dto/request/check-phone-exist.dto';
 import { CreateUserDto } from '../dto/user/create-user.dto';
 import { DeleteUserByIdDto } from '../dto/request/delete-user-by-id.dto';
 import { UpdateUserStatusDto } from '../dto/request/update-user-status.dto';
-import { UpdateUserPayloadDto } from '../dto/request/update-user-payload.dto';
 import {
   GetAllUsersDto,
   PaginatedUsersResponse,
@@ -203,7 +202,7 @@ export class AppController {
 
   @MessagePattern({ cmd: 'updateUser' })
   async updateUser(
-    @Payload() payload: UpdateUserPayloadDto,
+    @Payload() payload: any,
   ): Promise<User> {
     try {
       console.log('AppController.updateUser payload:', payload);
