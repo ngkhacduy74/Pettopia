@@ -27,13 +27,12 @@ export class HealthcareController {
     private readonly healthcareService: ClientProxy,
     @Inject('PETCARE_SERVICE')
     private readonly petcareService: ClientProxy,
-  ) { }
+  ) {}
 
   @UseGuards(JwtAuthGuard)
   @Post('/appointment')
   @HttpCode(HttpStatus.ACCEPTED)
   async createAppointment(@Body() data: any, @UserToken('id') userId: string) {
-
     return await lastValueFrom(
       this.healthcareService.send(
         { cmd: 'createAppointment' },
@@ -232,7 +231,10 @@ export class HealthcareController {
     }
 
     return await lastValueFrom(
-      this.healthcareService.send({ cmd: 'getTodayAppointmentsForClinic' }, payload),
+      this.healthcareService.send(
+        { cmd: 'getTodayAppointmentsForClinic' },
+        payload,
+      ),
     );
   }
 
@@ -242,14 +244,9 @@ export class HealthcareController {
   @HttpCode(HttpStatus.OK)
   async getMyAppointments(@UserToken('id') vetId: string) {
     return await lastValueFrom(
-      this.healthcareService.send(
-        { cmd: 'getMyAppointments' },
-        { vetId },
-      ),
+      this.healthcareService.send({ cmd: 'getMyAppointments' }, { vetId }),
     );
   }
-
-
 
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(Role.VET, Role.CLINIC, Role.STAFF)
@@ -262,10 +259,13 @@ export class HealthcareController {
   ) {
     const vetIdToAssign = body.vetId || userId;
     return await lastValueFrom(
-      this.healthcareService.send({ cmd: 'assignVetAndStart' }, {
-        appointmentId,
-        vetId: vetIdToAssign,
-      }),
+      this.healthcareService.send(
+        { cmd: 'assignVetAndStart' },
+        {
+          appointmentId,
+          vetId: vetIdToAssign,
+        },
+      ),
     );
   }
 
@@ -304,7 +304,7 @@ export class HealthcareController {
   }
 
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles(Role.VET)
+  @Roles(Role.VET, Role.CLINIC)
   @Post('/appointments/:id/medical-records')
   @HttpCode(HttpStatus.OK)
   async createMedicalRecordWithMedications(
