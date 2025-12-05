@@ -27,8 +27,9 @@ import { FileInterceptor } from '@nestjs/platform-express';
 export class PetController {
   constructor(
     @Inject('PETCARE_SERVICE') private readonly petService: ClientProxy,
-  ) {}
+  ) { }
   @Post('/create')
+  @UseGuards(JwtAuthGuard)
   @UseInterceptors(
     FileInterceptor('avatar', {
       limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
@@ -44,13 +45,14 @@ export class PetController {
   async createPet(
     @UploadedFile() file: Express.Multer.File,
     @Body() data: any,
+    @UserToken('id') userId: string,
   ) {
     const fileBufferString = file ? file.buffer.toString('base64') : undefined;
     return await lastValueFrom(
       this.petService.send(
         { cmd: 'createPet' },
-        // Gửi chuỗi base64 đi
-        { ...data, fileBuffer: fileBufferString },
+        // Gửi chuỗi base64 đi, và inject user_id từ token
+        { ...data, user_id: userId, fileBuffer: fileBufferString },
       ),
     );
   }
@@ -67,9 +69,12 @@ export class PetController {
   }
 
   @Get('/:id')
-  async getPetById(@Param('id') pet_id: string) {
+  @UseGuards(JwtAuthGuard) // Ensure we have user info
+  async getPetById(@Param('id') pet_id: string, @UserToken() user: any) {
+    const role = user?.role;
+    const userId = user?.id;
     return await lastValueFrom(
-      this.petService.send({ cmd: 'getPetById' }, { pet_id }),
+      this.petService.send({ cmd: 'getPetById' }, { pet_id, role, userId }),
     );
   }
   @Get('/owner/:user_id')

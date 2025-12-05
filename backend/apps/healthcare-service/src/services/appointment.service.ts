@@ -518,6 +518,11 @@ export class AppointmentService {
         }));
       }
 
+      // Logic cho Admin, Staff, User
+      const isAdmin = role && this.hasRole(role, 'Admin');
+      const isStaff = role && this.hasRole(role, 'Staff');
+      const isUser = role && this.hasRole(role, 'User');
+
       const records = await this.medicalRecordModel
         .find({ pet_id: petId })
         .sort({ createdAt: -1 })
@@ -543,14 +548,69 @@ export class AppointmentService {
         medsByRecord[key].push(m);
       }
 
-      return records.map((r: any) => ({
-        medicalRecord: r as any,
-        medications: (medsByRecord[r.id] || []) as any,
-      }));
+      return records.map((r: any) => {
+        let recordData = r;
+
+        // Nếu là User hoặc Staff (và không phải Admin), chỉ trả về các trường cho phép
+        if ((isUser || isStaff) && !isAdmin) {
+          recordData = {
+            id: r.id,
+            createdAt: r.createdAt,
+            updatedAt: r.updatedAt,
+            symptoms: r.symptoms,
+            diagnosis: r.diagnosis,
+            notes: r.notes,
+            // Giữ lại các ID để frontend có thể link nếu cần, hoặc ẩn luôn nếu muốn strict
+            // Theo yêu cầu "chỉ muốn user và staff được xem 3 trường đó thôi", 
+            // nhưng metadata là cần thiết.
+          };
+        }
+
+        return {
+          medicalRecord: recordData as any,
+          medications: (medsByRecord[r.id] || []) as any,
+        };
+      });
     } catch (error) {
       throw new RpcException({
         status: HttpStatus.INTERNAL_SERVER_ERROR,
         message: error.message || 'Lỗi khi lấy hồ sơ bệnh án theo pet',
+      });
+    }
+  }
+
+
+
+  async getAssignedAppointments(
+    vetId: string,
+    status?: string,
+  ): Promise<Appointment[]> {
+    try {
+      let statuses: string[] = [];
+
+      if (status === 'ALL') {
+        // Lấy tất cả, không lọc theo status
+        statuses = [];
+      } else if (status) {
+        // Lấy theo status cụ thể
+        statuses = [status];
+      } else {
+        // Mặc định lấy các lịch hẹn đang active
+        statuses = [
+          AppointmentStatus.In_Progress,
+          AppointmentStatus.Confirmed,
+        ].map((s) => s as unknown as string);
+      }
+
+      return await this.appointmentRepositories.findByVetAndStatuses(
+        vetId,
+        statuses,
+      );
+    } catch (error) {
+      throw new RpcException({
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        message:
+          error.message || 'Lỗi khi lấy danh sách lịch hẹn được phân công',
       });
     }
   }
@@ -1797,6 +1857,144 @@ export class AppointmentService {
           code: error.code,
         },
       );
+    }
+  }
+
+  async getMedicalRecordByAppointment(
+    appointmentId: string,
+    userId: string,
+    role: string | string[],
+  ): Promise<any> {
+    try {
+      const appointment =
+        await this.appointmentRepositories.findById(appointmentId);
+
+      if (!appointment) {
+        throw new RpcException({
+          status: HttpStatus.NOT_FOUND,
+          message: 'Không tìm thấy lịch hẹn',
+        });
+      }
+
+      const isVet = this.hasRole(role, 'Vet');
+      const isUser = this.hasRole(role, 'User');
+
+      let canView = false;
+
+      if (appointment.status === AppointmentStatus.Checked_In) {
+        if (isUser && appointment.user_id === userId) {
+          canView = true;
+        }
+      } else if (appointment.status === AppointmentStatus.In_Progress) {
+        if (isVet) {
+          canView = true;
+        }
+      } else if (appointment.status === AppointmentStatus.Completed) {
+        if (isUser && appointment.user_id === userId) {
+          canView = true;
+        }
+      }
+
+      if (!canView) {
+        throw new RpcException({
+          status: HttpStatus.FORBIDDEN,
+          message: 'Bạn không có quyền xem hồ sơ bệnh án ở trạng thái này',
+        });
+      }
+
+      const record = await this.medicalRecordModel
+        .findOne({ appointment_id: appointmentId })
+        .lean();
+
+      if (!record) {
+        return null;
+      }
+
+      return {
+        symptoms: record.symptoms,
+        diagnosis: record.diagnosis,
+        notes: record.notes,
+      };
+    } catch (error) {
+      if (error instanceof RpcException) {
+        throw error;
+      }
+      throw new RpcException({
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        message: error.message || 'Lỗi khi lấy hồ sơ bệnh án',
+      });
+    }
+  }
+
+  async updateMedicalRecord(
+    appointmentId: string,
+    userId: string,
+    role: string | string[],
+    updateData: any,
+  ): Promise<any> {
+    try {
+      if (!this.hasRole(role, 'Vet')) {
+        throw new RpcException({
+          status: HttpStatus.FORBIDDEN,
+          message: 'Chỉ bác sĩ thú y mới được cập nhật hồ sơ bệnh án',
+        });
+      }
+
+      const appointment =
+        await this.appointmentRepositories.findById(appointmentId);
+
+      if (!appointment) {
+        throw new RpcException({
+          status: HttpStatus.NOT_FOUND,
+          message: 'Không tìm thấy lịch hẹn',
+        });
+      }
+
+      if (appointment.status !== AppointmentStatus.In_Progress) {
+        throw new RpcException({
+          status: HttpStatus.FORBIDDEN,
+          message: 'Chỉ được cập nhật hồ sơ khi lịch hẹn đang diễn ra (In_Progress)',
+        });
+      }
+
+      const allowedUpdates: any = {};
+      if (updateData.symptoms) allowedUpdates.symptoms = updateData.symptoms;
+      if (updateData.diagnosis) allowedUpdates.diagnosis = updateData.diagnosis;
+      if (updateData.notes) allowedUpdates.notes = updateData.notes;
+
+      if (Object.keys(allowedUpdates).length === 0) {
+        throw new RpcException({
+          status: HttpStatus.BAD_REQUEST,
+          message: 'Không có dữ liệu hợp lệ để cập nhật',
+        });
+      }
+
+      const updatedRecord = await this.medicalRecordModel.findOneAndUpdate(
+        { appointment_id: appointmentId },
+        { $set: allowedUpdates },
+        { new: true },
+      );
+
+      if (!updatedRecord) {
+        throw new RpcException({
+          status: HttpStatus.NOT_FOUND,
+          message: 'Chưa có hồ sơ bệnh án cho lịch hẹn này',
+        });
+      }
+
+      return {
+        symptoms: updatedRecord.symptoms,
+        diagnosis: updatedRecord.diagnosis,
+        notes: updatedRecord.notes,
+      };
+    } catch (error) {
+      if (error instanceof RpcException) {
+        throw error;
+      }
+      throw new RpcException({
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        message: error.message || 'Lỗi khi cập nhật hồ sơ bệnh án',
+      });
     }
   }
 }

@@ -7,6 +7,8 @@ exports.UserToken = (0, common_1.createParamDecorator)((data, ctx) => {
     const user = request.user;
     if (!data)
         return user;
-    return user ? user[data] : undefined;
+    return data.split('.').reduce((obj, key) => {
+        return obj && typeof obj === 'object' ? obj[key] : undefined;
+    }, user);
 });
 //# sourceMappingURL=user.decorator.js.map

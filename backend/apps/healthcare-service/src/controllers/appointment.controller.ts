@@ -19,7 +19,7 @@ import { HttpStatus } from '@nestjs/common/enums';
 )
 @Controller()
 export class AppointmentController {
-  constructor(private readonly appointmentService: AppointmentService) {}
+  constructor(private readonly appointmentService: AppointmentService) { }
 
   // Helper function để kiểm tra role (hỗ trợ cả string và array)
   private hasRole(userRole: string | string[], targetRole: string): boolean {
@@ -652,6 +652,114 @@ export class AppointmentController {
         'AppointmentController.getMedicalRecordsByPet',
         error,
       );
+    }
+  }
+
+  @MessagePattern({ cmd: 'getMedicalRecordByAppointment' })
+  async getMedicalRecordByAppointment(
+    @Payload()
+    payload: {
+      appointmentId: string;
+      userId: string;
+      role: string | string[];
+    },
+  ) {
+    try {
+      const { appointmentId, userId, role } = payload;
+
+      if (!appointmentId) {
+        throw new RpcException({
+          status: HttpStatus.BAD_REQUEST,
+          message: 'Thiếu thông tin ID lịch hẹn',
+        });
+      }
+
+      const result = await this.appointmentService.getMedicalRecordByAppointment(
+        appointmentId,
+        userId,
+        role,
+      );
+
+      return {
+        status: 'success',
+        message: 'Lấy hồ sơ bệnh án thành công',
+        data: result,
+      };
+    } catch (error) {
+      return handleRpcError(
+        'AppointmentController.getMedicalRecordByAppointment',
+        error,
+      );
+    }
+  }
+
+  @MessagePattern({ cmd: 'updateMedicalRecord' })
+  async updateMedicalRecord(
+    @Payload()
+    payload: {
+      appointmentId: string;
+      userId: string;
+      role: string | string[];
+      updateData: any;
+    },
+  ) {
+    try {
+      const { appointmentId, userId, role, updateData } = payload;
+
+      if (!appointmentId) {
+        throw new RpcException({
+          status: HttpStatus.BAD_REQUEST,
+          message: 'Thiếu thông tin ID lịch hẹn',
+        });
+      }
+
+      const result = await this.appointmentService.updateMedicalRecord(
+        appointmentId,
+        userId,
+        role,
+        updateData,
+      );
+
+      return {
+        status: 'success',
+        message: 'Cập nhật hồ sơ bệnh án thành công',
+        data: result,
+      };
+    } catch (error) {
+      return handleRpcError('AppointmentController.updateMedicalRecord', error);
+    }
+  }
+
+  @MessagePattern({ cmd: 'getAssignedAppointments' })
+  async getAssignedAppointments(
+    @Payload()
+    payload: {
+      vetId: string;
+      status?: string;
+    },
+  ) {
+    try {
+      const { vetId, status } = payload;
+
+      if (!vetId) {
+        throw new RpcException({
+          status: HttpStatus.BAD_REQUEST,
+          message: 'Thiếu thông tin ID bác sĩ thú y',
+        });
+      }
+
+      const result = await this.appointmentService.getAssignedAppointments(
+        vetId,
+        status,
+      );
+
+      return {
+        status: 'success',
+        message: 'Lấy danh sách lịch hẹn được phân công thành công',
+        data: result,
+      };
+    } catch (error) {
+      return handleRpcError('AppointmentController.getAssignedAppointments', error);
     }
   }
 }

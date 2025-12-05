@@ -70,9 +70,9 @@ export class PetController {
   //   return this.petService.findBySpecies(species);
   // }
   @MessagePattern({ cmd: 'getPetById' })
-  async getPetById(data: GetPetByIdDto): Promise<PetResponseDto> {
+  async getPetById(data: GetPetByIdDto & { role?: string | string[], userId?: string }): Promise<PetResponseDto> {
     try {
-      return await this.petService.findById(data.pet_id);
+      return await this.petService.findById(data.pet_id, data.role, data.userId);
     } catch (error) {
       this.logger.error('Error fetching pet by ID:', error);
       return { message: 'Failed to fetch pet', error: error.message } as any;
