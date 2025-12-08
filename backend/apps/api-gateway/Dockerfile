@@ -1,35 +1,33 @@
-FROM node:20-alpine3.22 AS builder
+# --- Builder image ---
+FROM node:20-slim AS builder
 WORKDIR /usr/src/app
 
-# Copy package.json trước để cache layer
+# Copy & install dependencies
 COPY package*.json ./
 
-# Install dependencies (gồm dev)
-RUN npm i
+# Dùng registry mirror để tránh timeout
+RUN npm config set registry https://registry.npmmirror.com \
+    && npm ci
 
-# Copy toàn bộ source code
+# Copy toàn bộ source và build
 COPY . .
-
-# Build source → dist
 RUN npm run build
 
 
-# --- Production Image ---
-FROM node:20-alpine3.22 AS runner
+# --- Runner image ---
+FROM node:20-slim AS runner
 WORKDIR /usr/src/app
 
 ENV NODE_ENV=production
 
-# Copy only package.json
+# Copy package.json và install production deps
 COPY package*.json ./
+RUN npm config set registry https://registry.npmmirror.com \
+    && npm ci --omit=dev
 
-# Install only production deps
-RUN npm ci --omit=dev
-
-# Copy built app
+# Copy built files
 COPY --from=builder /usr/src/app/dist ./dist
 
-# Chạy bằng user thường
 USER node
 
 EXPOSE 3000

@@ -1,11 +1,13 @@
-FROM node:20-alpine3.22 AS builder
+# -------- BUILD STAGE --------
+FROM node:20-slim AS builder
 WORKDIR /usr/src/app
 
 # Copy package files trước để cache tốt
 COPY package*.json ./
 
 # Cài full dependencies (dev + prod)
-RUN npm i
+# npm ci nhanh & ổn định hơn npm i
+RUN npm ci --legacy-peer-deps
 
 # Copy source code
 COPY . .
@@ -17,20 +19,23 @@ RUN npm run build
 RUN npm prune --production
 
 
-FROM node:20-alpine3.22 AS runner
+
+# -------- RUN STAGE --------
+FROM node:20-slim AS runner
 WORKDIR /usr/src/app
 
 # Set default environment variables
 ENV NODE_ENV=production
-ENV PORT=3005 
+ENV PORT=3005
 
 # Copy built artifacts and dependencies from builder
 COPY --from=builder /usr/src/app/dist ./dist
 COPY --from=builder /usr/src/app/node_modules ./node_modules
 COPY --from=builder /usr/src/app/package*.json ./
 
+
 # Create a non-root user and switch to it
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+RUN useradd -m appuser
 USER appuser
 
 # Expose the port the app runs on
