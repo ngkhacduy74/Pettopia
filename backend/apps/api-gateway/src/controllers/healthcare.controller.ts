@@ -27,23 +27,21 @@ export class HealthcareController {
     private readonly healthcareService: ClientProxy,
     @Inject('PETCARE_SERVICE')
     private readonly petcareService: ClientProxy,
-  ) { }
+  ) {}
 
   @UseGuards(JwtAuthGuard)
   @Post('/appointment')
   @HttpCode(HttpStatus.ACCEPTED)
   async createAppointment(@Body() data: any, @UserToken('id') userId: string) {
-    this.healthcareService.emit(
-      { cmd: 'createAppointment' },
-      {
-        data,
-        user_id: userId,
-      },
+    return await lastValueFrom(
+      this.healthcareService.send(
+        { cmd: 'createAppointment' },
+        {
+          data,
+          user_id: userId,
+        },
+      ),
     );
-    return {
-      statusCode: HttpStatus.ACCEPTED,
-      message: 'Yêu cầu tạo lịch hẹn đang được xử lý.',
-    };
   }
 
   @UseGuards(JwtAuthGuard, RoleGuard)
@@ -233,7 +231,10 @@ export class HealthcareController {
     }
 
     return await lastValueFrom(
-      this.healthcareService.send({ cmd: 'getTodayAppointmentsForClinic' }, payload),
+      this.healthcareService.send(
+        { cmd: 'getTodayAppointmentsForClinic' },
+        payload,
+      ),
     );
   }
 
@@ -243,10 +244,7 @@ export class HealthcareController {
   @HttpCode(HttpStatus.OK)
   async getMyAppointments(@UserToken('id') vetId: string) {
     return await lastValueFrom(
-      this.healthcareService.send(
-        { cmd: 'getMyAppointments' },
-        { vetId },
-      ),
+      this.healthcareService.send({ cmd: 'getMyAppointments' }, { vetId }),
     );
   }
 
@@ -261,10 +259,13 @@ export class HealthcareController {
   ) {
     const vetIdToAssign = body.vetId || userId;
     return await lastValueFrom(
-      this.healthcareService.send({ cmd: 'assignVetAndStart' }, {
-        appointmentId,
-        vetId: vetIdToAssign,
-      }),
+      this.healthcareService.send(
+        { cmd: 'assignVetAndStart' },
+        {
+          appointmentId,
+          vetId: vetIdToAssign,
+        },
+      ),
     );
   }
 
@@ -303,7 +304,7 @@ export class HealthcareController {
   }
 
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles(Role.VET)
+  @Roles(Role.VET, Role.CLINIC)
   @Post('/appointments/:id/medical-records')
   @HttpCode(HttpStatus.OK)
   async createMedicalRecordWithMedications(
@@ -330,6 +331,22 @@ export class HealthcareController {
       this.healthcareService.send(
         { cmd: 'completeAppointment' },
         { appointmentId },
+      ),
+    );
+  }
+
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.VET)
+  @Get('/appointments/vet/me')
+  @HttpCode(HttpStatus.OK)
+  async getAssignedAppointments(
+    @UserToken('id') vetId: string,
+    @Query('status') status?: string,
+  ) {
+    return await lastValueFrom(
+      this.healthcareService.send(
+        { cmd: 'getAssignedAppointments' },
+        { vetId, status },
       ),
     );
   }
@@ -379,5 +396,40 @@ export class HealthcareController {
     }
 
     return result;
+  }
+
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.USER, Role.VET, Role.CLINIC, Role.STAFF, Role.ADMIN)
+  @Get('/appointments/:id/medical-record')
+  @HttpCode(HttpStatus.OK)
+  async getMedicalRecordByAppointment(
+    @Param('id') appointmentId: string,
+    @UserToken('id') userId: string,
+    @UserToken('role') role: Role,
+  ) {
+    return await lastValueFrom(
+      this.healthcareService.send(
+        { cmd: 'getMedicalRecordByAppointment' },
+        { appointmentId, userId, role },
+      ),
+    );
+  }
+
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.VET)
+  @Patch('/appointments/:id/medical-record')
+  @HttpCode(HttpStatus.OK)
+  async updateMedicalRecord(
+    @Param('id') appointmentId: string,
+    @UserToken('id') userId: string,
+    @UserToken('role') role: Role,
+    @Body() updateData: any,
+  ) {
+    return await lastValueFrom(
+      this.healthcareService.send(
+        { cmd: 'updateMedicalRecord' },
+        { appointmentId, userId, role, updateData },
+      ),
+    );
   }
 }

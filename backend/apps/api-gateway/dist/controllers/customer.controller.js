@@ -29,19 +29,76 @@ let CustomerController = class CustomerController {
         const user = await (0, rxjs_1.lastValueFrom)(this.customerService.send({ cmd: 'getUserById' }, { id }));
         return user;
     }
-    async getUserById(idUser) {
-        const user = await (0, rxjs_1.lastValueFrom)(this.customerService.send({ cmd: 'getUserById' }, { id: idUser }));
-        return user;
+    async getUserById(idUser, roles) {
+        try {
+            const roleArray = Array.isArray(roles) ? roles : [roles];
+            const user = await (0, rxjs_1.lastValueFrom)(this.customerService.send({ cmd: 'getUserById' }, {
+                id: idUser,
+                role: roleArray
+            }));
+            if (!user) {
+                throw new common_1.NotFoundException('Không tìm thấy người dùng');
+            }
+            return user;
+        }
+        catch (error) {
+            console.error('Lỗi khi lấy thông tin người dùng:', error);
+            throw new common_1.InternalServerErrorException('Có lỗi xảy ra khi xử lý yêu cầu');
+        }
+    }
+    async hasRole(id, role) {
+        if (!role) {
+            return {
+                statusCode: common_1.HttpStatus.BAD_REQUEST,
+                message: 'Thiếu tham số role',
+            };
+        }
+        const result = await (0, rxjs_1.lastValueFrom)(this.customerService.send({ cmd: 'check_user_role' }, { userId: id, role }));
+        return {
+            message: `Kiểm tra role ${role} cho user ${id}`,
+            data: result,
+        };
     }
     async deleteUserById(id) {
         const user = await (0, rxjs_1.lastValueFrom)(this.customerService.send({ cmd: 'deleteUserById' }, { id }));
         return user;
     }
+    async updateMyProfile(id, body) {
+        console.log('CustomerController.updateMyProfile id:', id, 'body:', body);
+        return await (0, rxjs_1.lastValueFrom)(this.customerService.send({ cmd: 'updateUser' }, { id, updateData: body }));
+    }
+    async updateUser(id, body, requesterRole) {
+        try {
+            const targetUser = await (0, rxjs_1.lastValueFrom)(this.customerService.send({ cmd: 'getUserById' }, { id, role: requesterRole }));
+            if (!targetUser) {
+                throw new common_1.NotFoundException('User not found');
+            }
+            const roles = Array.isArray(requesterRole) ? requesterRole : [requesterRole];
+            const isStaff = roles.includes(roles_decorator_1.Role.STAFF);
+            const isAdmin = roles.includes(roles_decorator_1.Role.ADMIN);
+            if (isStaff && !isAdmin) {
+                const targetRoles = Array.isArray(targetUser.role) ? targetUser.role : [targetUser.role];
+                if (targetRoles.includes(roles_decorator_1.Role.ADMIN)) {
+                    throw new common_1.ForbiddenException('Staff cannot update Admin account');
+                }
+            }
+            return await (0, rxjs_1.lastValueFrom)(this.customerService.send({ cmd: 'updateUser' }, { id, updateData: body }));
+        }
+        catch (error) {
+            if (error instanceof common_1.ForbiddenException || error instanceof common_1.NotFoundException) {
+                throw error;
+            }
+            throw error;
+        }
+    }
     async updateUserStatus(id, status) {
         const user = await (0, rxjs_1.lastValueFrom)(this.customerService.send({ cmd: 'updateUserStatus' }, { id, status }));
         return user;
     }
-    async getAllUsers(page, limit, search, status, role, sort_field, sort_order, fullname, username, email_address, reward_point, phone_number) {
+    async getAllUsers(page, limit, search, status, role, sort_field, sort_order, fullname, username, email_address, reward_point, phone_number, is_active) {
+        if (is_active !== undefined) {
+            status = is_active === 'true' ? 'active' : 'deactive';
+        }
         const dto = {
             page,
             limit,
@@ -99,17 +156,27 @@ __decorate([
 ], CustomerController.prototype, "getUserProfile", null);
 __decorate([
     (0, common_1.UseGuards)(jwtAuth_guard_1.JwtAuthGuard, role_guard_1.RoleGuard),
-    (0, roles_decorator_1.Roles)(roles_decorator_1.Role.ADMIN, roles_decorator_1.Role.STAFF),
+    (0, roles_decorator_1.Roles)(roles_decorator_1.Role.ADMIN, roles_decorator_1.Role.STAFF, roles_decorator_1.Role.CLINIC),
     (0, common_1.Get)(':id'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
     __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, user_decorator_1.UserToken)('role')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
+    __metadata("design:paramtypes", [String, Object]),
     __metadata("design:returntype", Promise)
 ], CustomerController.prototype, "getUserById", null);
 __decorate([
     (0, common_1.UseGuards)(jwtAuth_guard_1.JwtAuthGuard, role_guard_1.RoleGuard),
     (0, roles_decorator_1.Roles)(roles_decorator_1.Role.ADMIN),
+    (0, common_1.Get)(':id/has-role'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Query)('role')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", Promise)
+], CustomerController.prototype, "hasRole", null);
+__decorate([
     (0, common_1.Delete)(':id'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
     __param(0, (0, common_1.Param)('id')),
@@ -117,6 +184,28 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", Promise)
 ], CustomerController.prototype, "deleteUserById", null);
+__decorate([
+    (0, common_1.UseGuards)(jwtAuth_guard_1.JwtAuthGuard),
+    (0, common_1.Patch)('profile'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    __param(0, (0, user_decorator_1.UserToken)('id')),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", Promise)
+], CustomerController.prototype, "updateMyProfile", null);
+__decorate([
+    (0, common_1.UseGuards)(jwtAuth_guard_1.JwtAuthGuard, role_guard_1.RoleGuard),
+    (0, roles_decorator_1.Roles)(roles_decorator_1.Role.ADMIN, roles_decorator_1.Role.STAFF),
+    (0, common_1.Patch)(':id'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)()),
+    __param(2, (0, user_decorator_1.UserToken)('role')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object, Object]),
+    __metadata("design:returntype", Promise)
+], CustomerController.prototype, "updateUser", null);
 __decorate([
     (0, common_1.UseGuards)(jwtAuth_guard_1.JwtAuthGuard, role_guard_1.RoleGuard),
     (0, roles_decorator_1.Roles)(roles_decorator_1.Role.ADMIN, roles_decorator_1.Role.STAFF),
@@ -145,8 +234,9 @@ __decorate([
     __param(9, (0, common_1.Query)('email_address')),
     __param(10, (0, common_1.Query)('reward_point', new common_1.ParseIntPipe({ optional: true }))),
     __param(11, (0, common_1.Query)('phone_number')),
+    __param(12, (0, common_1.Query)('is_active')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Number, Number, String, String, String, String, String, String, String, String, Number, String]),
+    __metadata("design:paramtypes", [Number, Number, String, String, String, String, String, String, String, String, Number, String, String]),
     __metadata("design:returntype", Promise)
 ], CustomerController.prototype, "getAllUsers", null);
 __decorate([

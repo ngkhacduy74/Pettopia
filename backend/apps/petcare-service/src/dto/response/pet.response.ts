@@ -13,5 +13,6 @@ export function mapToResponseDto(pet: Pet): PetResponseDto {
     dateOfBirth: pet.dateOfBirth,
     owner: pet.owner,
     avatar_url: pet.avatar_url,
+    medical_records: pet.medical_records,
   };
 }

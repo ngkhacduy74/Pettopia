@@ -25,6 +25,7 @@ export class PetService {
     private readonly identifyService: IdentifyService,
     @Inject('CUSTOMER_SERVICE') private customerClient: ClientProxy,
     @Inject('AUTH_SERVICE') private readonly authClient: ClientProxy,
+    @Inject('HEALTHCARE_SERVICE') private readonly healthcareClient: ClientProxy,
   ) { }
   async create(payload: CreatePetDto & { fileBuffer?: string }): Promise<PetResponseDto | any> {
     try {
@@ -106,15 +107,50 @@ export class PetService {
     }
   }
 
-  async findById(pet_id: string): Promise<PetResponseDto> {
+  async findById(pet_id: string, role?: string | string[], userId?: string): Promise<PetResponseDto> {
     try {
       const pet = await this.petRepository.findById(pet_id);
       if (!pet) {
         throw new NotFoundException(`Pet with ID ${pet_id} not found`);
       }
-      return mapToResponseDto(pet);
+
+      // Check ownership
+      const roles = Array.isArray(role) ? role : (role ? [role] : []);
+      const privilegedRoles = ['Admin', 'Staff', 'Vet', 'Clinic'];
+      const hasPrivilege = roles.some((r) => privilegedRoles.includes(r));
+
+      if (!hasPrivilege && userId) {
+        if (pet.owner.user_id !== userId) {
+          throw new RpcException({
+            status: 403,
+            message: 'Bạn không có quyền xem thú cưng này',
+          });
+        }
+      }
+
+      const petResponse = mapToResponseDto(pet);
+
+      // Fetch medical records from Healthcare Service
+      try {
+        const medicalRecords = await lastValueFrom(
+          this.healthcareClient.send(
+            { cmd: 'getMedicalRecordsByPet' },
+            { petId: pet_id, role },
+          ),
+        );
+
+        if (medicalRecords && medicalRecords.data) {
+          petResponse.medical_records = medicalRecords.data;
+        }
+      } catch (err) {
+        console.warn(`Failed to fetch medical records for pet ${pet_id}:`, err.message);
+        // Don't fail the whole request if medical records fail
+        petResponse.medical_records = [];
+      }
+
+      return petResponse;
     } catch (error) {
-      if (error instanceof NotFoundException) {
+      if (error instanceof NotFoundException || error instanceof RpcException) {
         throw error;
       }
       throw new BadRequestException('Failed to fetch pet: ' + error.message);
