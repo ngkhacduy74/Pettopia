@@ -5,13 +5,15 @@ WORKDIR /usr/src/app
 # Copy & install dependencies
 COPY package*.json ./
 
-# Dùng registry mirror để tránh timeout
-RUN npm config set registry https://registry.npmmirror.com \
-    && npm ci
+# Install full deps (dev + prod)
+RUN npm ci --legacy-peer-deps --prefer-offline
 
 # Copy toàn bộ source và build
 COPY . .
 RUN npm run build
+
+# Remove devDependencies để tạo node_modules production-only
+RUN npm prune --production
 
 
 # --- Runner image ---
@@ -20,13 +22,13 @@ WORKDIR /usr/src/app
 
 ENV NODE_ENV=production
 
-# Copy package.json và install production deps
-COPY package*.json ./
-RUN npm config set registry https://registry.npmmirror.com \
-    && npm ci --omit=dev
-
-# Copy built files
+# Copy built files + production node_modules
 COPY --from=builder /usr/src/app/dist ./dist
+COPY --from=builder /usr/src/app/node_modules ./node_modules
+
+# Copy package.json (lockfile không cần trong runner)
+COPY --from=builder /usr/src/app/package.json ./
+
 
 USER node
 

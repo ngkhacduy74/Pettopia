@@ -2,19 +2,19 @@
 FROM node:20-slim AS builder
 WORKDIR /usr/src/app
 
-# Copy package files trước để cache tốt
+# Copy package files trước để tạo cache layer cho dependencies
 COPY package*.json ./
 
-# Cài full dependencies (dev + prod)
+# Install all deps (dev + prod) — chạy 1 lần duy nhất
 RUN npm ci --legacy-peer-deps
 
-# Copy source code
+# Copy toàn bộ source
 COPY . .
 
 # Build NestJS → dist
 RUN npm run build
 
-# Loại bỏ devDependencies cho node_modules nhẹ hơn
+# Remove devDependencies để tạo node_modules production
 RUN npm prune --production
 
 
@@ -23,21 +23,19 @@ RUN npm prune --production
 FROM node:20-slim AS runner
 WORKDIR /usr/src/app
 
-# Set default environment variables
 ENV NODE_ENV=production
 ENV PORT=3004
 
-# Copy built artifacts and dependencies from builder
+# Copy built dist + production node_modules
 COPY --from=builder /usr/src/app/dist ./dist
 COPY --from=builder /usr/src/app/node_modules ./node_modules
 COPY --from=builder /usr/src/app/package*.json ./
 
-# Create a non-root user and switch to it
+
+# Create non-root user
 RUN useradd -m appuser
 USER appuser
 
-# Expose the port the app runs on
 EXPOSE ${PORT}
 
-# Command to run the application
 CMD ["node", "dist/main.js"]

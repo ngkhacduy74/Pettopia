@@ -2,26 +2,20 @@
 FROM node:20-slim AS builder
 WORKDIR /usr/src/app
 
-# Copy package files trước để cache tốt
+# Copy package files trước để cache dependency layer
 COPY package*.json ./
 
-# ⚡ Cài dependencies cực nhanh
+# Install all deps ONCE only (dev + prod)
 RUN npm ci --legacy-peer-deps
 
-# Copy source code
+# Copy full source
 COPY . .
 
 # Build NestJS → dist
 RUN npm run build
 
-
-
-# -------- PRUNE STAGE (chỉ giữ lại prod deps) --------
-FROM node:20-slim AS deps
-WORKDIR /usr/src/app
-
-COPY package*.json ./
-RUN npm ci --omit=dev --legacy-peer-deps
+# Remove devDependencies (create final prod node_modules)
+RUN npm prune --production
 
 
 
@@ -32,11 +26,11 @@ WORKDIR /usr/src/app
 ENV NODE_ENV=production
 ENV PORT=3003
 
-# Copy dist đã build
+# Copy built code
 COPY --from=builder /usr/src/app/dist ./dist
 
 # Copy production node_modules
-COPY --from=deps /usr/src/app/node_modules ./node_modules
+COPY --from=builder /usr/src/app/node_modules ./node_modules
 
 # Copy package.json
 COPY package*.json ./
