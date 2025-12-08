@@ -1,26 +1,22 @@
-import { Injectable, NestMiddleware, Logger } from '@nestjs/common';
+import { Injectable, NestMiddleware } from '@nestjs/common';
 import type { Request, Response, NextFunction } from 'express';
 import { PrometheusService } from '../services/prometheus.service';
 
 @Injectable()
 export class PrometheusMiddleware implements NestMiddleware {
-  private readonly logger = new Logger(PrometheusMiddleware.name);
-
-  constructor(private readonly prometheusService: PrometheusService) {}
+  constructor(private readonly prometheusService: PrometheusService) { }
 
   use(req: Request, res: Response, next: NextFunction): void {
+    // Bỏ qua các route metrics để tránh loop
     if (req.path === '/metrics' || req.path === '/metrics/health') {
       return next();
     }
 
-    const startTime = Date.now();
-    const requestSize = req.get('content-length')
-      ? parseInt(req.get('content-length')!, 10)
-      : undefined;
+    const start = Date.now();
 
-    const originalEnd = res.end;
-    res.end = function (...args: any[]): any {
-      const durationMs = Date.now() - startTime;
+    // Dùng res.on('finish') — KHÔNG override res.end (best-practice)
+    res.on('finish', () => {
+      const durationMs = Date.now() - start;
 
       try {
         this.prometheusService.recordHttpRequest(
@@ -30,11 +26,10 @@ export class PrometheusMiddleware implements NestMiddleware {
           durationMs,
         );
       } catch (error) {
-        this.logger.warn(`Failed to record metrics: ${error.message}`);
+        // Không log warn liên tục (sẽ gây spam CPU)
+        // Nếu cần log, hãy log nhẹ nhàng 1 lần duy nhất hoặc bằng debug flag
       }
-
-      return originalEnd.apply(res, args);
-    }.bind(this);
+    });
 
     next();
   }
