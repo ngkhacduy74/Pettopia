@@ -61,6 +61,8 @@ export class PetController {
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   async getAllPets(
+    @UserToken('id') userId: string,
+    @UserToken('role') userRole: string | string[],
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 15,
     @Query('search') search?: string,
@@ -68,8 +70,6 @@ export class PetController {
     @Query('gender') gender?: string,
     @Query('sort_field') sort_field?: string,
     @Query('sort_order') sort_order?: 'asc' | 'desc',
-    @UserToken('id') userId: string,
-    @UserToken('role') userRole: string | string[],
   ) {
     const roles = Array.isArray(userRole) ? userRole : [userRole];
     return await lastValueFrom(
