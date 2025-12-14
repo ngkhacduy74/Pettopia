@@ -34,12 +34,14 @@ export class PetController {
   }
 
   @MessagePattern({ cmd: 'getAllPets' })
-  async getAllPets(data: GetAllPetsDto): Promise<PetResponseDto[]> {
+  async getAllPets(
+    data: GetAllPetsDto & { userId?: string; role?: string | string[] },
+  ): Promise<any> {
     try {
-      return await this.petService.findAll();
+      return await this.petService.getAllPets(data);
     } catch (error) {
       this.logger.error('Error fetching all pets:', error);
-      return [{ message: 'Failed to fetch pets', error: error.message }] as any;
+      return { message: 'Failed to fetch pets', error: error.message } as any;
     }
   }
 
@@ -131,9 +133,14 @@ export class PetController {
   //   return this.petService.delete(pet_id);
   // }
   @MessagePattern({ cmd: 'deletePet' })
-  async deletePet(data: GetPetByIdDto): Promise<{ message: string }> {
+  async deletePet(data: {
+    pet_id: string;
+    userId?: string;
+    role?: string | string[];
+    isAdminOrStaff?: boolean;
+  }): Promise<{ message: string }> {
     try {
-      return await this.petService.delete(data.pet_id);
+      return await this.petService.delete(data);
     } catch (error) {
       this.logger.error('Error deleting pet:', error);
       return { message: 'Failed to delete pet', error: error.message } as any;

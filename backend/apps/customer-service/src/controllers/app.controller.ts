@@ -74,12 +74,22 @@ export class AppController {
     }
   }
   @MessagePattern({ cmd: 'checkPhoneExist' })
-  async checkPhoneExist(@Payload() data: CheckPhoneExistDto): Promise<Boolean> {
+  async checkPhoneExist(@Payload() data: CheckPhoneExistDto): Promise<any> {
     try {
       const result = await this.appService.checkPhoneExist(data.phone_number);
       return result;
     } catch (err) {
       handleRpcError('AppController.checkPhoneExist', err);
+    }
+  }
+
+  @MessagePattern({ cmd: 'checkUsernameExist' })
+  async checkUsernameExist(@Payload() data: { username: string }): Promise<any> {
+    try {
+      const result = await this.appService.checkUsernameExist(data.username);
+      return result;
+    } catch (err) {
+      handleRpcError('AppController.checkUsernameExist', err);
     }
   }
   @MessagePattern({ cmd: 'createUser' })

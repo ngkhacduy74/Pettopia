@@ -200,17 +200,57 @@ export class VetRepository {
     }
   }
 
-  async addClinicToVet(vetId: string, clinicId: string): Promise<VetDocument> {
+  async addClinicToVet(
+    vetId: string,
+    clinicId: string,
+    role?: 'vet' | 'staff' | 'receptionist' | 'manager',
+  ): Promise<VetDocument> {
     try {
+      // Lấy thông tin vet hiện tại
+      const vet = await this.vetModel.findOne({ id: vetId }).exec();
+
+      if (!vet) {
+        throw new NotFoundException(
+          `Không tìm thấy hồ sơ bác sĩ với id: ${vetId}`,
+        );
+      }
+
+      // Thêm clinic_id vào mảng clinic_id (nếu chưa có)
+      const updateData: any = {
+        $addToSet: { clinic_id: clinicId },
+        $set: { updatedAt: new Date() },
+      };
+
+      // Nếu có role, thêm hoặc cập nhật vào clinic_roles
+      if (role) {
+        const existingRoleIndex = vet.clinic_roles?.findIndex(
+          (cr) => cr.clinic_id === clinicId,
+        );
+
+        if (existingRoleIndex !== undefined && existingRoleIndex >= 0) {
+          // Đã có role cho clinic này, cập nhật role và joined_at
+          const clinicRoles = [...(vet.clinic_roles || [])];
+          clinicRoles[existingRoleIndex] = {
+            clinic_id: clinicId,
+            role: role,
+            joined_at: new Date(),
+          };
+          updateData.$set.clinic_roles = clinicRoles;
+        } else {
+          // Chưa có role cho clinic này, thêm mới
+          const newClinicRole = {
+            clinic_id: clinicId,
+            role: role,
+            joined_at: new Date(),
+          };
+          updateData.$push = {
+            clinic_roles: newClinicRole,
+          };
+        }
+      }
+
       const updatedVet = await this.vetModel
-        .findOneAndUpdate(
-          { id: vetId },
-          {
-            $addToSet: { clinic_id: clinicId },
-            $set: { updatedAt: new Date() },
-          },
-          { new: true },
-        )
+        .findOneAndUpdate({ id: vetId }, updateData, { new: true })
         .exec();
 
       if (!updatedVet) {
@@ -233,15 +273,31 @@ export class VetRepository {
 
   async removeClinicFromVet(vetId: string, clinicId: string): Promise<VetDocument> {
     try {
+      // Lấy thông tin vet hiện tại để xử lý clinic_roles
+      const vet = await this.vetModel.findOne({ id: vetId }).exec();
+
+      if (!vet) {
+        throw new NotFoundException(
+          `Không tìm thấy hồ sơ bác sĩ với id: ${vetId}`,
+        );
+      }
+
+      // Xóa clinic_id và clinic_roles tương ứng
+      const updateData: any = {
+        $pull: { clinic_id: clinicId },
+        $set: { updatedAt: new Date() },
+      };
+
+      // Xóa clinic_role tương ứng với clinic này
+      if (vet.clinic_roles && vet.clinic_roles.length > 0) {
+        const updatedClinicRoles = vet.clinic_roles.filter(
+          (cr) => cr.clinic_id !== clinicId,
+        );
+        updateData.$set.clinic_roles = updatedClinicRoles;
+      }
+
       const updatedVet = await this.vetModel
-        .findOneAndUpdate(
-          { id: vetId },
-          {
-            $pull: { clinic_id: clinicId },
-            $set: { updatedAt: new Date() },
-          },
-          { new: true },
-        )
+        .findOneAndUpdate({ id: vetId }, updateData, { new: true })
         .exec();
 
       if (!updatedVet) {

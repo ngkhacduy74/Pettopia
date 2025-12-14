@@ -100,21 +100,23 @@ export class AuthService {
 
   async register(data: RegisterDto): Promise<any> {
     try {
-      const exist_phone = await lastValueFrom(
+      // Check username
+      const exist_username = await lastValueFrom(
         this.customerClient.send(
-          { cmd: 'checkPhoneExist' },
-          { phone_number: data.phone_number },
+          { cmd: 'checkUsernameExist' },
+          { username: data.username },
         ),
       ).catch((error) => {
-        console.error('Error checking phone:', error);
+        console.error('Error checking username:', error);
         throw createRpcError(
           HttpStatus.INTERNAL_SERVER_ERROR,
-          'Lỗi khi kiểm tra số điện thoại',
+          'Lỗi khi kiểm tra tên đăng nhập',
           'Internal Server Error',
           error.message,
         );
       });
 
+      // Check email
       const exist_email = await lastValueFrom(
         this.customerClient.send(
           { cmd: 'getUserByEmail' },
@@ -130,6 +132,33 @@ export class AuthService {
         );
       });
 
+      // Check phone
+      const exist_phone = await lastValueFrom(
+        this.customerClient.send(
+          { cmd: 'checkPhoneExist' },
+          { phone_number: data.phone_number },
+        ),
+      ).catch((error) => {
+        console.error('Error checking phone:', error);
+        throw createRpcError(
+          HttpStatus.INTERNAL_SERVER_ERROR,
+          'Lỗi khi kiểm tra số điện thoại',
+          'Internal Server Error',
+          error.message,
+        );
+      });
+
+      // Validate username
+      if (exist_username?.status === false) {
+        throw createRpcError(
+          HttpStatus.BAD_REQUEST,
+          'Tên đăng nhập đã được sử dụng',
+          'Bad Request',
+          'Vui lòng chọn tên đăng nhập khác',
+        );
+      }
+
+      // Validate email
       if (exist_email?.status === false) {
         throw createRpcError(
           HttpStatus.BAD_REQUEST,
@@ -139,6 +168,7 @@ export class AuthService {
         );
       }
 
+      // Validate phone
       if (exist_phone?.status === false) {
         throw createRpcError(
           HttpStatus.BAD_REQUEST,
@@ -171,6 +201,7 @@ export class AuthService {
         this.customerClient.send({ cmd: 'createUser' }, newUser),
       ).catch((error) => {
         console.error('Error creating user:', error);
+        // Fallback error handling in case validation was bypassed
         if (
           error.message?.includes('E11000 duplicate key error') &&
           error.message?.includes('username_1')
@@ -180,6 +211,28 @@ export class AuthService {
             'Tên đăng nhập đã được sử dụng',
             'Bad Request',
             'Vui lòng chọn tên đăng nhập khác',
+          );
+        }
+        if (
+          error.message?.includes('E11000 duplicate key error') &&
+          error.message?.includes('email')
+        ) {
+          throw createRpcError(
+            HttpStatus.BAD_REQUEST,
+            'Email đã được đăng ký',
+            'Bad Request',
+            'Vui lòng sử dụng email khác',
+          );
+        }
+        if (
+          error.message?.includes('E11000 duplicate key error') &&
+          error.message?.includes('phone')
+        ) {
+          throw createRpcError(
+            HttpStatus.BAD_REQUEST,
+            'Số điện thoại đã được đăng ký',
+            'Bad Request',
+            'Vui lòng sử dụng số điện thoại khác',
           );
         }
         throw createRpcError(

@@ -29,12 +29,15 @@ export class PostService {
    * CREATE POST
    */
   async create(
-    payload: CreatePostDto & { files?: string[] }, // base64 string[]
+    payload: CreatePostDto & { files?: string[]; user_id?: string }, // base64 string[]
   ): Promise<any> {
     try {
-      // 1. Lấy user
+      // 1. Lấy user - user_id có thể từ payload hoặc từ token
+      const userId = payload.user_id;
+      if (!userId) throw new RpcException('User ID is required');
+
       const user = await lastValueFrom(
-        this.userClient.send({ cmd: 'getUserById' }, { id: payload.user_id }),
+        this.userClient.send({ cmd: 'getUserById' }, { id: userId }),
       );
       if (!user) throw new RpcException('User not found');
 
@@ -60,7 +63,7 @@ export class PostService {
       const postData: Partial<Post> = {
         post_id: uuidv4(),
         author: {
-          user_id: user.id,
+          user_id: userId,
           fullname: user.fullname,
           avatar: user.avatar_url || null,
         },
@@ -72,9 +75,11 @@ export class PostService {
         likes: [],
         views: [],
         reports: [],
+        comments: [],
         likeCount: 0,
         viewCount: 0,
         reportCount: 0,
+        commentCount: 0,
       };
 
       // 4. Lưu DB
@@ -122,10 +127,33 @@ async findByUserId(user_id: string): Promise<PostResponseDto[]> {
    * UPDATE
    */
   async update(
-    payload: { post_id: string; updateData: UpdatePostDto; files?: string[] },
+    payload: {
+      post_id: string;
+      updateData: UpdatePostDto;
+      files?: string[];
+      userId?: string;
+      role?: string | string[];
+      isAdminOrStaff?: boolean;
+    },
   ): Promise<any> {
     try {
-      const { post_id, updateData, files } = payload;
+      const { post_id, updateData, files, userId, isAdminOrStaff } = payload;
+
+      const post = await this.postRepository.findById(post_id);
+      if (!post) throw new NotFoundException(`Post with ID ${post_id} not found`);
+
+      // Verify ownership: User chỉ được update post của chính mình
+      // Admin/Staff có thể update bất kỳ post nào
+      if (!isAdminOrStaff && userId) {
+        const authorId =
+          (post.author as any)?.user_id || (post.author as any)?.id;
+        if (authorId !== userId) {
+          throw new RpcException({
+            status: 403,
+            message: 'Bạn không có quyền cập nhật bài viết này',
+          });
+        }
+      }
 
       // Upload ảnh mới
       let newImages: string[] = [];
@@ -144,9 +172,6 @@ async findByUserId(user_id: string): Promise<PostResponseDto[]> {
         newImages = await Promise.all(uploadPromises);
       }
 
-      const post = await this.postRepository.findById(post_id);
-      if (!post) throw new NotFoundException(`Post with ID ${post_id} not found`);
-
       const updatedPost = await this.postRepository.update(post_id, {
         ...updateData,
         images: [...(post.images || []), ...newImages],
@@ -159,6 +184,7 @@ async findByUserId(user_id: string): Promise<PostResponseDto[]> {
       };
     } catch (error) {
       console.error('Error updating post:', error);
+      if (error instanceof RpcException) throw error;
       throw new BadRequestException('Failed to update post: ' + error.message);
     }
   }
@@ -166,7 +192,30 @@ async findByUserId(user_id: string): Promise<PostResponseDto[]> {
   /**
    * DELETE
    */
-  async delete(post_id: string): Promise<{ message: string }> {
+  async delete(payload: {
+    post_id: string;
+    userId?: string;
+    role?: string | string[];
+    isAdminOrStaff?: boolean;
+  }): Promise<{ message: string }> {
+    const { post_id, userId, isAdminOrStaff } = payload;
+
+    const post = await this.postRepository.findById(post_id);
+    if (!post) throw new NotFoundException(`Post with ID ${post_id} not found`);
+
+    // Verify ownership: User chỉ được xóa post của chính mình
+    // Admin/Staff có thể xóa bất kỳ post nào
+    if (!isAdminOrStaff && userId) {
+      const authorId =
+        (post.author as any)?.user_id || (post.author as any)?.id;
+      if (authorId !== userId) {
+        throw new RpcException({
+          status: 403,
+          message: 'Bạn không có quyền xóa bài viết này',
+        });
+      }
+    }
+
     const deleted = await this.postRepository.delete(post_id);
     if (!deleted) throw new NotFoundException(`Post with ID ${post_id} not found`);
     return { message: 'Xóa bài viết thành công!' };

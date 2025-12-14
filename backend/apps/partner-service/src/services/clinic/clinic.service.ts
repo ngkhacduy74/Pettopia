@@ -350,6 +350,20 @@ export class ClinicService {
               'Internal Server Error',
             );
           }
+
+          // Kiểm tra và set is_active dựa trên service và shift
+          // Clinic mới tạo chưa có service và shift nên sẽ là is_active = false
+          // Nếu sau này có cả service và shift thì sẽ tự động chuyển thành is_active = true
+          await this.triggerToCheckActiveClinic(createdClinic.id).catch(
+            (error) => {
+              console.error(
+                'Error checking active status for new clinic:',
+                error,
+              );
+              // Không throw error vì đây chỉ là logic check, không ảnh hưởng đến việc tạo clinic
+            },
+          );
+
           return {
             status: 'success',
             message: 'Duyệt đơn thành công và đã tạo phòng khám',
@@ -440,36 +454,57 @@ export class ClinicService {
     }
   }
 
-  async findAllClinic(page = 1, limit = 10, isAdmin: boolean = false): Promise<any> {
+  async findAllClinic(
+    page = 1,
+    limit = 10,
+    isAdmin: boolean = false,
+    userRole?: string | string[],
+  ): Promise<any> {
     try {
       const skip = (page - 1) * limit;
 
+      // Xác định role: Admin hoặc Staff có thể xem tất cả (active + deactive)
+      // User chỉ xem active
+      const roles = Array.isArray(userRole) ? userRole : [userRole];
+      const canViewAll =
+        isAdmin ||
+        roles.includes('Admin') ||
+        roles.includes('Staff');
+
+      // Nếu không phải admin/staff, chỉ lấy active clinics
+      const onlyActive = !canViewAll;
+
       const [data, total] = await Promise.all([
-        this.clinicRepositories.findAllClinic(skip, limit).catch((error) => {
-          console.error('Error finding all clinics:', error);
-          throw createRpcError(
-            HttpStatus.BAD_REQUEST,
-            'Lỗi khi tìm kiếm danh sách phòng khám',
-            'Bad Request',
-            error.message,
-          );
-        }),
-        this.clinicRepositories.countAllClinic().catch((error) => {
-          throw createRpcError(
-            HttpStatus.BAD_REQUEST,
-            'Lỗi khi đếm số lượng phòng khám',
-            'Bad Request',
-            error.message,
-          );
-        }),
+        this.clinicRepositories
+          .findAllClinic(skip, limit, onlyActive)
+          .catch((error) => {
+            console.error('Error finding all clinics:', error);
+            throw createRpcError(
+              HttpStatus.BAD_REQUEST,
+              'Lỗi khi tìm kiếm danh sách phòng khám',
+              'Bad Request',
+              error.message,
+            );
+          }),
+        this.clinicRepositories
+          .countAllClinic(onlyActive)
+          .catch((error) => {
+            throw createRpcError(
+              HttpStatus.BAD_REQUEST,
+              'Lỗi khi đếm số lượng phòng khám',
+              'Bad Request',
+              error.message,
+            );
+          }),
       ]);
 
       // Filter sensitive information for non-admin users
-      const filteredData = data.map(clinic => {
-        if (isAdmin) {
-          return clinic; // Return all data for admin users
+      const filteredData = data.map((clinic) => {
+        if (canViewAll) {
+          return clinic; // Return all data for admin/staff users
         }
 
+        // User thường chỉ nhận thông tin cơ bản
         return {
           id: clinic.id,
           clinic_name: clinic.clinic_name,
@@ -477,8 +512,8 @@ export class ClinicService {
           phone: clinic.phone,
           email: clinic.email,
           description: clinic.description,
-          logo: clinic.logo,
-          images: clinic.images,
+          logo_url: clinic.logo_url,
+          website: clinic.website,
           is_active: clinic.is_active,
         };
       });

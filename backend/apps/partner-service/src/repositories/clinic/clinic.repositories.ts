@@ -484,14 +484,25 @@ export class ClinicsRepository {
     return updatedClinic;
   }
 
-  async findAllClinic(skip: number, limit: number): Promise<any> {
-    const cacheKey = `clinics:list:${skip}:${limit}`;
+  async findAllClinic(
+    skip: number,
+    limit: number,
+    onlyActive?: boolean,
+  ): Promise<any> {
+    // Cache key phải bao gồm filter để tránh cache sai
+    const cacheKey = `clinics:list:${skip}:${limit}:${onlyActive ?? 'all'}`;
     const cached = await this.safeCacheGet(cacheKey);
     if (cached) return cached;
 
     try {
+      const query: any = {};
+      // Nếu chỉ lấy active, filter theo is_active = true
+      if (onlyActive === true) {
+        query.is_active = true;
+      }
+
       const clinics = await this.clinicModel
-        .find()
+        .find(query)
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
@@ -507,13 +518,20 @@ export class ClinicsRepository {
     }
   }
 
-  async countAllClinic(): Promise<number> {
-    const key = this.getClinicCountKey();
+  async countAllClinic(onlyActive?: boolean): Promise<number> {
+    // Cache key phải bao gồm filter
+    const key = `clinics:count:${onlyActive ?? 'all'}`;
     const cached = await this.safeCacheGet<number>(key);
     if (cached !== null) return cached;
 
     try {
-      const count = await this.clinicModel.countDocuments();
+      const query: any = {};
+      // Nếu chỉ đếm active, filter theo is_active = true
+      if (onlyActive === true) {
+        query.is_active = true;
+      }
+
+      const count = await this.clinicModel.countDocuments(query);
       await this.safeCacheSet(key, count, this.listCacheTTL);
       return count;
     } catch (err) {

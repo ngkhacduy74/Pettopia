@@ -100,9 +100,10 @@ export class MailTemplateService {
     clinicName: string;
     role: string;
     inviteLink: string;
+    declineLink?: string;
     expiresAt: string;
   }) {
-    const { email, clinicName, role, inviteLink, expiresAt } = params;
+    const { email, clinicName, role, inviteLink, declineLink, expiresAt } = params;
 
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       throw new BadRequestException('Email lời mời không hợp lệ.');
@@ -120,14 +121,21 @@ export class MailTemplateService {
         <h2 style="color:#1a73e8;">📩 Lời mời tham gia phòng khám ${clinicName}</h2>
         <p>Xin chào,</p>
         <p>Phòng khám <strong>${clinicName}</strong> đã mời bạn tham gia với vai trò <strong>${roleLabel}</strong>.</p>
-        <p>Vui lòng xác nhận lời mời bằng cách nhấn vào nút dưới đây:</p>
-        <p>
+        <p>Vui lòng chọn một trong các hành động sau:</p>
+        <div style="margin:20px 0;">
           <a href="${inviteLink}" 
-            style="background-color:#1a73e8;color:#fff;padding:10px 18px;text-decoration:none;border-radius:6px;">
-             Chấp nhận lời mời
+            style="background-color:#1a73e8;color:#fff;padding:12px 24px;text-decoration:none;border-radius:6px;display:inline-block;margin-right:10px;font-weight:bold;">
+            ✅ Chấp nhận lời mời
           </a>
-        </p>
-        <p>Nếu bạn không muốn tham gia, hãy bỏ qua email này hoặc chọn từ chối trong ứng dụng.</p>
+          ${
+            declineLink
+              ? `<a href="${declineLink}" 
+            style="background-color:#dc3545;color:#fff;padding:12px 24px;text-decoration:none;border-radius:6px;display:inline-block;font-weight:bold;">
+            ❌ Từ chối lời mời
+          </a>`
+              : ''
+          }
+        </div>
         ${
           expiresAtDate
             ? `<p><i>Liên kết này sẽ hết hạn vào ngày ${expiresAtDate.toLocaleString(
@@ -135,6 +143,7 @@ export class MailTemplateService {
               )}.</i></p>`
             : ''
         }
+        <p>Nếu bạn không muốn tham gia, bạn có thể bỏ qua email này hoặc nhấn nút "Từ chối lời mời" ở trên.</p>
         <p>Trân trọng,<br/>Đội ngũ PetTopia</p>
       </div>
     `;

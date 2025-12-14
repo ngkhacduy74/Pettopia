@@ -52,6 +52,16 @@ export class UsersRepository {
       : { message: 'Số điện thoại hợp lệ', status: true };
   }
 
+  async checkUsernameExist(username: string): Promise<any> {
+    const result = await this.userModel
+      .findOne({ username })
+      .exec();
+
+    return result
+      ? { message: 'Tên đăng nhập đã được sử dụng', status: false }
+      : { message: 'Tên đăng nhập hợp lệ', status: true };
+  }
+
   async createUser(user: CreateUserDto): Promise<User> {
     const userDocument = new this.userModel(user);
     return await userDocument.save();

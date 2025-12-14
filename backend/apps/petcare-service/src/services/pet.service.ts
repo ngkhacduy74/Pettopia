@@ -9,6 +9,7 @@ import { PetRepository } from '../repositories/pet.repository';
 import { CreatePetDto } from '../dto/pet/create-pet.dto';
 import { UpdatePetDto } from 'src/dto/pet/update-pet.dto';
 import { PetResponseDto } from '../dto/pet/pet-response.dto';
+import { GetAllPetsDto } from '../dto/pet/get-all-pets.dto';
 import { Pet } from '../schemas/pet.schema';
 import { v4 as uuidv4 } from 'uuid';
 import { identity, lastValueFrom } from 'rxjs';
@@ -107,6 +108,34 @@ export class PetService {
     }
   }
 
+  async getAllPets(
+    data: GetAllPetsDto & { userId?: string; role?: string | string[] },
+  ): Promise<any> {
+    try {
+      const roles = Array.isArray(data.role) ? data.role : [data.role];
+      const isAdminOrStaff =
+        roles.includes('Admin') || roles.includes('Staff');
+
+      // User thường chỉ xem pets của chính mình
+      // Admin/Staff có thể xem tất cả pets
+      const filterData = { ...data };
+      if (!isAdminOrStaff && data.userId) {
+        // Filter theo owner nếu không phải admin/staff
+        // Note: Repository sẽ xử lý filter này
+      }
+
+      const result = await this.petRepository.getAllPets(filterData);
+      return {
+        items: result.items.map((pet) => mapToResponseDto(pet)),
+        total: result.total,
+        page: result.page,
+        limit: result.limit,
+      };
+    } catch (error) {
+      throw new BadRequestException('Failed to fetch pets: ' + error.message);
+    }
+  }
+
   async findById(pet_id: string, role?: string | string[], userId?: string): Promise<PetResponseDto> {
     try {
       const pet = await this.petRepository.findById(pet_id);
@@ -189,9 +218,41 @@ export class PetService {
   //     throw new BadRequestException('Failed to update pet: ' + error.message);
   //   }
   // }
-  async update(payload: { pet_id: string, updateData: UpdatePetDto, fileBuffer?: string }): Promise<any> {
+  async update(payload: {
+    pet_id: string;
+    updateData: UpdatePetDto;
+    fileBuffer?: string;
+    userId?: string;
+    role?: string | string[];
+    isAdminOrStaff?: boolean;
+  }): Promise<any> {
     try {
-      const { pet_id, updateData: updatePetDto, fileBuffer } = payload;
+      const {
+        pet_id,
+        updateData: updatePetDto,
+        fileBuffer,
+        userId,
+        role,
+        isAdminOrStaff,
+      } = payload;
+
+      // Kiểm tra quyền sở hữu
+      const existingPet = await this.petRepository.findById(pet_id);
+      if (!existingPet) {
+        throw new NotFoundException(`Pet with ID ${pet_id} not found`);
+      }
+
+      // Verify ownership: User chỉ được update pet của chính mình
+      // Admin/Staff có thể update bất kỳ pet nào
+      if (!isAdminOrStaff && userId) {
+        if (existingPet.owner.user_id !== userId) {
+          throw new RpcException({
+            status: 403,
+            message: 'Bạn không có quyền cập nhật thú cưng này',
+          });
+        }
+      }
+
       const updateData = { ...updatePetDto };
       if (updatePetDto.dateOfBirth) {
         updateData.dateOfBirth = new Date(updatePetDto.dateOfBirth);
@@ -251,15 +312,33 @@ export class PetService {
     }
   }
 
-  async delete(pet_id: string): Promise<{ message: string }> {
+  async delete(payload: {
+    pet_id: string;
+    userId?: string;
+    role?: string | string[];
+    isAdminOrStaff?: boolean;
+  }): Promise<{ message: string }> {
     try {
+      const { pet_id, userId, isAdminOrStaff } = payload;
+
       // 1️⃣ Kiểm tra pet có tồn tại không
       const existingPet = await this.petRepository.findById(pet_id);
       if (!existingPet) {
         throw new NotFoundException(`Pet with ID ${pet_id} not found`);
       }
 
-      // 2️⃣ Xóa căn cước (Identification) tương ứng
+      // 2️⃣ Verify ownership: User chỉ được xóa pet của chính mình
+      // Admin/Staff có thể xóa bất kỳ pet nào
+      if (!isAdminOrStaff && userId) {
+        if (existingPet.owner.user_id !== userId) {
+          throw new RpcException({
+            status: 403,
+            message: 'Bạn không có quyền xóa thú cưng này',
+          });
+        }
+      }
+
+      // 3️⃣ Xóa căn cước (Identification) tương ứng
       try {
         const deletedIdentify =
           await this.identifyService.deleteIdentificationByPetId(pet_id);
@@ -272,13 +351,13 @@ export class PetService {
         console.warn('⚠️ Failed to delete identification:', err.message);
       }
 
-      // 3️⃣ Xoá pet trong repository
+      // 4️⃣ Xoá pet trong repository
       const deletedPet = await this.petRepository.delete(pet_id);
       if (!deletedPet) {
         throw new RpcException('Failed to delete pet from repository');
       }
 
-      // 4️⃣ Trả kết quả
+      // 5️⃣ Trả kết quả
       return { message: 'Đã xoá thú cưng và căn cước thành công!' };
     } catch (error) {
       if (error instanceof NotFoundException) throw error;

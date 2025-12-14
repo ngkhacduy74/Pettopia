@@ -126,6 +126,7 @@ export class CustomerController {
     @Param('id') id: string,
     @Body() body: any,
     @UserToken('role') requesterRole: string | string[],
+    @UserToken('id') requesterId: string,
   ) {
     try {
       // Check if target user exists and get their role
@@ -141,12 +142,19 @@ export class CustomerController {
       const roles = Array.isArray(requesterRole) ? requesterRole : [requesterRole];
       const isStaff = roles.includes(Role.STAFF);
       const isAdmin = roles.includes(Role.ADMIN);
+      const targetRoles = Array.isArray(targetUser.role) ? targetUser.role : [targetUser.role];
+      const isTargetAdmin = targetRoles.includes(Role.ADMIN);
 
-      if (isStaff && !isAdmin) {
-        const targetRoles = Array.isArray(targetUser.role) ? targetUser.role : [targetUser.role];
-        if (targetRoles.includes(Role.ADMIN)) {
-          throw new ForbiddenException('Staff cannot update Admin account');
-        }
+      // Staff không được update Admin
+      if (isStaff && !isAdmin && isTargetAdmin) {
+        throw new ForbiddenException('Staff cannot update Admin account');
+      }
+
+      // Admin chỉ được update chính mình, không được update admin khác
+      if (isAdmin && isTargetAdmin && id !== requesterId) {
+        throw new ForbiddenException(
+          'Admin chỉ được sửa đổi thông tin của chính mình',
+        );
       }
 
       // Proceed to update

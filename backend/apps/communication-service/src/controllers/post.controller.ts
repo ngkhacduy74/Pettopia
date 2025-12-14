@@ -58,7 +58,15 @@ async getPostsByUserId(@Payload() data: { user_id: string }) {
 
   @MessagePattern({ cmd: 'updatePost' })
   async updatePost(
-    @Payload() data: { post_id: string; updateData: UpdatePostDto; files?: string[] }, // ĐÃ SỬA
+    @Payload()
+    data: {
+      post_id: string;
+      updateData: UpdatePostDto;
+      files?: string[];
+      userId?: string;
+      role?: string | string[];
+      isAdminOrStaff?: boolean;
+    },
   ) {
     try {
       this.logger.log(`Received updatePost: ${data.post_id}`);
@@ -70,10 +78,18 @@ async getPostsByUserId(@Payload() data: { user_id: string }) {
   }
 
   @MessagePattern({ cmd: 'deletePost' })
-  async deletePost(@Payload() data: { post_id: string }) {
+  async deletePost(
+    @Payload()
+    data: {
+      post_id: string;
+      userId?: string;
+      role?: string | string[];
+      isAdminOrStaff?: boolean;
+    },
+  ) {
     try {
       this.logger.log(`Received deletePost: ${data.post_id}`);
-      return await this.postService.delete(data.post_id);
+      return await this.postService.delete(data);
     } catch (error) {
       this.logger.error('Error deleting post:', error);
       return { message: 'Failed to delete post', error: error.message } as any;

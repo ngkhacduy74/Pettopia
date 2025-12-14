@@ -156,7 +156,8 @@ export class ClinicInvitationService {
             email: invited_email,
             clinicName: clinic.clinic_name,
             role: normalizedRole,
-            inviteLink: `${process.env.APP_URL}/vet/${token}/accepted`,
+            inviteLink: `${process.env.APP_URL}/api/v1/partner/clinic/invitations/${token}/accept`,
+            declineLink: `${process.env.APP_URL}/api/v1/partner/clinic/invitations/${token}/decline`,
             expiresAt: expiresAt.toISOString(),
           },
         ),
@@ -258,7 +259,11 @@ export class ClinicInvitationService {
 
     await Promise.all([
       this.clinicsRepository.addMemberToClinic(invitation.clinic_id, vet_id),
-      this.vetRepository.addClinicToVet(vet_id, invitation.clinic_id),
+      this.vetRepository.addClinicToVet(
+        vet_id,
+        invitation.clinic_id,
+        invitation.role as 'vet' | 'staff' | 'receptionist' | 'manager',
+      ),
     ]);
 
     await this.clinicInvitationRepository.markAsAccepted(invitation.id, vet_id);
@@ -299,11 +304,23 @@ export class ClinicInvitationService {
       );
     }
 
+    // Kiểm tra lời mời đã hết hạn chưa
+    if (invitation.expires_at.getTime() < Date.now()) {
+      await this.clinicInvitationRepository.cancelPendingInvitation(
+        invitation.id,
+      );
+      throw createRpcError(
+        HttpStatus.BAD_REQUEST,
+        'Lời mời đã hết hạn.',
+        'Bad Request',
+      );
+    }
+
     await this.clinicInvitationRepository.markAsDeclined(invitation.id);
 
     return {
       status: 'success',
-      message: 'Bạn đã từ chối lời mời.',
+      message: 'Bạn đã từ chối lời mời thành công.',
     };
   }
 
