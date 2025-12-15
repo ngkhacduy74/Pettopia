@@ -7,6 +7,7 @@ import {
 import { AppointmentController } from './controllers/appointment.controller';
 import { AppointmentService } from './services/appointment.service';
 import { AppointmentRepository } from './repositories/appointment.repositories';
+import { RatingRepository } from './repositories/rating.repositories';
 import { Appointment, AppointmentSchema } from './schemas/appoinment.schema';
 import { MongooseModule } from '@nestjs/mongoose';
 import { APP_GUARD, APP_PIPE } from '@nestjs/core';
@@ -18,6 +19,10 @@ import {
 } from './schemas/medical_record.schema';
 import { Medication, MedicationSchema } from './schemas/preciption.schema';
 import { Vet_Schedule, VetScheduleSchema } from './schemas/vet_schedule.schema';
+import {
+  ClinicRating,
+  ClinicRatingSchema,
+} from './schemas/rating.schema';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { PrometheusMiddleware } from './middleware/prometheus.middleware';
 import { PrometheusController } from './controllers/prometheus.controller';
@@ -128,12 +133,14 @@ import { PrometheusService } from './services/prometheus.service';
       { name: MedicalRecord.name, schema: MedicalRecordSchema },
       { name: Medication.name, schema: MedicationSchema },
       { name: Vet_Schedule.name, schema: VetScheduleSchema },
+      { name: ClinicRating.name, schema: ClinicRatingSchema },
     ]),
   ],
   controllers: [AppointmentController, PrometheusController],
   providers: [
     AppointmentService,
     AppointmentRepository,
+    RatingRepository,
     PrometheusService,
     {
       provide: APP_PIPE,

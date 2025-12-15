@@ -762,4 +762,68 @@ export class AppointmentController {
       return handleRpcError('AppointmentController.getAssignedAppointments', error);
     }
   }
+
+  @MessagePattern({ cmd: 'createAppointmentRating' })
+  async createAppointmentRating(
+    @Payload()
+    payload: {
+      appointmentId: string;
+      userId: string;
+      ratingData: any;
+    },
+  ) {
+    try {
+      const { appointmentId, userId, ratingData } = payload;
+
+      if (!appointmentId || !userId) {
+        throw new RpcException({
+          status: HttpStatus.BAD_REQUEST,
+          message: 'Thiếu thông tin lịch hẹn hoặc người dùng',
+        });
+      }
+
+      const result = await this.appointmentService.createAppointmentRating(
+        appointmentId,
+        userId,
+        ratingData,
+      );
+
+      return {
+        status: 'success',
+        message: 'Tạo đánh giá phòng khám thành công',
+        data: result,
+      };
+    } catch (error) {
+      return handleRpcError(
+        'AppointmentController.createAppointmentRating',
+        error,
+      );
+    }
+  }
+
+  @MessagePattern({ cmd: 'getClinicRatingSummary' })
+  async getClinicRatingSummary(
+    @Payload()
+    payload: {
+      clinicId: string;
+    },
+  ) {
+    try {
+      const { clinicId } = payload;
+      const result = await this.appointmentService.getClinicRatingSummary(
+        clinicId,
+      );
+
+      return {
+        status: 'success',
+        message: 'Lấy thống kê đánh giá phòng khám thành công',
+        data: result,
+      };
+    } catch (error) {
+      return handleRpcError(
+        'AppointmentController.getClinicRatingSummary',
+        error,
+      );
+    }
+  }
 }

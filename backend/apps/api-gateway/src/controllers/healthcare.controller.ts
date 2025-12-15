@@ -434,4 +434,42 @@ export class HealthcareController {
       ),
     );
   }
+
+  // =========================================================
+  // CLINIC RATING
+  // =========================================================
+
+  // Người dùng sau khi khám xong sẽ gửi đánh giá cho lịch hẹn
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.USER)
+  @Post('/appointments/:id/rating')
+  @HttpCode(HttpStatus.CREATED)
+  async createAppointmentRating(
+    @Param('id') appointmentId: string,
+    @UserToken('id') userId: string,
+    @Body() body: any,
+  ) {
+    return await lastValueFrom(
+      this.healthcareService.send(
+        { cmd: 'createAppointmentRating' },
+        {
+          appointmentId,
+          userId,
+          ratingData: body,
+        },
+      ),
+    );
+  }
+
+  // API public lấy điểm rating trung bình của phòng khám
+  @Get('/clinics/:id/rating')
+  @HttpCode(HttpStatus.OK)
+  async getClinicRatingSummary(@Param('id') clinicId: string) {
+    return await lastValueFrom(
+      this.healthcareService.send(
+        { cmd: 'getClinicRatingSummary' },
+        { clinicId },
+      ),
+    );
+  }
 }

@@ -24,6 +24,9 @@ import {
   MedicalRecordDocument,
 } from 'src/schemas/medical_record.schema';
 import { Medication, MedicationDocument } from 'src/schemas/preciption.schema';
+import { ClinicRating } from 'src/schemas/rating.schema';
+import { RatingRepository } from '../repositories/rating.repositories';
+import { CreateClinicRatingDto } from 'src/dto/rating.dto';
 
 @Injectable()
 export class AppointmentService {
@@ -41,6 +44,7 @@ export class AppointmentService {
     private readonly medicalRecordModel: Model<MedicalRecordDocument>,
     @InjectModel(Medication.name)
     private readonly medicationModel: Model<MedicationDocument>,
+    private readonly ratingRepository: RatingRepository,
   ) {}
 
   // Helper function để kiểm tra role (hỗ trợ cả string và array)
@@ -639,6 +643,107 @@ export class AppointmentService {
         status: HttpStatus.INTERNAL_SERVER_ERROR,
         message:
           error.message || 'Lỗi khi lấy danh sách lịch hẹn được phân công',
+      });
+    }
+  }
+
+  // =========================================================
+  // CLINIC RATING
+  // =========================================================
+
+  async createAppointmentRating(
+    appointmentId: string,
+    userId: string,
+    dto: CreateClinicRatingDto,
+  ): Promise<ClinicRating> {
+    try {
+      if (!appointmentId || !userId) {
+        throw new RpcException({
+          status: HttpStatus.BAD_REQUEST,
+          message: 'Thiếu thông tin lịch hẹn hoặc người dùng',
+        });
+      }
+
+      const appointment = await this.appointmentRepositories.findById(
+        appointmentId,
+      );
+
+      if (!appointment) {
+        throw new RpcException({
+          status: HttpStatus.NOT_FOUND,
+          message: 'Không tìm thấy lịch hẹn để đánh giá',
+        });
+      }
+
+      if (appointment.user_id !== userId) {
+        throw new RpcException({
+          status: HttpStatus.FORBIDDEN,
+          message: 'Bạn không có quyền đánh giá lịch hẹn này',
+        });
+      }
+
+      if (appointment.status !== AppointmentStatus.Completed) {
+        throw new RpcException({
+          status: HttpStatus.BAD_REQUEST,
+          message: 'Chỉ có thể đánh giá sau khi lịch hẹn đã hoàn thành',
+        });
+      }
+
+      const existed = await this.ratingRepository.findByAppointmentId(
+        appointmentId,
+      );
+      if (existed) {
+        throw new RpcException({
+          status: HttpStatus.BAD_REQUEST,
+          message: 'Lịch hẹn này đã được đánh giá trước đó',
+        });
+      }
+
+      // Optionally, we could fetch clinic/service names from partner-service.
+      // Để đơn giản, hiện tại chỉ lưu clinic_id, service_ids, stars và notes.
+      const rating: Partial<ClinicRating> = {
+        appointment_id: appointment.id,
+        clinic_id: appointment.clinic_id,
+        service_ids: appointment.service_ids,
+        user_id: appointment.user_id,
+        stars: dto.stars,
+        notes: dto.notes,
+      };
+
+      return await this.ratingRepository.createRating(rating);
+    } catch (error) {
+      if (error instanceof RpcException) {
+        throw error;
+      }
+      throw new RpcException({
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        message: error.message || 'Lỗi khi tạo đánh giá phòng khám',
+      });
+    }
+  }
+
+  async getClinicRatingSummary(clinicId: string): Promise<{
+    clinic_id: string;
+    average_stars: number;
+    total_ratings: number;
+  }> {
+    try {
+      if (!clinicId) {
+        throw new RpcException({
+          status: HttpStatus.BAD_REQUEST,
+          message: 'Thiếu thông tin phòng khám',
+        });
+      }
+
+      return await this.ratingRepository.getClinicRatingSummary(clinicId);
+    } catch (error) {
+      if (error instanceof RpcException) {
+        throw error;
+      }
+      throw new RpcException({
+        status: error.status || HttpStatus.INTERNAL_SERVER_ERROR,
+        message:
+          error.message || 'Lỗi khi lấy thống kê đánh giá cho phòng khám',
       });
     }
   }
