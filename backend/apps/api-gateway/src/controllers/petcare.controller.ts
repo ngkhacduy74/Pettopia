@@ -136,6 +136,18 @@ export class PetController {
     );
   }
 
+  // Lấy pet của chính user đang đăng nhập
+  @Get('/me')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async getMyPets(
+    @UserToken('id') currentUserId: string,
+  ) {
+    return await lastValueFrom(
+      this.petService.send({ cmd: 'getPetsByOwner' }, { user_id: currentUserId }),
+    );
+  }
+
   @Patch('/:id')
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(Role.USER, Role.ADMIN, Role.STAFF)
