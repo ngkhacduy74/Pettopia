@@ -387,8 +387,7 @@ export class PartnerController {
         {
           page,
           limit,
-          isAdmin: isAdminOrStaff,
-          userRole: roles,
+          isAdminOrStaff,
         },
       ),
     );

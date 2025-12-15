@@ -480,11 +480,9 @@ export class AppointmentService {
   ): Promise<{ medicalRecord: MedicalRecord; medications: Medication[] }[]> {
     try {
       // Nếu là Vet thì chỉ được xem hồ sơ:
-      // - Thuộc clinic của mình
-      // - Do chính mình tạo (vet_id = vetId)
-      // - Và chỉ khi đang có ít nhất một lịch hẹn ACTIVE cho pet đó, clinic đó, vet đó
+      // - Khi đang có ít nhất một lịch hẹn ACTIVE với pet đó (bất kể khám ở clinic nào)
       if (role && this.hasRole(role, 'Vet')) {
-        if (!clinicId || !vetId) {
+        if (!vetId) {
           return [];
         }
 
@@ -493,8 +491,7 @@ export class AppointmentService {
         );
 
         const hasActiveAppointment =
-          await this.appointmentRepositories.existsActiveForClinicPetVet(
-            clinicId,
+          await this.appointmentRepositories.existsActiveForPetVet(
             petId,
             vetId,
             activeStatuses,
@@ -504,8 +501,10 @@ export class AppointmentService {
           return [];
         }
 
+        // Bác sĩ được assign vào lịch hẹn sẽ xem được toàn bộ lịch sử khám
+        // của pet đó (bất kể pet từng khám ở clinic nào).
         const records = await this.medicalRecordModel
-          .find({ pet_id: petId, vet_id: vetId, clinic_id: clinicId })
+          .find({ pet_id: petId })
           .sort({ createdAt: -1 })
           .lean();
 
@@ -529,10 +528,24 @@ export class AppointmentService {
           medsByRecord[key].push(m);
         }
 
-        return records.map((r: any) => ({
-          medicalRecord: r as any,
-          medications: (medsByRecord[r.id] || []) as any,
-        }));
+        // Với Vet, chỉ trả về thông tin bệnh và điều trị (ẩn các metadata khác)
+        return records.map((r: any) => {
+          const limitedRecord = {
+            id: r.id,
+            createdAt: r.createdAt,
+            updatedAt: r.updatedAt,
+            // "bệnh"
+            diagnosis: r.diagnosis,
+            // "điều trị" thể hiện qua ghi chú + đơn thuốc
+            notes: r.notes,
+            symptoms: r.symptoms,
+          };
+
+          return {
+            medicalRecord: limitedRecord as any,
+            medications: (medsByRecord[r.id] || []) as any,
+          };
+        });
       }
 
       // Logic cho Admin, Staff, User

@@ -457,19 +457,14 @@ export class ClinicService {
   async findAllClinic(
     page = 1,
     limit = 10,
-    isAdmin: boolean = false,
-    userRole?: string | string[],
+    isAdminOrStaff: boolean = false,
   ): Promise<any> {
     try {
       const skip = (page - 1) * limit;
 
-      // Xác định role: Admin hoặc Staff có thể xem tất cả (active + deactive)
-      // User chỉ xem active
-      const roles = Array.isArray(userRole) ? userRole : [userRole];
-      const canViewAll =
-        isAdmin ||
-        roles.includes('Admin') ||
-        roles.includes('Staff');
+      // Admin hoặc Staff có thể xem tất cả (active + deactive)
+      // Các role khác (User, v.v.) chỉ xem clinic đã active
+      const canViewAll = !!isAdminOrStaff;
 
       // Nếu không phải admin/staff, chỉ lấy active clinics
       const onlyActive = !canViewAll;

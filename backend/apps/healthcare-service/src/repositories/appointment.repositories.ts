@@ -202,6 +202,27 @@ export class AppointmentRepository {
     }
   }
 
+  async existsActiveForPetVet(
+    petId: string,
+    vetId: string,
+    statuses: string[],
+  ): Promise<boolean> {
+    try {
+      const query: any = {
+        pet_ids: petId,
+        vet_id: vetId,
+      };
+
+      if (statuses.length) query.status = { $in: statuses };
+
+      return !!(await this.appointmentModel.exists(query));
+    } catch (error) {
+      throw new InternalServerErrorException(
+        error.message || 'Lỗi kiểm tra lịch hẹn (pet + vet)',
+      );
+    }
+  }
+
   async findById(id: string): Promise<Appointment | null> {
     try {
       return this.appointmentModel.findOne({ id }).lean();
