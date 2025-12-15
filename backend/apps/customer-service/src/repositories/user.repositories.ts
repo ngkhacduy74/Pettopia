@@ -220,6 +220,7 @@ export class UsersRepository {
     if (updateData.bio) updateFields.bio = updateData.bio;
     if (updateData.address) updateFields.address = updateData.address;
     if (updateData.is_active !== undefined) updateFields.is_active = updateData.is_active;
+    if (updateData.is_vip !== undefined) updateFields.is_vip = updateData.is_vip;
 
     // Handle nested fields update carefully
     if (updateData.phone_number) {

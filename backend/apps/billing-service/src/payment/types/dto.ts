@@ -4,6 +4,7 @@ export interface CreatePaymentDto {
   orderId: string;
   description: string;
   amount: number;
+  userId: string;
 }
 
 export interface Payment {

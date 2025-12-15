@@ -41,6 +41,10 @@ export class UpdateUserDto {
     @IsOptional()
     is_active?: boolean;
 
+    @IsBoolean()
+    @IsOptional()
+    is_vip?: boolean;
+
     @IsString()
     @IsOptional()
     phone_number?: string;
