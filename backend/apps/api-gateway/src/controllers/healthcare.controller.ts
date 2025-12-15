@@ -461,7 +461,6 @@ export class HealthcareController {
     );
   }
 
-  // API public lấy điểm rating trung bình của phòng khám
   @Get('/clinics/:id/rating')
   @HttpCode(HttpStatus.OK)
   async getClinicRatingSummary(@Param('id') clinicId: string) {

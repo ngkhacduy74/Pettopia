@@ -100,6 +100,18 @@ export class PetController {
     );
   }
 
+  // Lấy pet của chính user đang đăng nhập
+  @Get('/me')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async getMyPets(
+    @UserToken('id') currentUserId: string,
+  ) {
+    return await lastValueFrom(
+      this.petService.send({ cmd: 'getPetsByOwner' }, { user_id: currentUserId }),
+    );
+  }
+
   @Get('/:id')
   @UseGuards(JwtAuthGuard) // Ensure we have user info
   async getPetById(@Param('id') pet_id: string, @UserToken() user: any) {
@@ -109,6 +121,7 @@ export class PetController {
       this.petService.send({ cmd: 'getPetById' }, { pet_id, role, userId }),
     );
   }
+
   @Get('/owner/:user_id')
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(Role.USER, Role.ADMIN, Role.STAFF)
@@ -133,18 +146,6 @@ export class PetController {
 
     return await lastValueFrom(
       this.petService.send({ cmd: 'getPetsByOwner' }, { user_id }),
-    );
-  }
-
-  // Lấy pet của chính user đang đăng nhập
-  @Get('/me')
-  @UseGuards(JwtAuthGuard)
-  @HttpCode(HttpStatus.OK)
-  async getMyPets(
-    @UserToken('id') currentUserId: string,
-  ) {
-    return await lastValueFrom(
-      this.petService.send({ cmd: 'getPetsByOwner' }, { user_id: currentUserId }),
     );
   }
 

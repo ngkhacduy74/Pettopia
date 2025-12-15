@@ -30,6 +30,7 @@ export class ClinicService {
     private readonly vetRepositories: VetRepository,
     @Inject('CUSTOMER_SERVICE') private readonly customerService: ClientProxy,
     @Inject('AUTH_SERVICE') private readonly authService: ClientProxy,
+    @Inject('HEALTHCARE_SERVICE') private readonly healthcareService: ClientProxy,
   ) { }
 
 
@@ -493,13 +494,48 @@ export class ClinicService {
           }),
       ]);
 
-      // Filter sensitive information for non-admin users
+      // Lấy rating cho từng clinic
+      const clinicIds = data.map((clinic) => clinic.id);
+      const ratingPromises = clinicIds.map(async (clinicId) => {
+        try {
+          const ratingResult = await lastValueFrom(
+            this.healthcareService.send(
+              { cmd: 'getClinicRatingSummary' },
+              { clinicId },
+            ),
+          );
+          return {
+            clinicId,
+            rating: ratingResult?.data || { average_stars: 0, total_ratings: 0 },
+          };
+        } catch (error) {
+          console.warn(`Failed to get rating for clinic ${clinicId}:`, error.message);
+          return {
+            clinicId,
+            rating: { average_stars: 0, total_ratings: 0 },
+          };
+        }
+      });
+
+      const ratingResults = await Promise.all(ratingPromises);
+      const ratingMap = new Map(
+        ratingResults.map(({ clinicId, rating }) => [clinicId, rating]),
+      );
+
+      // Filter sensitive information for non-admin users và thêm rating
       const filteredData = data.map((clinic) => {
+        const rating = ratingMap.get(clinic.id) || { average_stars: 0, total_ratings: 0 };
+        
         if (canViewAll) {
-          return clinic; // Return all data for admin/staff users
+          // Return all data for admin/staff users + rating
+          return {
+            ...clinic,
+            average_rating: rating.average_stars,
+            total_ratings: rating.total_ratings,
+          };
         }
 
-        // User thường chỉ nhận thông tin cơ bản
+        // User thường chỉ nhận thông tin cơ bản + rating
         return {
           id: clinic.id,
           clinic_name: clinic.clinic_name,
@@ -510,6 +546,8 @@ export class ClinicService {
           logo_url: clinic.logo_url,
           website: clinic.website,
           is_active: clinic.is_active,
+          average_rating: rating.average_stars,
+          total_ratings: rating.total_ratings,
         };
       });
 
