@@ -35,12 +35,12 @@ export class Payment {
   provider: string;
 
   @Prop({
-  type: String,
-  enum: ['pending', 'succeeded', 'failed', 'canceled'],
-  default: 'pending',
-  index: true,
-})
-status: PaymentStatus;
+    type: String,
+    enum: ['pending', 'succeeded', 'failed', 'canceled'],
+    default: 'pending',
+    index: true,
+  })
+  status: PaymentStatus;
 
   @Prop({ type: String, required: false })
   description?: string;

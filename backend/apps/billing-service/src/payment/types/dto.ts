@@ -1,10 +1,10 @@
 export type PaymentStatus = 'pending' | 'succeeded' | 'failed' | 'canceled';
 
 export interface CreatePaymentDto {
-  orderId: string;
   description: string;
   amount: number;
   userId: string;
+  orderId?: string; // Optional - sẽ được tự động tạo nếu không có
 }
 
 export interface Payment {

@@ -10,6 +10,10 @@ import { Model } from 'mongoose';
 import { Payment, PaymentDocument } from './schemas/payment.schema';
 import { ClientProxy } from '@nestjs/microservices';
 import { PayosWebhookBodyPayload } from './dto/payos-webhook-body.payload';
+import {
+  getVipPackageByAmount,
+  calculateVipExpiresAt,
+} from './vip-packages.constants';
 
 @Injectable()
 export class PaymentService {
@@ -23,8 +27,12 @@ export class PaymentService {
   ) {}
 
   async createPayment(body: CreatePaymentDto): Promise<any> {
+    const timestamp = Date.now();
+    const randomSuffix = Math.floor(Math.random() * 1000); 
+    const orderCode = parseInt(`${timestamp}${randomSuffix.toString().padStart(3, '0')}`);
+    
+    const orderId = body.orderId || orderCode.toString();    
     const url = `https://api-merchant.payos.vn/v2/payment-requests`;
-    const orderCode = Number(body.orderId);
     const config = {
       headers: {
         'x-client-id': this.configService.getOrThrow<string>('PAYOS_CLIENT_ID'),
@@ -52,7 +60,7 @@ export class PaymentService {
 
     
     const payment = new this.paymentModel({
-      orderId: body.orderId,
+      orderId,
       orderCode,
       userId: body.userId,
       amount: body.amount,
@@ -67,7 +75,8 @@ export class PaymentService {
     return {
       ...response.data,
       userId: body.userId,
-      orderId: body.orderId,
+      orderId,
+      orderCode,
     };
   }
 
@@ -105,24 +114,42 @@ export class PaymentService {
       };
       await payment.save();
 
-      
       try {
+        const vipPackage = getVipPackageByAmount(payment.amount);
+        
+        if (!vipPackage) {
+          console.error(
+            `Invalid payment amount ${payment.amount} for user ${payment.userId}. No VIP package matched.`,
+          );
+          return {
+            received: true,
+            message: 'Payment processed but invalid amount for VIP package',
+            orderCode,
+            userId: payment.userId,
+          };
+        }
+
+        const vipExpiresAt = calculateVipExpiresAt(vipPackage.months);
         await firstValueFrom(
           this.customerService.send(
             { cmd: 'updateUser' },
             {
               id: payment.userId,
-              updateData: { is_vip: true },
+              updateData: {
+                is_vip: true,
+                vip_expires_at: vipExpiresAt,
+              },
             },
           ),
         );
-        console.log(`User ${payment.userId} upgraded to VIP after successful payment`);
+        console.log(
+          `User ${payment.userId} upgraded to VIP for ${vipPackage.months} months, expires at ${vipExpiresAt.toISOString()}`,
+        );
       } catch (error) {
         console.error(
           `Failed to upgrade user ${payment.userId} to VIP:`,
           error,
         );
-        
       }
 
       return {

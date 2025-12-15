@@ -45,6 +45,10 @@ export class UpdateUserDto {
     @IsOptional()
     is_vip?: boolean;
 
+    @IsDateString()
+    @IsOptional()
+    vip_expires_at?: Date;
+
     @IsString()
     @IsOptional()
     phone_number?: string;
