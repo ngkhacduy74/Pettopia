@@ -67,7 +67,7 @@ let CustomerController = class CustomerController {
         console.log('CustomerController.updateMyProfile id:', id, 'body:', body);
         return await (0, rxjs_1.lastValueFrom)(this.customerService.send({ cmd: 'updateUser' }, { id, updateData: body }));
     }
-    async updateUser(id, body, requesterRole) {
+    async updateUser(id, body, requesterRole, requesterId) {
         try {
             const targetUser = await (0, rxjs_1.lastValueFrom)(this.customerService.send({ cmd: 'getUserById' }, { id, role: requesterRole }));
             if (!targetUser) {
@@ -76,11 +76,13 @@ let CustomerController = class CustomerController {
             const roles = Array.isArray(requesterRole) ? requesterRole : [requesterRole];
             const isStaff = roles.includes(roles_decorator_1.Role.STAFF);
             const isAdmin = roles.includes(roles_decorator_1.Role.ADMIN);
-            if (isStaff && !isAdmin) {
-                const targetRoles = Array.isArray(targetUser.role) ? targetUser.role : [targetUser.role];
-                if (targetRoles.includes(roles_decorator_1.Role.ADMIN)) {
-                    throw new common_1.ForbiddenException('Staff cannot update Admin account');
-                }
+            const targetRoles = Array.isArray(targetUser.role) ? targetUser.role : [targetUser.role];
+            const isTargetAdmin = targetRoles.includes(roles_decorator_1.Role.ADMIN);
+            if (isStaff && !isAdmin && isTargetAdmin) {
+                throw new common_1.ForbiddenException('Staff cannot update Admin account');
+            }
+            if (isAdmin && isTargetAdmin && id !== requesterId) {
+                throw new common_1.ForbiddenException('Admin chỉ được sửa đổi thông tin của chính mình');
             }
             return await (0, rxjs_1.lastValueFrom)(this.customerService.send({ cmd: 'updateUser' }, { id, updateData: body }));
         }
@@ -202,8 +204,9 @@ __decorate([
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Body)()),
     __param(2, (0, user_decorator_1.UserToken)('role')),
+    __param(3, (0, user_decorator_1.UserToken)('id')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, Object, Object]),
+    __metadata("design:paramtypes", [String, Object, Object, String]),
     __metadata("design:returntype", Promise)
 ], CustomerController.prototype, "updateUser", null);
 __decorate([

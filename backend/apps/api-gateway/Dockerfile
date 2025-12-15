@@ -1,35 +1,35 @@
-FROM node:20-alpine3.22 AS builder
+# --- Builder image ---
+FROM node:20-slim AS builder
 WORKDIR /usr/src/app
 
-# Copy package.json trước để cache layer
+# Copy & install dependencies
 COPY package*.json ./
 
-# Install dependencies (gồm dev)
-RUN npm i
+# Install full deps (dev + prod)
+RUN npm ci --legacy-peer-deps --prefer-offline
 
-# Copy toàn bộ source code
+# Copy toàn bộ source và build
 COPY . .
-
-# Build source → dist
 RUN npm run build
 
+# Remove devDependencies để tạo node_modules production-only
+RUN npm prune --production
 
-# --- Production Image ---
-FROM node:20-alpine3.22 AS runner
+
+# --- Runner image ---
+FROM node:20-slim AS runner
 WORKDIR /usr/src/app
 
 ENV NODE_ENV=production
 
-# Copy only package.json
-COPY package*.json ./
-
-# Install only production deps
-RUN npm ci --omit=dev
-
-# Copy built app
+# Copy built files + production node_modules
 COPY --from=builder /usr/src/app/dist ./dist
+COPY --from=builder /usr/src/app/node_modules ./node_modules
 
-# Chạy bằng user thường
+# Copy package.json (lockfile không cần trong runner)
+COPY --from=builder /usr/src/app/package.json ./
+
+
 USER node
 
 EXPOSE 3000

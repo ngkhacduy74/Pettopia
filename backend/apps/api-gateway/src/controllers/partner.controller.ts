@@ -232,9 +232,22 @@ export class PartnerController {
     );
   }
 
+  // Endpoint public để decline từ email link (không cần auth)
+  @Post('/clinic/invitations/:token/decline')
+  @HttpCode(HttpStatus.OK)
+  async declineClinicInvitationPublic(@Param('token') token: string) {
+    return await lastValueFrom(
+      this.partnerService.send(
+        { cmd: 'declineClinicMemberInvitation' },
+        { token },
+      ),
+    );
+  }
+
+  // Endpoint với auth cho decline từ ứng dụng
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(Role.VET)
-  @Post('/clinic/invitations/:token/decline')
+  @Post('/clinic/invitations/:token/decline-auth')
   @HttpCode(HttpStatus.OK)
   async declineClinicInvitation(@Param('token') token: string) {
     return await lastValueFrom(
@@ -245,12 +258,32 @@ export class PartnerController {
     );
   }
 
+  // Endpoint cho Clinic xem members của chính mình
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(Role.CLINIC)
   @Get('/clinic/members/vets')
   @HttpCode(HttpStatus.OK)
   async getClinicMembers(
     @UserToken('clinic_id') clinicId: string,
+    @Query('page', new ParseIntPipe({ optional: true })) page = 1,
+    @Query('limit', new ParseIntPipe({ optional: true })) limit = 10,
+  ) {
+    if (!clinicId) throw new BadRequestException('Thiếu thông tin phòng khám');
+    return await lastValueFrom(
+      this.partnerService.send(
+        { cmd: 'getClinicMembers' },
+        { clinic_id: clinicId, page, limit },
+      ),
+    );
+  }
+
+  // Endpoint cho Admin/Staff xem members của clinic bất kỳ
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.ADMIN, Role.STAFF)
+  @Get('/clinic/:clinic_id/members/vets')
+  @HttpCode(HttpStatus.OK)
+  async getClinicMembersByAdmin(
+    @Param('clinic_id') clinicId: string,
     @Query('page', new ParseIntPipe({ optional: true })) page = 1,
     @Query('limit', new ParseIntPipe({ optional: true })) limit = 10,
   ) {
@@ -341,15 +374,21 @@ export class PartnerController {
   async findAllClinic(
     @Query('page', new ParseIntPipe({ optional: true })) page: number = 1,
     @Query('limit', new ParseIntPipe({ optional: true })) limit: number = 10,
-    @UserToken('role') userRole: string,
+    @UserToken('role') userRole: string | string[],
   ): Promise<any> {
+    // Xử lý role có thể là string hoặc array
+    const roles = Array.isArray(userRole) ? userRole : [userRole];
+    const isAdminOrStaff =
+      roles.includes(Role.ADMIN) || roles.includes(Role.STAFF);
+
     return await lastValueFrom(
       this.partnerService.send(
         { cmd: 'findAllClinic' },
         {
           page,
           limit,
-          isAdmin: [Role.ADMIN, Role.STAFF].includes(userRole as Role),
+          isAdmin: isAdminOrStaff,
+          userRole: roles,
         },
       ),
     );

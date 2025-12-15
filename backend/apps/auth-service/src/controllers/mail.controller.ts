@@ -19,6 +19,7 @@ export class MailController {
       clinicName: string;
       role: string;
       inviteLink: string;
+      declineLink?: string;
       expiresAt: string;
     },
   ) {

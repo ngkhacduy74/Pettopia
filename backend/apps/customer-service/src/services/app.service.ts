@@ -115,15 +115,26 @@ export class AppService {
     }
   }
 
-  async checkPhoneExist(phone_number: string): Promise<boolean> {
+  async checkPhoneExist(phone_number: string): Promise<any> {
     try {
       const exist = await this.userRepositories.checkPhoneExist(phone_number);
-
-      return !!exist;
+      return exist;
     } catch (err) {
       throw new RpcException({
         status: HttpStatus.INTERNAL_SERVER_ERROR,
         message: err.message || 'Error checking phone number existence',
+      });
+    }
+  }
+
+  async checkUsernameExist(username: string): Promise<any> {
+    try {
+      const exist = await this.userRepositories.checkUsernameExist(username);
+      return exist;
+    } catch (err) {
+      throw new RpcException({
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        message: err.message || 'Error checking username existence',
       });
     }
   }

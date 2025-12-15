@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Delete,
+  ForbiddenException,
   Get,
   HttpCode,
   HttpStatus,
@@ -59,11 +60,42 @@ export class PetController {
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(Role.ADMIN, Role.STAFF)
   @Get('/all')
-  async getAllPets() {
-    return await lastValueFrom(this.petService.send({ cmd: 'getAllPets' }, {}));
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async getAllPets(
+    @UserToken('id') userId: string,
+    @UserToken('role') userRole: string | string[],
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 15,
+    @Query('search') search?: string,
+    @Query('species') species?: string,
+    @Query('gender') gender?: string,
+    @Query('sort_field') sort_field?: string,
+    @Query('sort_order') sort_order?: 'asc' | 'desc',
+  ) {
+    const roles = Array.isArray(userRole) ? userRole : [userRole];
+    return await lastValueFrom(
+      this.petService.send(
+        { cmd: 'getAllPets' },
+        {
+          page: Number(page),
+          limit: Number(limit),
+          search,
+          species,
+          gender,
+          sort_field,
+          sort_order,
+          userId,
+          role: roles,
+        },
+      ),
+    );
   }
 
   @Get('/count')
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.ADMIN, Role.STAFF)
+  @HttpCode(HttpStatus.OK)
   async getPetCount() {
     return await lastValueFrom(
       this.petService.send({ cmd: 'getPetCount' }, {}),
@@ -84,13 +116,35 @@ export class PetController {
     );
   }
   @Get('/owner/:user_id')
-  async getPetsByOwner(@Param('user_id') user_id: string) {
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.USER, Role.ADMIN, Role.STAFF)
+  @HttpCode(HttpStatus.OK)
+  async getPetsByOwner(
+    @Param('user_id') user_id: string,
+    @UserToken('id') currentUserId: string,
+    @UserToken('role') userRole: string | string[],
+  ) {
+    // Xử lý role có thể là string hoặc array
+    const roles = Array.isArray(userRole) ? userRole : [userRole];
+    const isAdminOrStaff =
+      roles.includes(Role.ADMIN) || roles.includes(Role.STAFF);
+
+    // User thường chỉ xem pets của chính mình
+    // Admin/Staff có thể xem pets của bất kỳ user nào
+    if (!isAdminOrStaff && user_id !== currentUserId) {
+      throw new ForbiddenException(
+        'Bạn không có quyền xem thú cưng của người dùng khác',
+      );
+    }
+
     return await lastValueFrom(
       this.petService.send({ cmd: 'getPetsByOwner' }, { user_id }),
     );
   }
 @UseGuards(JwtAuthGuard)
   @Patch('/:id')
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.USER, Role.ADMIN, Role.STAFF)
   @UseInterceptors(
     FileInterceptor('avatar', {
       limits: { fileSize: 1 * 1024 * 1024 }, // 5MB
@@ -107,21 +161,47 @@ export class PetController {
     @UploadedFile() file: Express.Multer.File,
     @Param('id') pet_id: string,
     @Body() updateData: any,
+    @UserToken('id') currentUserId: string,
+    @UserToken('role') userRole: string | string[],
   ) {
     const fileBufferString = file ? file.buffer.toString('base64') : undefined;
+    const roles = Array.isArray(userRole) ? userRole : [userRole];
+    const isAdminOrStaff =
+      roles.includes(Role.ADMIN) || roles.includes(Role.STAFF);
+
     return await lastValueFrom(
       this.petService.send(
         { cmd: 'updatePet' },
-        { pet_id, updateData, fileBuffer: fileBufferString },
+        {
+          pet_id,
+          updateData,
+          fileBuffer: fileBufferString,
+          userId: currentUserId,
+          role: roles,
+          isAdminOrStaff,
+        },
       ),
     );
   }
   @UseGuards(JwtAuthGuard)
   @Delete('/:id')
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.USER, Role.ADMIN, Role.STAFF)
   @HttpCode(HttpStatus.OK)
-  async deletePet(@Param('id') pet_id: string) {
+  async deletePet(
+    @Param('id') pet_id: string,
+    @UserToken('id') currentUserId: string,
+    @UserToken('role') userRole: string | string[],
+  ) {
+    const roles = Array.isArray(userRole) ? userRole : [userRole];
+    const isAdminOrStaff =
+      roles.includes(Role.ADMIN) || roles.includes(Role.STAFF);
+
     return await lastValueFrom(
-      this.petService.send({ cmd: 'deletePet' }, { pet_id }),
+      this.petService.send(
+        { cmd: 'deletePet' },
+        { pet_id, userId: currentUserId, role: roles, isAdminOrStaff },
+      ),
     );
   }
 }

@@ -1,33 +1,43 @@
-FROM node:20-alpine3.22 AS builder
+# -------- BUILD STAGE --------
+FROM node:20-slim AS builder
 WORKDIR /usr/src/app
 
-# Copy package files trước để cache tốt
+# Copy package files trước để cache dependency layer
 COPY package*.json ./
 
-# Cài full dependencies (dev + prod)
-RUN npm i
+# Install all deps ONCE only (dev + prod)
+RUN npm ci --legacy-peer-deps
 
-# Copy source code
+# Copy full source
 COPY . .
 
 # Build NestJS → dist
 RUN npm run build
 
-# Loại bỏ devDependencies cho node_modules nhẹ hơn
+# Remove devDependencies (create final prod node_modules)
 RUN npm prune --production
 
 
-FROM node:20-alpine3.22 AS runner
+
+# -------- RUN STAGE --------
+FROM node:20-slim AS runner
 WORKDIR /usr/src/app
 
 ENV NODE_ENV=production
 ENV PORT=3003
-# Copy built artifacts and dependencies from builder
-COPY --from=builder /usr/src/app/dist ./dist
-COPY --from=builder /usr/src/app/node_modules ./node_modules
-COPY --from=builder /usr/src/app/package*.json ./
 
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+# Copy built code
+COPY --from=builder /usr/src/app/dist ./dist
+
+# Copy production node_modules
+COPY --from=builder /usr/src/app/node_modules ./node_modules
+
+# Copy package.json
+COPY package*.json ./
+
+
+# Create non-root user
+RUN useradd -m appuser
 USER appuser
 
 EXPOSE ${PORT}
