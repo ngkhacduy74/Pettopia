@@ -1339,52 +1339,62 @@ export class AppointmentService {
       }
 
       // 2. Kiểm tra quyền (Check Authorization)
-      if (this.hasRole(role, 'User')) {
-        if (!userId)
-          throw new RpcException({
-            status: HttpStatus.BAD_REQUEST,
-            message: 'Thiếu thông tin người dùng',
-          });
+      // 2. Kiểm tra quyền (Check Authorization)
+      let isAuthorized = false;
 
-        const appointmentCustomer =
-          (appointment as any).customer ??
-          (appointment as any).customer_id ??
-          (appointment as any).customerId;
-        if (appointment.user_id !== userId && appointmentCustomer !== userId) {
-          throw new RpcException({
-            status: HttpStatus.FORBIDDEN,
-            message: 'Bạn không có quyền xem lịch hẹn này',
-          });
-        }
-      } else if (this.hasRole(role, 'Clinic')) {
-        if (!clinicId)
+      // 2a. Admin & Staff luôn có quyền
+      if (this.isAdminOrStaff(role)) {
+        isAuthorized = true;
+      }
+
+      // 2b. Check quyền Clinic
+      if (!isAuthorized && this.hasRole(role, 'Clinic')) {
+        if (!clinicId) {
           throw new RpcException({
             status: HttpStatus.BAD_REQUEST,
             message: 'Thiếu thông tin phòng khám',
           });
-        if (appointment.clinic_id !== clinicId) {
-          throw new RpcException({
-            status: HttpStatus.FORBIDDEN,
-            message: 'Bạn không có quyền xem lịch hẹn này',
-          });
         }
-      } else if (this.hasRole(role, 'Vet')) {
-        if (!userId)
+        if (appointment.clinic_id === clinicId) {
+          isAuthorized = true;
+        }
+      }
+
+      // 2c. Check quyền Vet (Chỉ bác sĩ được gán mới xem được)
+      if (!isAuthorized && this.hasRole(role, 'Vet')) {
+        if (!userId) {
           throw new RpcException({
             status: HttpStatus.BAD_REQUEST,
             message: 'Thiếu thông tin người dùng',
           });
+        }
+        if (appointment.vet_id === userId) {
+          isAuthorized = true;
+        }
+      }
 
-        if (appointment.vet_id !== userId) {
+      // 2d. Check quyền User (Chủ sở hữu lịch hẹn)
+      if (!isAuthorized && this.hasRole(role, 'User')) {
+        if (!userId) {
           throw new RpcException({
-            status: HttpStatus.FORBIDDEN,
-            message: 'Bạn không có quyền xem lịch hẹn này',
+            status: HttpStatus.BAD_REQUEST,
+            message: 'Thiếu thông tin người dùng',
           });
         }
-      } else if (!this.isAdminOrStaff(role)) {
+        const appointmentCustomer =
+          (appointment as any).customer ??
+          (appointment as any).customer_id ??
+          (appointment as any).customerId;
+
+        if (appointment.user_id === userId || appointmentCustomer === userId) {
+          isAuthorized = true;
+        }
+      }
+
+      if (!isAuthorized) {
         throw new RpcException({
           status: HttpStatus.FORBIDDEN,
-          message: 'Không có quyền truy cập',
+          message: 'Bạn không có quyền xem lịch hẹn này',
         });
       }
 
