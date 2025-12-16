@@ -5,6 +5,8 @@ import {
   HttpCode,
   HttpStatus,
   Inject,
+  Param,
+  ParseIntPipe,
   Post,
   UseGuards,
 } from '@nestjs/common';
@@ -46,6 +48,17 @@ export class PaymentController {
   async handleWebhook(@Body() data: any) {
     return await lastValueFrom(
       this.paymentService.send({ cmd: 'handleWebhook' }, data),
+    );
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get(':orderCode/status')
+  @HttpCode(HttpStatus.OK)
+  async checkPaymentStatus(
+    @Param('orderCode', ParseIntPipe) orderCode: number,
+  ) {
+    return await lastValueFrom(
+      this.paymentService.send({ cmd: 'checkPaymentStatus' }, { orderCode }),
     );
   }
 }

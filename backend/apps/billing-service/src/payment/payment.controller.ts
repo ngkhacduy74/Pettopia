@@ -36,6 +36,11 @@ export class PaymentController {
     return this.paymentService.handleWebhook(data);
   }
 
+  @MessagePattern({ cmd: 'checkPaymentStatus' })
+  async checkPaymentStatus(@Payload() data: { orderCode: number }) {
+    return this.paymentService.checkPaymentStatus(data.orderCode);
+  }
+
   @MessagePattern({ cmd: 'test' })
   async test(@Payload() data: any): Promise<any> {
     return { message: 'VietQR-payos service is running' };
