@@ -326,7 +326,10 @@ export class ShiftRepository {
       const cached = await this.safeGet(cacheKey);
       if (cached) return JSON.parse(cached);
 
-      const count = await this.shiftModel.countDocuments({ clinic_id });
+      const count = await this.shiftModel.countDocuments({
+        clinic_id,
+        is_active: true,
+      });
 
       await this.safeSet(cacheKey, JSON.stringify(count), {
         EX: this.listCacheTTL,

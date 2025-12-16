@@ -310,6 +310,13 @@ export class ServiceService {
         );
       }
 
+      // Sau khi đổi trạng thái dịch vụ, kiểm tra lại trạng thái active của clinic
+      if ((result as any).clinic_id) {
+        await this.clinicService.triggerToCheckActiveClinic(
+          (result as any).clinic_id,
+        );
+      }
+
       return {
         status: 'success',
         message: `Cập nhật trạng thái dịch vụ thành công (${is_active ? 'Kích hoạt' : 'Vô hiệu hóa'})`,

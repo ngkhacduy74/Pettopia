@@ -24,6 +24,9 @@ import {
   MedicalRecordDocument,
 } from 'src/schemas/medical_record.schema';
 import { Medication, MedicationDocument } from 'src/schemas/preciption.schema';
+import { ClinicRating } from 'src/schemas/rating.schema';
+import { RatingRepository } from '../repositories/rating.repositories';
+import { CreateClinicRatingDto } from 'src/dto/rating.dto';
 
 @Injectable()
 export class AppointmentService {
@@ -41,6 +44,7 @@ export class AppointmentService {
     private readonly medicalRecordModel: Model<MedicalRecordDocument>,
     @InjectModel(Medication.name)
     private readonly medicationModel: Model<MedicationDocument>,
+    private readonly ratingRepository: RatingRepository,
   ) {}
 
   // Helper function để kiểm tra role (hỗ trợ cả string và array)
@@ -480,11 +484,9 @@ export class AppointmentService {
   ): Promise<{ medicalRecord: MedicalRecord; medications: Medication[] }[]> {
     try {
       // Nếu là Vet thì chỉ được xem hồ sơ:
-      // - Thuộc clinic của mình
-      // - Do chính mình tạo (vet_id = vetId)
-      // - Và chỉ khi đang có ít nhất một lịch hẹn ACTIVE cho pet đó, clinic đó, vet đó
+      // - Khi đang có ít nhất một lịch hẹn ACTIVE với pet đó (bất kể khám ở clinic nào)
       if (role && this.hasRole(role, 'Vet')) {
-        if (!clinicId || !vetId) {
+        if (!vetId) {
           return [];
         }
 
@@ -493,8 +495,7 @@ export class AppointmentService {
         );
 
         const hasActiveAppointment =
-          await this.appointmentRepositories.existsActiveForClinicPetVet(
-            clinicId,
+          await this.appointmentRepositories.existsActiveForPetVet(
             petId,
             vetId,
             activeStatuses,
@@ -504,8 +505,10 @@ export class AppointmentService {
           return [];
         }
 
+        // Bác sĩ được assign vào lịch hẹn sẽ xem được toàn bộ lịch sử khám
+        // của pet đó (bất kể pet từng khám ở clinic nào).
         const records = await this.medicalRecordModel
-          .find({ pet_id: petId, vet_id: vetId, clinic_id: clinicId })
+          .find({ pet_id: petId })
           .sort({ createdAt: -1 })
           .lean();
 
@@ -529,16 +532,28 @@ export class AppointmentService {
           medsByRecord[key].push(m);
         }
 
-        return records.map((r: any) => ({
-          medicalRecord: r as any,
-          medications: (medsByRecord[r.id] || []) as any,
-        }));
+        // Với Vet, chỉ trả về thông tin bệnh và điều trị (ẩn các metadata khác)
+        return records.map((r: any) => {
+          const limitedRecord = {
+            id: r.id,
+            createdAt: r.createdAt,
+            updatedAt: r.updatedAt,
+            // "bệnh"
+            diagnosis: r.diagnosis,
+            // "điều trị" thể hiện qua ghi chú + đơn thuốc
+            notes: r.notes,
+            symptoms: r.symptoms,
+          };
+
+          return {
+            medicalRecord: limitedRecord as any,
+            medications: (medsByRecord[r.id] || []) as any,
+          };
+        });
       }
 
       // Logic cho Admin, Staff, User
       const isAdmin = role && this.hasRole(role, 'Admin');
-      const isStaff = role && this.hasRole(role, 'Staff');
-      const isUser = role && this.hasRole(role, 'User');
 
       const records = await this.medicalRecordModel
         .find({ pet_id: petId })
@@ -568,18 +583,21 @@ export class AppointmentService {
       return records.map((r: any) => {
         let recordData = r;
 
-        // Nếu là User hoặc Staff (và không phải Admin), chỉ trả về các trường cho phép
-        if ((isUser || isStaff) && !isAdmin) {
+        // Nếu không phải Admin, ẩn clinic_id và vet_id
+        // Mặc định ẩn nếu role không được cung cấp (an toàn hơn)
+        if (!isAdmin) {
+          const { clinic_id, vet_id, ...restRecord } = r;
           recordData = {
+            ...restRecord,
+            // Đảm bảo các trường cần thiết vẫn có
             id: r.id,
             createdAt: r.createdAt,
             updatedAt: r.updatedAt,
             symptoms: r.symptoms,
             diagnosis: r.diagnosis,
             notes: r.notes,
-            // Giữ lại các ID để frontend có thể link nếu cần, hoặc ẩn luôn nếu muốn strict
-            // Theo yêu cầu "chỉ muốn user và staff được xem 3 trường đó thôi",
-            // nhưng metadata là cần thiết.
+            appointment_id: r.appointment_id,
+            pet_id: r.pet_id,
           };
         }
 
@@ -626,6 +644,107 @@ export class AppointmentService {
         status: HttpStatus.INTERNAL_SERVER_ERROR,
         message:
           error.message || 'Lỗi khi lấy danh sách lịch hẹn được phân công',
+      });
+    }
+  }
+
+  // =========================================================
+  // CLINIC RATING
+  // =========================================================
+
+  async createAppointmentRating(
+    appointmentId: string,
+    userId: string,
+    dto: CreateClinicRatingDto,
+  ): Promise<ClinicRating> {
+    try {
+      if (!appointmentId || !userId) {
+        throw new RpcException({
+          status: HttpStatus.BAD_REQUEST,
+          message: 'Thiếu thông tin lịch hẹn hoặc người dùng',
+        });
+      }
+
+      const appointment = await this.appointmentRepositories.findById(
+        appointmentId,
+      );
+
+      if (!appointment) {
+        throw new RpcException({
+          status: HttpStatus.NOT_FOUND,
+          message: 'Không tìm thấy lịch hẹn để đánh giá',
+        });
+      }
+
+      if (appointment.user_id !== userId) {
+        throw new RpcException({
+          status: HttpStatus.FORBIDDEN,
+          message: 'Bạn không có quyền đánh giá lịch hẹn này',
+        });
+      }
+
+      if (appointment.status !== AppointmentStatus.Completed) {
+        throw new RpcException({
+          status: HttpStatus.BAD_REQUEST,
+          message: 'Chỉ có thể đánh giá sau khi lịch hẹn đã hoàn thành',
+        });
+      }
+
+      const existed = await this.ratingRepository.findByAppointmentId(
+        appointmentId,
+      );
+      if (existed) {
+        throw new RpcException({
+          status: HttpStatus.BAD_REQUEST,
+          message: 'Lịch hẹn này đã được đánh giá trước đó',
+        });
+      }
+
+      // Optionally, we could fetch clinic/service names from partner-service.
+      // Để đơn giản, hiện tại chỉ lưu clinic_id, service_ids, stars và notes.
+      const rating: Partial<ClinicRating> = {
+        appointment_id: appointment.id,
+        clinic_id: appointment.clinic_id,
+        service_ids: appointment.service_ids,
+        user_id: appointment.user_id,
+        stars: dto.stars,
+        notes: dto.notes,
+      };
+
+      return await this.ratingRepository.createRating(rating);
+    } catch (error) {
+      if (error instanceof RpcException) {
+        throw error;
+      }
+      throw new RpcException({
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        message: error.message || 'Lỗi khi tạo đánh giá phòng khám',
+      });
+    }
+  }
+
+  async getClinicRatingSummary(clinicId: string): Promise<{
+    clinic_id: string;
+    average_stars: number;
+    total_ratings: number;
+  }> {
+    try {
+      if (!clinicId) {
+        throw new RpcException({
+          status: HttpStatus.BAD_REQUEST,
+          message: 'Thiếu thông tin phòng khám',
+        });
+      }
+
+      return await this.ratingRepository.getClinicRatingSummary(clinicId);
+    } catch (error) {
+      if (error instanceof RpcException) {
+        throw error;
+      }
+      throw new RpcException({
+        status: error.status || HttpStatus.INTERNAL_SERVER_ERROR,
+        message:
+          error.message || 'Lỗi khi lấy thống kê đánh giá cho phòng khám',
       });
     }
   }

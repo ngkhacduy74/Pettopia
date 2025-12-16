@@ -396,5 +396,22 @@ export class AppService {
       });
     }
   }
+
+  /**
+   * Expire VIP status cho các user đã hết hạn
+   */
+  async expireVipUsers(): Promise<{ expiredCount: number }> {
+    try {
+      const expiredCount = await this.userRepositories.expireVipUsers();
+      console.log(`Expired VIP status for ${expiredCount} users`);
+      return { expiredCount };
+    } catch (err) {
+      console.error('Error expiring VIP users:', err);
+      throw new RpcException({
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        message: err.message || 'Lỗi khi expire VIP users',
+      });
+    }
+  }
 }
 

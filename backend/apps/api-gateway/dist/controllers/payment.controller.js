@@ -16,6 +16,8 @@ exports.PaymentController = void 0;
 const common_1 = require("@nestjs/common");
 const rxjs_1 = require("rxjs");
 const microservices_1 = require("@nestjs/microservices");
+const jwtAuth_guard_1 = require("../guard/jwtAuth.guard");
+const user_decorator_1 = require("../decorators/user.decorator");
 let PaymentController = class PaymentController {
     paymentService;
     constructor(paymentService) {
@@ -24,8 +26,8 @@ let PaymentController = class PaymentController {
     async test() {
         return await (0, rxjs_1.lastValueFrom)(this.paymentService.send({ cmd: 'test' }, {}));
     }
-    async createPayment(data) {
-        return await (0, rxjs_1.lastValueFrom)(this.paymentService.send({ cmd: 'createPayment' }, data));
+    async createPayment(data, userId) {
+        return await (0, rxjs_1.lastValueFrom)(this.paymentService.send({ cmd: 'createPayment' }, { ...data, userId }));
     }
     async handleWebhook(data) {
         return await (0, rxjs_1.lastValueFrom)(this.paymentService.send({ cmd: 'handleWebhook' }, data));
@@ -42,9 +44,11 @@ __decorate([
 __decorate([
     (0, common_1.Post)(),
     (0, common_1.HttpCode)(common_1.HttpStatus.CREATED),
+    (0, common_1.UseGuards)(jwtAuth_guard_1.JwtAuthGuard),
     __param(0, (0, common_1.Body)()),
+    __param(1, (0, user_decorator_1.UserToken)('id')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
+    __metadata("design:paramtypes", [Object, String]),
     __metadata("design:returntype", Promise)
 ], PaymentController.prototype, "createPayment", null);
 __decorate([

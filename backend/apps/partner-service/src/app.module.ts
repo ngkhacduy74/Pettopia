@@ -98,6 +98,26 @@ import { ClinicInvitationService } from './services/clinic/clinic-invitation.ser
           },
         }),
       },
+      {
+        name: 'HEALTHCARE_SERVICE',
+        imports: [ConfigModule],
+        inject: [ConfigService],
+        useFactory: (configService: ConfigService) => ({
+          transport: Transport.RMQ,
+          options: {
+            urls: [
+              configService.get<string>(
+                'RMQ_URL',
+                'amqp://guest:guest@rabbitmq:5672',
+              ),
+            ],
+            queue: 'healthcare_service_queue',
+            queueOptions: {
+              durable: true,
+            },
+          },
+        }),
+      },
     ]),
     MongooseModule.forRootAsync({
       imports: [ConfigModule],

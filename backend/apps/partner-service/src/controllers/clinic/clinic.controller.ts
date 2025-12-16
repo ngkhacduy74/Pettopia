@@ -85,16 +85,14 @@ export class ClinicController {
     data: {
       page?: number;
       limit?: number;
-      isAdmin?: boolean;
-      userRole?: string | string[];
+      isAdminOrStaff?: boolean;
     },
   ): Promise<any> {
     try {
       const result = await this.clinicService.findAllClinic(
         data.page,
         data.limit,
-        data.isAdmin,
-        data.userRole,
+        data.isAdminOrStaff,
       );
       return result;
     } catch (err) {

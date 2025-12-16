@@ -372,8 +372,9 @@ export class HealthcareController {
       return result;
     }
 
+    // Nếu là Clinic hoặc Staff: chỉ được xem hồ sơ thuộc clinic của mình
     if (
-      (role === Role.CLINIC || role === Role.STAFF || role === Role.VET) &&
+      (role === Role.CLINIC || role === Role.STAFF) &&
       clinicId
     ) {
       result.data = result.data.filter((item: any) => {
@@ -382,6 +383,7 @@ export class HealthcareController {
       });
     }
 
+    // Mọi role không phải Admin (bao gồm Vet) đều bị ẩn clinic_id và vet_id
     if (role !== Role.ADMIN) {
       result.data = result.data.map((item: any) => {
         if (item && item.medicalRecord) {
@@ -429,6 +431,43 @@ export class HealthcareController {
       this.healthcareService.send(
         { cmd: 'updateMedicalRecord' },
         { appointmentId, userId, role, updateData },
+      ),
+    );
+  }
+
+  // =========================================================
+  // CLINIC RATING
+  // =========================================================
+
+  // Người dùng sau khi khám xong sẽ gửi đánh giá cho lịch hẹn
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(Role.USER)
+  @Post('/appointments/:id/rating')
+  @HttpCode(HttpStatus.CREATED)
+  async createAppointmentRating(
+    @Param('id') appointmentId: string,
+    @UserToken('id') userId: string,
+    @Body() body: any,
+  ) {
+    return await lastValueFrom(
+      this.healthcareService.send(
+        { cmd: 'createAppointmentRating' },
+        {
+          appointmentId,
+          userId,
+          ratingData: body,
+        },
+      ),
+    );
+  }
+
+  @Get('/clinics/:id/rating')
+  @HttpCode(HttpStatus.OK)
+  async getClinicRatingSummary(@Param('id') clinicId: string) {
+    return await lastValueFrom(
+      this.healthcareService.send(
+        { cmd: 'getClinicRatingSummary' },
+        { clinicId },
       ),
     );
   }

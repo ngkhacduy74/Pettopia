@@ -220,6 +220,8 @@ export class UsersRepository {
     if (updateData.bio) updateFields.bio = updateData.bio;
     if (updateData.address) updateFields.address = updateData.address;
     if (updateData.is_active !== undefined) updateFields.is_active = updateData.is_active;
+    if (updateData.is_vip !== undefined) updateFields.is_vip = updateData.is_vip;
+    if (updateData.vip_expires_at !== undefined) updateFields.vip_expires_at = updateData.vip_expires_at;
 
     // Handle nested fields update carefully
     if (updateData.phone_number) {
@@ -233,5 +235,29 @@ export class UsersRepository {
     return this.userModel
       .findOneAndUpdate({ id }, { $set: updateFields }, { new: true })
       .exec();
+  }
+
+  /**
+   * Expire VIP status cho các user đã hết hạn
+   * @returns Số lượng user đã được expire
+   */
+  async expireVipUsers(): Promise<number> {
+    const now = new Date();
+    const result = await this.userModel
+      .updateMany(
+        {
+          is_vip: true,
+          vip_expires_at: { $lte: now },
+        },
+        {
+          $set: {
+            is_vip: false,
+            vip_expires_at: null,
+          },
+        },
+      )
+      .exec();
+
+    return result.modifiedCount;
   }
 }

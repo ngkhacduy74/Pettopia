@@ -28,9 +28,9 @@ import { FileInterceptor } from '@nestjs/platform-express';
 export class PetController {
   constructor(
     @Inject('PETCARE_SERVICE') private readonly petService: ClientProxy,
-  ) {}
-  @UseGuards(JwtAuthGuard)
+  ) { }
   @Post('/create')
+  @UseGuards(JwtAuthGuard)
   @UseInterceptors(
     FileInterceptor('avatar', {
       limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
@@ -46,19 +46,17 @@ export class PetController {
   async createPet(
     @UploadedFile() file: Express.Multer.File,
     @Body() data: any,
-    @UserToken('id') user_id: string, // ← LẤY TỪ TOKEN
+    @UserToken('id') userId: string,
   ) {
     const fileBufferString = file ? file.buffer.toString('base64') : undefined;
     return await lastValueFrom(
       this.petService.send(
         { cmd: 'createPet' },
-        // Gửi chuỗi base64 đi
-        { ...data,user_id, fileBuffer: fileBufferString },
+        // Gửi chuỗi base64 đi, và inject user_id từ token
+        { ...data, user_id: userId, fileBuffer: fileBufferString },
       ),
     );
   }
-  @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles(Role.ADMIN, Role.STAFF)
   @Get('/all')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
@@ -101,20 +99,29 @@ export class PetController {
       this.petService.send({ cmd: 'getPetCount' }, {}),
     );
   }
+
+  // Lấy pet của chính user đang đăng nhập
+  @Get('/me')
   @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async getMyPets(
+    @UserToken('id') currentUserId: string,
+  ) {
+    return await lastValueFrom(
+      this.petService.send({ cmd: 'getPetsByOwner' }, { user_id: currentUserId }),
+    );
+  }
+
   @Get('/:id')
-  async getPetById(@Param('id') pet_id: string) {
+  @UseGuards(JwtAuthGuard) // Ensure we have user info
+  async getPetById(@Param('id') pet_id: string, @UserToken() user: any) {
+    const role = user?.role;
+    const userId = user?.id;
     return await lastValueFrom(
-      this.petService.send({ cmd: 'getPetById' }, { pet_id }),
+      this.petService.send({ cmd: 'getPetById' }, { pet_id, role, userId }),
     );
   }
-  @UseGuards(JwtAuthGuard)
-  @Get('/user/my')
-  async getMyPets(@UserToken('id') user_id: string) {
-    return await lastValueFrom(
-      this.petService.send({ cmd: 'getPetsByOwner' }, { user_id }), // giữ nguyên cmd
-    );
-  }
+
   @Get('/owner/:user_id')
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(Role.USER, Role.ADMIN, Role.STAFF)
@@ -141,13 +148,13 @@ export class PetController {
       this.petService.send({ cmd: 'getPetsByOwner' }, { user_id }),
     );
   }
-@UseGuards(JwtAuthGuard)
+
   @Patch('/:id')
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(Role.USER, Role.ADMIN, Role.STAFF)
   @UseInterceptors(
     FileInterceptor('avatar', {
-      limits: { fileSize: 1 * 1024 * 1024 }, // 5MB
+      limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
       fileFilter: (req, file, cb) => {
         if (!file.mimetype.match(/image\/(jpg|jpeg|png|gif)$/)) {
           return cb(new Error('Only image files are allowed!'), false);
@@ -183,7 +190,7 @@ export class PetController {
       ),
     );
   }
-  @UseGuards(JwtAuthGuard)
+
   @Delete('/:id')
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(Role.USER, Role.ADMIN, Role.STAFF)

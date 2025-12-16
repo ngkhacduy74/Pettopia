@@ -231,4 +231,13 @@ async updateUserPasswordById(data: { id: string; newPassword: string }) {
       handleRpcError('AppController.updateUser', err);
     }
   }
+
+  @MessagePattern({ cmd: 'expireVipUsers' })
+  async expireVipUsers(): Promise<{ expiredCount: number }> {
+    try {
+      return await this.appService.expireVipUsers();
+    } catch (err) {
+      handleRpcError('AppController.expireVipUsers', err);
+    }
+  }
 }
