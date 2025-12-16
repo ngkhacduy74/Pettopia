@@ -129,6 +129,15 @@ export class User {
   @Prop({ default: true })
   is_active: boolean;
 
+  @Prop({ type: Boolean, default: false })
+  is_vip: boolean;
+
+  @Prop({
+    type: Date,
+    required: false,
+  })
+  vip_expires_at?: Date;
+
   @Prop({ type: AuditLogsSchema })
   audit_logs?: AuditLogs;
 }

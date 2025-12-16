@@ -554,8 +554,6 @@ export class AppointmentService {
 
       // Logic cho Admin, Staff, User
       const isAdmin = role && this.hasRole(role, 'Admin');
-      const isStaff = role && this.hasRole(role, 'Staff');
-      const isUser = role && this.hasRole(role, 'User');
 
       const records = await this.medicalRecordModel
         .find({ pet_id: petId })
@@ -585,18 +583,21 @@ export class AppointmentService {
       return records.map((r: any) => {
         let recordData = r;
 
-        // Nếu là User hoặc Staff (và không phải Admin), chỉ trả về các trường cho phép
-        if ((isUser || isStaff) && !isAdmin) {
+        // Nếu không phải Admin, ẩn clinic_id và vet_id
+        // Mặc định ẩn nếu role không được cung cấp (an toàn hơn)
+        if (!isAdmin) {
+          const { clinic_id, vet_id, ...restRecord } = r;
           recordData = {
+            ...restRecord,
+            // Đảm bảo các trường cần thiết vẫn có
             id: r.id,
             createdAt: r.createdAt,
             updatedAt: r.updatedAt,
             symptoms: r.symptoms,
             diagnosis: r.diagnosis,
             notes: r.notes,
-            // Giữ lại các ID để frontend có thể link nếu cần, hoặc ẩn luôn nếu muốn strict
-            // Theo yêu cầu "chỉ muốn user và staff được xem 3 trường đó thôi",
-            // nhưng metadata là cần thiết.
+            appointment_id: r.appointment_id,
+            pet_id: r.pet_id,
           };
         }
 

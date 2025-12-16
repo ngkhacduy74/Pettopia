@@ -33,7 +33,7 @@ export class PaymentController {
   @MessagePattern({ cmd: 'handleWebhook' })
   @UseGuards(PaymentWebhookGuard)
   handleWebhook(@Payload() data: any) {
-    return this.paymentService.handleWebhook();
+    return this.paymentService.handleWebhook(data);
   }
 
   @MessagePattern({ cmd: 'test' })
