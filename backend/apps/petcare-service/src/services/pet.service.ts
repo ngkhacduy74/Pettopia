@@ -169,7 +169,16 @@ export class PetService {
         );
 
         if (medicalRecords && medicalRecords.data) {
-          petResponse.medical_records = medicalRecords.data;
+          petResponse.medical_records = medicalRecords.data.map((record: any) => {
+            if (record.medicalRecord) {
+              const { clinic_id, vet_id, ...rest } = record.medicalRecord;
+              return {
+                ...record,
+                medicalRecord: rest,
+              };
+            }
+            return record;
+          });
         }
       } catch (err) {
         console.warn(`Failed to fetch medical records for pet ${pet_id}:`, err.message);
