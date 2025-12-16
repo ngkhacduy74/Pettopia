@@ -39,12 +39,13 @@ export class PaymentService {
         'x-api-key': this.configService.getOrThrow<string>('PAYOS_API_KEY'),
       },
     };
+    const appUrl = this.configService.get<string>('APP_URL') || 'http://localhost:3000';
     const dataForSignature = {
       orderCode,
       amount: body.amount,
       description: body.description,
-      cancelUrl: 'https://example.com/cancel',
-      returnUrl: 'https://example.com/return',
+      cancelUrl: `${appUrl}/payment/cancel`,
+      returnUrl: `${appUrl}/payment/success`,
     };
     const signature = generateSignature(
       dataForSignature,

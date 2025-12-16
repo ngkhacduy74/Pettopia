@@ -231,4 +231,19 @@ export class AppController {
       handleRpcError('AppController.expireVipUsers', err);
     }
   }
+
+  @MessagePattern({ cmd: 'getVipRemainingDays' })
+  async getVipRemainingDays(
+    @Payload() data: { id: string },
+  ): Promise<{
+    is_vip: boolean;
+    vip_expires_at: Date | null;
+    remaining_days: number;
+  }> {
+    try {
+      return await this.appService.getVipRemainingDays(data.id);
+    } catch (err) {
+      throw handleRpcError('AppController.getVipRemainingDays', err);
+    }
+  }
 }
