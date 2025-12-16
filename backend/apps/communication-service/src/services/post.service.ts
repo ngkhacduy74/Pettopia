@@ -123,76 +123,47 @@ async findByUserId(user_id: string): Promise<PostResponseDto[]> {
   
    return posts.map(mapToResponseDto)
 }
-  /**
-   * UPDATE
-   */
   async update(
   payload: {
     post_id: string;
     updateData: UpdatePostDto;
-    files?: string[];
+    // BỎ files?: string[] vì không cần nữa
     userId?: string;
     role?: string | string[];
     isAdminOrStaff?: boolean;
   },
 ): Promise<any> {
   try {
-    const { post_id, updateData, files, userId, isAdminOrStaff } = payload;
+    const { post_id, updateData, userId, isAdminOrStaff } = payload;
 
     const post = await this.postRepository.findById(post_id);
     if (!post) throw new NotFoundException(`Post with ID ${post_id} not found`);
 
-    // Kiểm tra quyền: chỉ chủ post hoặc admin/staff mới được update
-    if (!isAdminOrStaff && userId) {
-      const authorId = post.author.user_id;
-      if (authorId !== userId) {
-        throw new RpcException({
-          status: 403,
-          message: 'Bạn không có quyền cập nhật bài viết này',
-        });
-      }
-    }
-
-    // Upload ảnh mới nếu có file gửi lên
-    let newImageUrls: string[] = [];
-    if (files && files.length > 0) {
-      const uploadPromises = files.map(async (base64: string) => {
-        const buffer = Buffer.from(base64, 'base64');
-        const res = await lastValueFrom(
-          this.authClient.send(
-            { cmd: 'upload_image' },
-            { fileBuffer: buffer },
-          ),
-        );
-        if (!res?.secure_url) throw new RpcException('Upload failed');
-        return res.secure_url;
+    // Kiểm tra quyền
+    if (!isAdminOrStaff && userId && post.author.user_id !== userId) {
+      throw new RpcException({
+        status: 403,
+        message: 'Bạn không có quyền cập nhật bài viết này',
       });
-      newImageUrls = await Promise.all(uploadPromises);
+    }
+    // Frontend đã upload ảnh riêng và gửi danh sách URL đầy đủ
+    const finalImages = Array.isArray(updateData.images)
+      ? updateData.images
+      : post.images || [];
+
+    // Validation tổng số ảnh (tùy chọn)
+    const MAX_IMAGES = 3;
+    if (finalImages.length > MAX_IMAGES) {
+      throw new BadRequestException(`Tối đa ${MAX_IMAGES} ảnh mỗi bài viết`);
     }
 
-    // === XỬ LÝ ẢNH: ƯU TIÊN HOÀN TOÀN THEO FRONTEND GỬI ===
-    let finalImages: string[] = [];
-
-    if (Array.isArray(updateData.images)) {
-      // Frontend gửi danh sách ảnh → dùng chính xác cái đó (có thể là [] để xóa hết)
-      finalImages = updateData.images;
-
-      // Nếu có ảnh mới upload → thêm vào cuối danh sách frontend gửi
-      if (newImageUrls.length > 0) {
-        finalImages = [...finalImages, ...newImageUrls];
-      }
-    } else {
-      // Trường hợp không gửi images → giữ ảnh cũ + thêm ảnh mới
-      finalImages = [...(post.images || []), ...newImageUrls];
-    }
-
-    // Chuẩn bị dữ liệu update
     const updatePayload: Partial<Post> = {
-      ...updateData,
+      title: updateData.title ?? post.title,
+      content: updateData.content ?? post.content,
+      tags: updateData.tags ?? post.tags,
       images: finalImages,
     };
 
-    // Cập nhật vào DB
     const updatedPost = await this.postRepository.update(post_id, updatePayload);
 
     return {
