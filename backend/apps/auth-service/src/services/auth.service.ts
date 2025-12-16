@@ -399,12 +399,28 @@ export class AuthService {
         message: 'Đổi mật khẩu thành công',
       };
     } catch (error) {
-      if (error instanceof RpcException) throw error;
+      console.error('Change password error detail:', error); // ← Thêm log để debug
+
+      // Nếu là RpcException từ Customer service (validation fail, user not found, v.v.)
+      if (error instanceof RpcException) {
+        throw error; // Throw nguyên để gateway trả đúng status code + message
+      }
+
+      // Nếu là lỗi timeout hoặc connection từ microservice
+      if (error.message && error.message.includes('timeout') || error.name === 'TimeoutError') {
+        throw createRpcError(
+          HttpStatus.GATEWAY_TIMEOUT,
+          'Hệ thống đang bận, vui lòng thử lại sau',
+          'Gateway Timeout',
+        );
+      }
+
+      // Các lỗi khác
       throw createRpcError(
         HttpStatus.INTERNAL_SERVER_ERROR,
         'Lỗi khi đổi mật khẩu',
         'Internal Server Error',
-        error.message,
+        error.message || 'Unknown error',
       );
     }
   }

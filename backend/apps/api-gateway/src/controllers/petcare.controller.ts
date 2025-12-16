@@ -33,7 +33,7 @@ export class PetController {
   @Post('/create')
   @UseInterceptors(
     FileInterceptor('avatar', {
-      limits: { fileSize: 1 * 1024 * 1024 }, // 5MB
+      limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
       fileFilter: (req, file, cb) => {
         if (!file.mimetype.match(/image\/(jpg|jpeg|png|gif)$/)) {
           return cb(new Error('Only image files are allowed!'), false);
@@ -109,7 +109,7 @@ export class PetController {
     );
   }
   @UseGuards(JwtAuthGuard)
-  @Get('/my')
+  @Get('/user/my')
   async getMyPets(@UserToken('id') user_id: string) {
     return await lastValueFrom(
       this.petService.send({ cmd: 'getPetsByOwner' }, { user_id }), // giữ nguyên cmd

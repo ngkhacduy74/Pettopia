@@ -15,10 +15,10 @@ export class UsersRepository {
   constructor(@InjectModel(User.name) private userModel: Model<UserDocument>) { }
 
   async findOneById(id: string): Promise<User | null> {
-    return this.userModel.findOne({ id }).lean().exec();
+    return this.userModel.findOne({ id }).select('+password').lean().exec();
   }
   async findOneByIdNotAdmin(id: string): Promise<User | null> {
-    return this.userModel.findOne({ id }).select({ password: 0, __v: 0, secretKey: 0, is_active: 0, reward_point: 0, role: 0 }).lean().exec();
+    return this.userModel.findOne({ id }).select('+password -__v -secretKey -is_active -reward_point -role').lean().exec();
   }
 
   async findOneByUsername(username: string): Promise<User | null> {

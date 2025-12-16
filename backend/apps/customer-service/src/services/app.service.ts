@@ -374,7 +374,7 @@ export class AppService {
       }
       throw new RpcException({
         status: HttpStatus.INTERNAL_SERVER_ERROR,
-        message: err.message || 'Lỗi khi cập nhật mật khẩu',
+        message: err.message || 'Lỗi khi cập nhật mật khẩu 1',
       });
     }
   }
