@@ -132,8 +132,7 @@ let PartnerController = class PartnerController {
         return await (0, rxjs_1.lastValueFrom)(this.partnerService.send({ cmd: 'findAllClinic' }, {
             page,
             limit,
-            isAdmin: isAdminOrStaff,
-            userRole: roles,
+            isAdminOrStaff,
         }));
     }
     async vetRegister(data, user_id) {

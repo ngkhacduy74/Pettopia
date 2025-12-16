@@ -27,7 +27,7 @@ export class HealthcareController {
     private readonly healthcareService: ClientProxy,
     @Inject('PETCARE_SERVICE')
     private readonly petcareService: ClientProxy,
-  ) {}
+  ) { }
 
   @UseGuards(JwtAuthGuard)
   @Post('/appointment')
@@ -434,12 +434,6 @@ export class HealthcareController {
       ),
     );
   }
-
-  // =========================================================
-  // CLINIC RATING
-  // =========================================================
-
-  // Người dùng sau khi khám xong sẽ gửi đánh giá cho lịch hẹn
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(Role.USER)
   @Post('/appointments/:id/rating')

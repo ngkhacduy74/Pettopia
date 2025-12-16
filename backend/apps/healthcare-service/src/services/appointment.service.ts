@@ -45,7 +45,7 @@ export class AppointmentService {
     @InjectModel(Medication.name)
     private readonly medicationModel: Model<MedicationDocument>,
     private readonly ratingRepository: RatingRepository,
-  ) {}
+  ) { }
 
   // Helper function để kiểm tra role (hỗ trợ cả string và array)
   private hasRole(userRole: string | string[], targetRole: string): boolean {
@@ -234,7 +234,7 @@ export class AppointmentService {
             },
           ),
         );
-      } catch (err) {}
+      } catch (err) { }
 
       return {
         medicalRecord: medicalRecord.toJSON() as any,
@@ -1413,7 +1413,9 @@ export class AppointmentService {
       ];
 
       // [2] Xử lý Pet: Kiểm tra xem có pet_ids không rồi mới gọi
+      // [2] Xử lý Pet: Kiểm tra xem có pet_ids không rồi mới gọi
       const hasPets = appointment.pet_ids && appointment.pet_ids.length > 0;
+      console.log('>>> [getAppointmentById] hasPets:', hasPets, 'pet_ids:', appointment.pet_ids);
 
       if (hasPets) {
         // QUAN TRỌNG: Bên PetService phải có handler nhận mảng ids
@@ -1471,18 +1473,24 @@ export class AppointmentService {
           appointment.service_ids?.includes(s.id),
         );
       }
-      const detailPets = Array.isArray(petsResult)
-        ? petsResult
-        : petsResult?.data || [];
+
+      let detailPets: any[] = [];
+      if (Array.isArray(petsResult)) {
+        detailPets = petsResult;
+      } else if (petsResult && Array.isArray(petsResult.data)) {
+        detailPets = petsResult.data;
+      } else if (petsResult && Array.isArray(petsResult.items)) {
+        detailPets = petsResult.items;
+      }
 
       // Lấy thông tin user (chỉ lấy tên và số điện thoại)
       const userInfo = userResult?.data || userResult || null;
       const userNameInfo = userInfo
         ? {
-            fullname: userInfo.fullname,
-            phone_number:
-              userInfo.phone?.phone_number || userInfo.phone || null,
-          }
+          fullname: userInfo.fullname,
+          phone_number:
+            userInfo.phone?.phone_number || userInfo.phone || null,
+        }
         : null;
 
       return {
@@ -1923,20 +1931,20 @@ export class AppointmentService {
         // Format địa chỉ clinic để phù hợp với email template
         const clinicAddress = clinicData.address
           ? {
-              description:
-                clinicData.address.detail ||
-                clinicData.address.description ||
-                '',
-              ward: clinicData.address.ward || '',
-              district: clinicData.address.district || '',
-              city: clinicData.address.city || '',
-            }
+            description:
+              clinicData.address.detail ||
+              clinicData.address.description ||
+              '',
+            ward: clinicData.address.ward || '',
+            district: clinicData.address.district || '',
+            city: clinicData.address.city || '',
+          }
           : {
-              description: '',
-              ward: '',
-              district: '',
-              city: '',
-            };
+            description: '',
+            ward: '',
+            district: '',
+            city: '',
+          };
 
         this.authService.emit(
           { cmd: 'sendAppointmentConfirmation' },
@@ -2030,8 +2038,8 @@ export class AppointmentService {
         canView = true;
       }
       // Users can view their own records when status is not Completed
-      else if (isUser && appointment.user_id === userId && 
-              appointment.status !== AppointmentStatus.Completed) {
+      else if (isUser && appointment.user_id === userId &&
+        appointment.status !== AppointmentStatus.Completed) {
         canView = true;
       }
 

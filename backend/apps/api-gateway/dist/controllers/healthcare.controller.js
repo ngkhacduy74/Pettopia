@@ -167,7 +167,7 @@ let HealthcareController = class HealthcareController {
         if (!result || !Array.isArray(result.data)) {
             return result;
         }
-        if ((role === roles_decorator_1.Role.CLINIC || role === roles_decorator_1.Role.STAFF || role === roles_decorator_1.Role.VET) &&
+        if ((role === roles_decorator_1.Role.CLINIC || role === roles_decorator_1.Role.STAFF) &&
             clinicId) {
             result.data = result.data.filter((item) => {
                 const recordClinicId = item?.medicalRecord?.clinic_id;
@@ -193,6 +193,16 @@ let HealthcareController = class HealthcareController {
     }
     async updateMedicalRecord(appointmentId, userId, role, updateData) {
         return await (0, rxjs_1.lastValueFrom)(this.healthcareService.send({ cmd: 'updateMedicalRecord' }, { appointmentId, userId, role, updateData }));
+    }
+    async createAppointmentRating(appointmentId, userId, body) {
+        return await (0, rxjs_1.lastValueFrom)(this.healthcareService.send({ cmd: 'createAppointmentRating' }, {
+            appointmentId,
+            userId,
+            ratingData: body,
+        }));
+    }
+    async getClinicRatingSummary(clinicId) {
+        return await (0, rxjs_1.lastValueFrom)(this.healthcareService.send({ cmd: 'getClinicRatingSummary' }, { clinicId }));
     }
 };
 exports.HealthcareController = HealthcareController;
@@ -407,6 +417,26 @@ __decorate([
     __metadata("design:paramtypes", [String, String, String, Object]),
     __metadata("design:returntype", Promise)
 ], HealthcareController.prototype, "updateMedicalRecord", null);
+__decorate([
+    (0, common_1.UseGuards)(jwtAuth_guard_1.JwtAuthGuard, role_guard_1.RoleGuard),
+    (0, roles_decorator_1.Roles)(roles_decorator_1.Role.USER),
+    (0, common_1.Post)('/appointments/:id/rating'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.CREATED),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, user_decorator_1.UserToken)('id')),
+    __param(2, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, Object]),
+    __metadata("design:returntype", Promise)
+], HealthcareController.prototype, "createAppointmentRating", null);
+__decorate([
+    (0, common_1.Get)('/clinics/:id/rating'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], HealthcareController.prototype, "getClinicRatingSummary", null);
 exports.HealthcareController = HealthcareController = __decorate([
     (0, common_1.Controller)('api/v1/healthcare'),
     __param(0, (0, common_1.Inject)('HEALTHCARE_SERVICE')),

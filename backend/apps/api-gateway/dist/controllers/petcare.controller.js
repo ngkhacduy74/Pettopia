@@ -47,6 +47,9 @@ let PetController = class PetController {
     async getPetCount() {
         return await (0, rxjs_1.lastValueFrom)(this.petService.send({ cmd: 'getPetCount' }, {}));
     }
+    async getMyPets(currentUserId) {
+        return await (0, rxjs_1.lastValueFrom)(this.petService.send({ cmd: 'getPetsByOwner' }, { user_id: currentUserId }));
+    }
     async getPetById(pet_id, user) {
         const role = user?.role;
         const userId = user?.id;
@@ -126,6 +129,15 @@ __decorate([
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", Promise)
 ], PetController.prototype, "getPetCount", null);
+__decorate([
+    (0, common_1.Get)('/me'),
+    (0, common_1.UseGuards)(jwtAuth_guard_1.JwtAuthGuard),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    __param(0, (0, user_decorator_1.UserToken)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], PetController.prototype, "getMyPets", null);
 __decorate([
     (0, common_1.Get)('/:id'),
     (0, common_1.UseGuards)(jwtAuth_guard_1.JwtAuthGuard),
