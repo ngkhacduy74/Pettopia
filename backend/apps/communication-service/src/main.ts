@@ -20,18 +20,10 @@ async function bootstrap() {
   );
 
   app.connectMicroservice<MicroserviceOptions>({
-    transport: Transport.RMQ,
+    transport: Transport.TCP,
     options: {
-      urls: [
-        configService.get<string>(
-          'RMQ_URL',
-          'amqp://guest:guest@rabbitmq:5672',
-        ),
-      ],
-      queue: 'communication_service_queue',
-      queueOptions: {
-        durable: true,
-      },
+      host: '0.0.0.0',
+      port: configService.get<number>('TCP_COMMUNICATION_PORT') || 5006,
     },
   });
 

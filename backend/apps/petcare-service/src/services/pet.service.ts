@@ -10,7 +10,7 @@ import { CreatePetDto } from '../dto/pet/create-pet.dto';
 import { UpdatePetDto } from 'src/dto/pet/update-pet.dto';
 import { PetResponseDto } from '../dto/pet/pet-response.dto';
 import { GetAllPetsDto } from '../dto/pet/get-all-pets.dto';
-import { Pet } from '../schemas/pet.schema';
+import { Pet, PetSource } from '../schemas/pet.schema';
 import { v4 as uuidv4 } from 'uuid';
 import { identity, lastValueFrom } from 'rxjs';
 import { ClientProxy, RpcException } from '@nestjs/microservices';
@@ -48,6 +48,28 @@ export class PetService {
         if (!imageUrl) throw new RpcException('Failed to upload image to Cloudinary');
       }
 
+      // Determine Source & Claims
+      const source = payload.source || PetSource.USER;
+      // Default: USER -> claimed=true; CLINIC -> claimed=false (unless forced)
+      const isClaimed = payload.isClaimed !== undefined
+        ? payload.isClaimed
+        : (source === PetSource.USER);
+
+      // Check Quota if USER source
+      if (source === PetSource.USER) {
+        // VIP User has no limit or higher limit (skip check if is_vip)
+        if (!user.is_vip) {
+          const userPets = await this.petRepository.findByOwnerId(user.id);
+          const count = userPets.filter(p => !p.source || p.source === PetSource.USER).length;
+          if (count >= 3) {
+            throw new RpcException({
+              status: 400,
+              message: 'Bạn đã đạt giới hạn 3 thú cưng. Vui lòng nâng cấp tài khoản hoặc xóa bớt.',
+            });
+          }
+        }
+      }
+
       // Chuẩn bị dữ liệu owner
       const ownerData = {
         user_id: user.id,
@@ -61,6 +83,8 @@ export class PetService {
       const petData = {
         id: uuidv4(),
         ...payload,
+        source,
+        isClaimed,
         avatar_url: imageUrl,
         owner: ownerData,
         dateOfBirth: new Date(payload.dateOfBirth),
@@ -340,7 +364,10 @@ export class PetService {
   async findByOwnerId(user_id: string): Promise<PetResponseDto[]> {
     try {
       const pets = await this.petRepository.findByOwnerId(user_id);
-      return pets.map((pet) => mapToResponseDto(pet));
+      // Filter only USER pets (claimed/owned)
+      return pets
+        .filter(p => !p.source || p.source === PetSource.USER)
+        .map((pet) => mapToResponseDto(pet));
     } catch (error) {
       throw new BadRequestException(
         'Failed to fetch pets by owner: ' + error.message,
@@ -503,4 +530,44 @@ export class PetService {
     throw new BadRequestException('Failed to fetch public pet info');
   }
 }
+  async claimPet(data: { userId: string, petId: string }): Promise<PetResponseDto> {
+    const { userId, petId } = data;
+    const pet = await this.petRepository.findById(petId);
+    if (!pet) throw new NotFoundException('Pet not found');
+
+    if (pet.owner.user_id !== userId) {
+      throw new RpcException({ status: 403, message: 'Not owner' });
+    }
+
+    if (pet.source === PetSource.USER && pet.isClaimed) {
+      throw new RpcException({ status: 400, message: 'Pet already claimed' });
+    }
+
+    // Check User VIP Status
+    const user = await lastValueFrom(
+      this.customerClient.send({ cmd: 'getUserById' }, { id: userId }),
+    );
+    if (!user) throw new RpcException('User not found');
+
+    if (!user.is_vip) {
+      // Check Quota
+      const userPets = await this.petRepository.findByOwnerId(userId);
+      const count = userPets.filter(p => !p.source || p.source === PetSource.USER).length;
+      if (count >= 3) {
+        throw new RpcException({
+          status: 400,
+          message: 'Quota exceeded. Upgrade to VIP to claim more pets.',
+        });
+      }
+    }
+
+    // Update
+    const updated = await this.petRepository.update(petId, {
+      source: PetSource.USER,
+      isClaimed: true,
+    } as any);
+
+    if (!updated) throw new BadRequestException('Failed to update pet claim status');
+    return mapToResponseDto(updated);
+  }
 }
