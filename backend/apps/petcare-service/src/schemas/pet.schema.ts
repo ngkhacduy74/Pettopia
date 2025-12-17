@@ -108,6 +108,8 @@ export class Pet {
 
   @Prop({ type: [String], default: [] })
   medical_records?: string[];
+  @Prop({ type: String })
+  qr_code_url?: string;
 }
 
 export type PetDocument = Pet & Document;

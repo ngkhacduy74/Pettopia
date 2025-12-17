@@ -211,4 +211,11 @@ export class PetController {
       ),
     );
   }
+  @Get('/:id/info')  // Public, không @UseGuards(JwtAuthGuard)
+@HttpCode(HttpStatus.OK)
+async getPetPublicInfo(@Param('id') pet_id: string) {
+  return await lastValueFrom(
+    this.petService.send({ cmd: 'getPetPublicInfo' }, { pet_id }),
+  );
+}
 }

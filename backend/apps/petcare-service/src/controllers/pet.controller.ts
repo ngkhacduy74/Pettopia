@@ -165,4 +165,17 @@ export class PetController {
       } as any;
     }
   }
+  @MessagePattern({ cmd: 'getPetPublicInfo' })
+async getPetPublicInfo(data: { pet_id: string }): Promise<any> {
+  try {
+    const pet = await this.petService.findById(data.pet_id);  // Không cần role/userId
+    // // Lấy medical records từ healthcare service
+    // const medicalRecords = await lastValueFrom(
+    //   this.healthcareClient.send({ cmd: 'getMedicalRecordsByPet' }, { pet_id: data.pet_id }),
+    // );
+    return { pet, message: 'Pet info fetched successfully' };
+  } catch (error) {
+    return { message: 'Failed to fetch pet info', error: error.message };
+  }
+}
 }

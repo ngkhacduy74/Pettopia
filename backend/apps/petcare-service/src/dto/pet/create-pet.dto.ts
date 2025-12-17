@@ -42,7 +42,8 @@ export class CreatePetDto {
   breed: string;
   @IsString()
   avatar_url: string ;
-
+  @IsString()
+  qr_code_url: string ;
   @IsOptional()
   medical_records?: string[];
 }

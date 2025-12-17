@@ -18,7 +18,7 @@ import { mapToResponseDto } from '../dto/response/pet.response';
 import { CreateIdentificationDto } from 'src/dto/pet/create-indentify.dto';
 import { generatePetId } from 'src/common/id_identify.common';
 import { IdentifyService } from './identification.service';
-
+import * as QRCode from 'qrcode';
 @Injectable()
 export class PetService {
   constructor(
@@ -67,7 +67,23 @@ export class PetService {
       // 5️⃣ Lưu Pet vào DB
       const pet = await this.petRepository.create(petData);
       if (!pet) throw new BadRequestException('Failed to create pet');
+      // Generate QR với URL public chi tiết pet
+      const publicUrl = `https://your-app.com/api/v1/pet/${pet.id}/info`;  // Thay domain thật
+      const qrBuffer = await QRCode.toBuffer(publicUrl, { 
+      errorCorrectionLevel: 'H',  // Độ bền cao
+      type: 'png',
+      margin: 1,
+      color: { dark: '#000', light: '#FFF' }  // Tùy chỉnh nếu cần
+    });
+      // Upload QR buffer lên Cloudinary (tương tự upload avatar)
+    const uploadResponse = await lastValueFrom(
+    this.authClient.send({ cmd: 'upload_image' }, { fileBuffer: qrBuffer.toString('base64') }),
+    );
+    const qrUrl = uploadResponse?.secure_url;
+    if (!qrUrl) throw new RpcException('Failed to upload QR code');
 
+    // Update pet với QR URL
+    await this.petRepository.update(pet.id, { qr_code_url: qrUrl });
       // 6️⃣ Tạo căn cước
       const identifyData = {
         pet_id: petData.id,
@@ -89,7 +105,7 @@ export class PetService {
       return {
         message: 'Tạo thú cưng thành công',
         statusCode: 201,
-        pet,
+        pet, qr_code_url: qrUrl, 
         identifies: createIdentifies,
       };
     } catch (error) {
