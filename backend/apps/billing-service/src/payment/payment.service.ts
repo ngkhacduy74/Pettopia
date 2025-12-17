@@ -39,7 +39,7 @@ export class PaymentService {
         'x-api-key': this.configService.getOrThrow<string>('PAYOS_API_KEY'),
       },
     };
-    const appUrl = this.configService.get<string>('APP_URL') || 'http://localhost:4001';
+    const appUrl = this.configService.get<string>('APP_URL') || 'https://pettopia-user.onrender.com';
     const dataForSignature = {
       orderCode,
       amount: body.amount,
