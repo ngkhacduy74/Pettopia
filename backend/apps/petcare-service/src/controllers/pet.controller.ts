@@ -165,4 +165,14 @@ export class PetController {
       } as any;
     }
   }
+  @MessagePattern({ cmd: 'claimPet' })
+  async claimPet(data: { userId: string; petId: string }): Promise<any> {
+    try {
+      this.logger.log(`Received claimPet for ${data.petId} by ${data.userId}`);
+      return await this.petService.claimPet(data);
+    } catch (error) {
+      this.logger.error('Error claiming pet:', error);
+      return { message: 'Failed to claim pet', error: error.message } as any;
+    }
+  }
 }

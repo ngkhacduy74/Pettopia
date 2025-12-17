@@ -79,6 +79,18 @@ export class Appointment {
   })
   pet_ids: string[];
 
+  // Checked-In Pet (Must be one of pet_ids, but strictly tracked here for Medical Record)
+  // @Prop({
+  //   type: String,
+  //   required: false,
+  //   trim: true,
+  //   match: [
+  //     /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+  //     'pet_id phải là UUIDv4 hợp lệ',
+  //   ],
+  // })
+  // pet_id?: string;
+
   // Phòng khám
   @Prop({
     type: String,
