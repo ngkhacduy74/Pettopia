@@ -56,6 +56,56 @@ export class AppService {
     }
   }
 
+  /**
+   * Lấy số ngày VIP còn lại cho user
+   */
+  async getVipRemainingDays(userId: string): Promise<{
+    is_vip: boolean;
+    vip_expires_at: Date | null;
+    remaining_days: number;
+  }> {
+    try {
+      const user = await this.userRepositories.findOneById(userId);
+
+      if (!user || !user.is_vip || !user.vip_expires_at) {
+        return {
+          is_vip: false,
+          vip_expires_at: null,
+          remaining_days: 0,
+        };
+      }
+
+      const now = new Date();
+      const expiresAt = new Date(user.vip_expires_at);
+
+      if (expiresAt.getTime() <= now.getTime()) {
+        return {
+          is_vip: false,
+          vip_expires_at: expiresAt,
+          remaining_days: 0,
+        };
+      }
+
+      const diffMs = expiresAt.getTime() - now.getTime();
+      const remainingDays = Math.max(
+        0,
+        Math.ceil(diffMs / (1000 * 60 * 60 * 24)),
+      );
+
+      return {
+        is_vip: true,
+        vip_expires_at: expiresAt,
+        remaining_days: remainingDays,
+      };
+    } catch (err) {
+      console.error('ERROR LOG getVipRemainingDays:', err);
+      throw new RpcException({
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        message: err.message || 'Lỗi khi lấy số ngày VIP còn lại',
+      });
+    }
+  }
+
   async getUserByUsername(username: string): Promise<User> {
     try {
       const user = await this.userRepositories.findOneByUsername(username);

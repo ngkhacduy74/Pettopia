@@ -28,11 +28,20 @@ export class PaymentWebhookGuard implements CanActivate {
 
   canActivate(context: ExecutionContext): boolean {
     try {
-      const req = context.switchToHttp().getRequest<Request>();
       const CHECKSUM_KEY =
         this.configService.getOrThrow<string>('PAYOS_CHECKSUM_KEY');
 
-      const body = req.body as unknown as PayosWebhookBodyPayload;
+      // Hỗ trợ cả HTTP webhook trực tiếp và RPC từ api-gateway
+      let body: PayosWebhookBodyPayload | undefined;
+
+      const contextType = context.getType();
+
+      if (contextType === 'http') {
+        const req = context.switchToHttp().getRequest<Request>();
+        body = req.body as unknown as PayosWebhookBodyPayload;
+      } else if (contextType === 'rpc') {
+        body = context.switchToRpc().getData() as PayosWebhookBodyPayload;
+      }
 
       
       if (!body || typeof body !== 'object') {
