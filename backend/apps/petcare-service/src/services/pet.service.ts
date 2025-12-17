@@ -19,6 +19,7 @@ import { CreateIdentificationDto } from 'src/dto/pet/create-indentify.dto';
 import { generatePetId } from 'src/common/id_identify.common';
 import { IdentifyService } from './identification.service';
 import * as QRCode from 'qrcode';
+import { ConfigService } from '@nestjs/config';
 @Injectable()
 export class PetService {
   constructor(
@@ -27,6 +28,7 @@ export class PetService {
     @Inject('CUSTOMER_SERVICE') private customerClient: ClientProxy,
     @Inject('AUTH_SERVICE') private readonly authClient: ClientProxy,
     @Inject('HEALTHCARE_SERVICE') private readonly healthcareClient: ClientProxy,
+    private readonly configService: ConfigService,
   ) { }
   async create(payload: CreatePetDto & { fileBuffer?: string }): Promise<PetResponseDto | any> {
     try {
@@ -68,14 +70,15 @@ export class PetService {
       const pet = await this.petRepository.create(petData);
       if (!pet) throw new BadRequestException('Failed to create pet');
       // Generate QR với URL public chi tiết pet
-      const publicUrl = `https://your-app.com/api/v1/pet/${pet.id}/info`;  // Thay domain thật
+      const domain = this.configService.get<string>('API_GATEWAY_PORT_OUT', 'http://localhost:3333');  
+      const publicUrl = `${domain}/api/v1/pet/${pet.id}/info`;  
       const qrBuffer = await QRCode.toBuffer(publicUrl, { 
       errorCorrectionLevel: 'H',  // Độ bền cao
       type: 'png',
       margin: 1,
-      color: { dark: '#000', light: '#FFF' }  // Tùy chỉnh nếu cần
+      color: { dark: '#000', light: '#FFF' } 
     });
-      // Upload QR buffer lên Cloudinary (tương tự upload avatar)
+      // Upload QR buffer lên Cloudinary 
     const uploadResponse = await lastValueFrom(
     this.authClient.send({ cmd: 'upload_image' }, { fileBuffer: qrBuffer.toString('base64') }),
     );
@@ -354,13 +357,13 @@ export class PetService {
     try {
       const { pet_id, userId, isAdminOrStaff } = payload;
 
-      // 1️⃣ Kiểm tra pet có tồn tại không
+      // Kiểm tra pet có tồn tại không
       const existingPet = await this.petRepository.findById(pet_id);
       if (!existingPet) {
         throw new NotFoundException(`Pet with ID ${pet_id} not found`);
       }
 
-      // 2️⃣ Verify ownership: User chỉ được xóa pet của chính mình
+      // Verify ownership: User chỉ được xóa pet của chính mình
       // Admin/Staff có thể xóa bất kỳ pet nào
       if (!isAdminOrStaff && userId) {
         if (existingPet.owner.user_id !== userId) {
@@ -371,7 +374,7 @@ export class PetService {
         }
       }
 
-      // 3️⃣ Xóa căn cước (Identification) tương ứng
+      // Xóa căn cước (Identification) tương ứng
       try {
         const deletedIdentify =
           await this.identifyService.deleteIdentificationByPetId(pet_id);
@@ -384,13 +387,13 @@ export class PetService {
         console.warn('⚠️ Failed to delete identification:', err.message);
       }
 
-      // 4️⃣ Xoá pet trong repository
+      //  Xoá pet trong repository
       const deletedPet = await this.petRepository.delete(pet_id);
       if (!deletedPet) {
         throw new RpcException('Failed to delete pet from repository');
       }
 
-      // 5️⃣ Trả kết quả
+      
       return { message: 'Đã xoá thú cưng và căn cước thành công!' };
     } catch (error) {
       if (error instanceof NotFoundException) throw error;
@@ -450,4 +453,54 @@ export class PetService {
       );
     }
   }
+  async getPublicPetInfo(pet_id: string): Promise<PetResponseDto> {
+  try {
+    const pet = await this.petRepository.findById(pet_id);
+    if (!pet) {
+      throw new NotFoundException(`Pet with ID ${pet_id} not found`);
+    }
+
+    const petResponse = mapToResponseDto(pet);
+
+    // Fetch medical records (public version)
+    try {
+      const medicalRecords = await lastValueFrom(
+        this.healthcareClient.send(
+          { cmd: 'getMedicalRecordsByPet' },
+          { petId: pet_id },
+          // Không gửi role → healthcare service nên trả version public
+        ),
+      );
+
+      if (medicalRecords && medicalRecords.data) {
+        // Luôn ẩn thông tin nhạy cảm cho public (clinic_id, vet_id)
+        petResponse.medical_records = medicalRecords.data.map((record: any) => {
+          if (record.medicalRecord) {
+            const { clinic_id, vet_id, ...rest } = record.medicalRecord;
+            return {
+              ...record,
+              medicalRecord: rest,
+            };
+          }
+          return record;
+        });
+      }
+    } catch (err) {
+      console.warn(`Failed to fetch medical records for public pet ${pet_id}:`, err.message);
+      petResponse.medical_records = [];
+    }
+
+    // Optional: Ẩn thông tin owner nhạy cảm (phone, email, address) cho public
+    petResponse.owner = {
+      user_id: pet.owner.user_id,
+      fullname: pet.owner.fullname,
+      // phone: undefined, email: undefined, address: undefined → nếu muốn ẩn
+    };
+
+    return petResponse;
+  } catch (error) {
+    if (error instanceof NotFoundException) throw error;
+    throw new BadRequestException('Failed to fetch public pet info');
+  }
+}
 }

@@ -14,5 +14,6 @@ export function mapToResponseDto(pet: Pet): PetResponseDto {
     owner: pet.owner,
     avatar_url: pet.avatar_url,
     medical_records: pet.medical_records,
+    qr_code_url: pet.qr_code_url,
   };
 }
