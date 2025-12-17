@@ -290,4 +290,17 @@ export class PetRepository {
       return this.petModel.countDocuments().exec();
     }
   }
+
+  async countByOwnerId(user_id: string): Promise<number> {
+    try {
+      const count = await this.petModel
+        .countDocuments({ 'owner.user_id': user_id })
+        .exec();
+      return count;
+    } catch (error) {
+      throw new InternalServerErrorException(
+        'Lỗi khi đếm số thú cưng theo owner_id: ' + error.message,
+      );
+    }
+  }
 }
