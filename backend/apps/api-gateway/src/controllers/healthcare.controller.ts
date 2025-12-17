@@ -11,6 +11,7 @@ import {
   Post,
   Query,
   UseGuards,
+  HttpException,
 } from '@nestjs/common';
 import { lastValueFrom } from 'rxjs';
 import { ClientProxy } from '@nestjs/microservices';
@@ -27,7 +28,7 @@ export class HealthcareController {
     private readonly healthcareService: ClientProxy,
     @Inject('PETCARE_SERVICE')
     private readonly petcareService: ClientProxy,
-  ) {}
+  ) { }
 
   @UseGuards(JwtAuthGuard)
   @Post('/appointment')
@@ -70,7 +71,7 @@ export class HealthcareController {
   }
 
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles(Role.USER, Role.ADMIN, Role.STAFF, Role.CLINIC)
+  @Roles(Role.USER, Role.ADMIN, Role.STAFF, Role.CLINIC, Role.VET)
   @Get('/appointments/:id')
   @HttpCode(HttpStatus.OK)
   async getAppointmentById(
@@ -434,12 +435,6 @@ export class HealthcareController {
       ),
     );
   }
-
-  // =========================================================
-  // CLINIC RATING
-  // =========================================================
-
-  // Người dùng sau khi khám xong sẽ gửi đánh giá cho lịch hẹn
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(Role.USER)
   @Post('/appointments/:id/rating')
@@ -449,16 +444,26 @@ export class HealthcareController {
     @UserToken('id') userId: string,
     @Body() body: any,
   ) {
-    return await lastValueFrom(
-      this.healthcareService.send(
-        { cmd: 'createAppointmentRating' },
+    try {
+      return await lastValueFrom(
+        this.healthcareService.send(
+          { cmd: 'createAppointmentRating' },
+          {
+            appointmentId,
+            userId,
+            ratingData: body,
+          },
+        ),
+      );
+    } catch (error) {
+      throw new HttpException(
         {
-          appointmentId,
-          userId,
-          ratingData: body,
+          status: error.status || HttpStatus.INTERNAL_SERVER_ERROR,
+          message: error.message || 'Lỗi khi tạo đánh giá phòng khám',
         },
-      ),
-    );
+        error.status || HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
   }
 
   @Get('/clinics/:id/rating')

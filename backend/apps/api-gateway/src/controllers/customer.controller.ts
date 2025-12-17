@@ -38,6 +38,15 @@ export class CustomerController {
     );
     return user;
   }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('/profile/vip-remaining-days')
+  @HttpCode(HttpStatus.OK)
+  async getVipRemainingDays(@UserToken('id') id: string) {
+    return await lastValueFrom(
+      this.customerService.send({ cmd: 'getVipRemainingDays' }, { id }),
+    );
+  }
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(Role.ADMIN, Role.STAFF, Role.CLINIC)
   @Get(':id')

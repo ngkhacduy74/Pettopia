@@ -185,7 +185,24 @@ export class PetService {
         );
 
         if (medicalRecords && medicalRecords.data) {
-          petResponse.medical_records = medicalRecords.data;
+          // Determine if user is allowed to see sensitive info (Owner, Vet, Admin, Staff, Clinic)
+          const roles = Array.isArray(role) ? role : (role ? [role] : []);
+          const allowedRoles = ['Admin', 'Staff', 'Vet', 'Clinic'];
+          const hasPrivilege = roles.some((r) => allowedRoles.includes(r));
+          const isOwner = userId && pet.owner.user_id === userId;
+
+          const shouldUnmask = hasPrivilege || isOwner;
+
+          petResponse.medical_records = medicalRecords.data.map((record: any) => {
+            if (!shouldUnmask && record.medicalRecord) {
+              const { clinic_id, vet_id, ...rest } = record.medicalRecord;
+              return {
+                ...record,
+                medicalRecord: rest,
+              };
+            }
+            return record;
+          });
         }
       } catch (err) {
         console.warn(`Failed to fetch medical records for pet ${pet_id}:`, err.message);
