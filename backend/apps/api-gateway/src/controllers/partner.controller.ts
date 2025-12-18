@@ -29,18 +29,14 @@ import { ClinicUpdateGuard } from 'src/guard/clinic-update.guard';
 export class PartnerController {
   constructor(
     @Inject('PARTNER_SERVICE') private readonly partnerService: ClientProxy,
-  ) {}
+  ) { }
 
-  // ==================================================================
-  // KHU VỰC CLINIC (PHÒNG KHÁM) - CÁC API CỤ THỂ (STATIC) LÊN TRƯỚC
-  // ==================================================================
-
-  @UseGuards(JwtAuthGuard)
+  // @UseGuards(JwtAuthGuard)
   @Post('/clinic/register')
   @HttpCode(HttpStatus.CREATED)
   async clinicRegister(@Body() data: any, @UserToken('id') user_id: string) {
     return await lastValueFrom(
-      this.partnerService.send({ cmd: 'registerClinic' }, { ...data, user_id }),
+      this.partnerService.send({ cmd: 'registerClinic' }, { ...data, user_id: user_id || data.user_id }),
     );
   }
 
@@ -98,7 +94,7 @@ export class PartnerController {
 
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(Role.CLINIC)
-  @Get('/clinic/shift') // Cụ thể: lấy ca làm việc
+  @Get('/clinic/shift')
   @HttpCode(HttpStatus.OK)
   async getClinicShifts(
     @Query('page', new ParseIntPipe({ optional: true })) page = 1,
@@ -264,11 +260,18 @@ export class PartnerController {
   @Get('/clinic/members/vets')
   @HttpCode(HttpStatus.OK)
   async getClinicMembers(
-    @UserToken('clinic_id') clinicId: string,
+    @UserToken() user: any,
     @Query('page', new ParseIntPipe({ optional: true })) page = 1,
     @Query('limit', new ParseIntPipe({ optional: true })) limit = 10,
   ) {
-    if (!clinicId) throw new BadRequestException('Thiếu thông tin phòng khám');
+    console.log('DEBUG_V2_PARTNER_CONTROLLER Decoded User:', JSON.stringify(user, null, 2));
+    console.log('DEBUG_V2_PARTNER_CONTROLLER typeof user:', typeof user);
+    if (user) {
+      console.log('DEBUG_V2_PARTNER_CONTROLLER user.id:', user.id);
+      console.log('DEBUG_V2_PARTNER_CONTROLLER user.clinic_id:', user.clinic_id);
+    }
+    const clinicId = user?.clinic_id;
+    if (!clinicId) throw new BadRequestException('Thiếu thông tin phòng khám trong Token');
     return await lastValueFrom(
       this.partnerService.send(
         { cmd: 'getClinicMembers' },

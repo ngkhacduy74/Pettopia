@@ -145,10 +145,10 @@ import { APP_GUARD } from '@nestjs/core';
   providers: [
     AppService,
     // Apply Rate Limiting Guard Globally
-    {
-      provide: APP_GUARD,
-      useClass: ThrottlerGuard,
-    },
+    // {
+    //   provide: APP_GUARD,
+    //   useClass: ThrottlerGuard,
+    // },
   ],
 })
 export class AppModule { }

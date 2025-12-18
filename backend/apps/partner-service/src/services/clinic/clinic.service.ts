@@ -292,9 +292,9 @@ export class ClinicService {
 
           try {
             const recipientEmail =
-              typeof clinicForm.representative.email === 'object'
-                ? clinicForm.representative.email.email_address
-                : clinicForm.representative.email;
+              typeof clinicForm.email === 'object'
+                ? clinicForm.email.email_address
+                : clinicForm.email;
 
             console.log('Sending welcome email to:', recipientEmail);
 
@@ -525,7 +525,7 @@ export class ClinicService {
       // Filter sensitive information for non-admin users và thêm rating
       const filteredData = data.map((clinic) => {
         const rating = ratingMap.get(clinic.id) || { average_stars: 0, total_ratings: 0 };
-        
+
         if (canViewAll) {
           // Return all data for admin/staff users + rating
           return {
@@ -948,66 +948,103 @@ export class ClinicService {
   }
 
   async getClinicMembers(clinic_id: string): Promise<any> {
-    const clinic = await this.clinicRepositories.getClinicById(clinic_id);
+    try {
+      console.log('getClinicMembers service called with clinic_id:', clinic_id);
+      const clinic = await this.clinicRepositories.getClinicById(clinic_id);
 
-    if (!clinic) {
+      if (!clinic) {
+        console.error(`Clinic not found for id: ${clinic_id}`);
+        throw createRpcError(
+          HttpStatus.NOT_FOUND,
+          'Phòng khám không tồn tại',
+          'Not Found',
+        );
+      }
+
+      if (!clinic.member_ids || !Array.isArray(clinic.member_ids)) {
+        console.warn('Clinic has no member_ids array', clinic);
+        return {
+          status: 'success',
+          message: 'Lấy danh sách thành viên phòng khám thành công (Chưa có thành viên)',
+          data: {
+            clinic_id: clinic.id,
+            clinic_name: clinic.clinic_name,
+            members: [],
+            total_members: 0,
+          },
+        };
+      }
+
+      // Lấy thông tin chi tiết của từng member bao gồm role
+      const memberDetails = await Promise.all(
+        clinic.member_ids.map(async (member_id) => {
+          try {
+            const vet = await this.vetRepositories.findVetById(member_id);
+            if (!vet) {
+              console.warn(`Vet not found for member_id: ${member_id}`);
+              return null;
+            }
+
+            // Tìm role của member trong clinic này
+            const memberRole = vet.clinic_roles?.find(
+              (cr: any) => cr.clinic_id === clinic_id,
+            );
+
+            // Lấy thông tin người dùng từ customer-service (email, phone, fullname, is_active)
+            let userInfo: any = null;
+            try {
+              const userResult = await lastValueFrom(
+                this.customerService.send(
+                  { cmd: 'getUserById' },
+                  { id: vet.id, role: ['Staff'] }, // request with elevated role to include is_active
+                ),
+              );
+              userInfo = userResult;
+            } catch (err) {
+              // Nếu lỗi, log và tiếp tục với thông tin vet cơ bản
+              console.warn('Không lấy được user info cho member', member_id, err?.message || err);
+            }
+
+            return {
+              member_id: vet.id,
+              role: memberRole?.role || 'unknown',
+              joined_at: memberRole?.joined_at || null,
+              specialty: vet.specialty,
+              exp: vet.exp,
+              fullname: userInfo?.fullname || null,
+              email: userInfo?.email?.email_address || null,
+              phone: userInfo?.phone?.phone_number || null,
+              is_active: typeof userInfo?.is_active === 'boolean' ? userInfo.is_active : null,
+            };
+          } catch (innerErr) {
+            console.error(`Error processing member ${member_id}:`, innerErr);
+            return null;
+          }
+        }),
+      );
+
+      return {
+        status: 'success',
+        message: 'Lấy danh sách thành viên phòng khám thành công',
+        data: {
+          clinic_id: clinic.id,
+          clinic_name: clinic.clinic_name,
+          members: memberDetails.filter((m) => m !== null),
+          total_members: clinic.member_ids?.length || 0,
+        },
+      };
+    } catch (error) {
+      if (error instanceof RpcException) {
+        throw error;
+      }
+      console.error('Error in getClinicMembers:', error);
       throw createRpcError(
-        HttpStatus.NOT_FOUND,
-        'Phòng khám không tồn tại',
-        'Not Found',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        'Đã xảy ra lỗi khi lấy danh sách thành viên phòng khám',
+        'Internal Server Error',
+        error.message,
       );
     }
-
-    // Lấy thông tin chi tiết của từng member bao gồm role
-    const memberDetails = await Promise.all(
-      clinic.member_ids.map(async (member_id) => {
-        const vet = await this.vetRepositories.findVetById(member_id);
-        if (!vet) return null;
-
-        // Tìm role của member trong clinic này
-        const memberRole = vet.clinic_roles?.find(
-          (cr: any) => cr.clinic_id === clinic_id,
-        );
-
-        // Lấy thông tin người dùng từ customer-service (email, phone, fullname, is_active)
-        let userInfo: any = null;
-        try {
-          const userResult = await lastValueFrom(
-            this.customerService.send(
-              { cmd: 'getUserById' },
-              { id: vet.id, role: ['Staff'] }, // request with elevated role to include is_active
-            ),
-          );
-          userInfo = userResult;
-        } catch (err) {
-          // Nếu lỗi, log và tiếp tục với thông tin vet cơ bản
-          console.warn('Không lấy được user info cho member', member_id, err?.message || err);
-        }
-
-        return {
-          member_id: vet.id,
-          role: memberRole?.role || 'unknown',
-          joined_at: memberRole?.joined_at || null,
-          specialty: vet.specialty,
-          exp: vet.exp,
-          fullname: userInfo?.fullname || null,
-          email: userInfo?.email?.email_address || null,
-          phone: userInfo?.phone?.phone_number || null,
-          is_active: typeof userInfo?.is_active === 'boolean' ? userInfo.is_active : null,
-        };
-      }),
-    );
-
-    return {
-      status: 'success',
-      message: 'Lấy danh sách thành viên phòng khám thành công',
-      data: {
-        clinic_id: clinic.id,
-        clinic_name: clinic.clinic_name,
-        members: memberDetails.filter((m) => m !== null),
-        total_members: clinic.member_ids?.length || 0,
-      },
-    };
   }
 
   async triggerToCheckActiveClinic(clinic_id: string): Promise<void> {

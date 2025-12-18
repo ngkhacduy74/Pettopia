@@ -3,7 +3,7 @@ import { Controller, Get, UsePipes, ValidationPipe } from '@nestjs/common';
 import { ClinicService } from '../../services/clinic/clinic.service';
 
 import { MessagePattern, Payload, RpcException, EventPattern } from '@nestjs/microservices';
-import { handleRpcError } from 'src/common/error.detail';
+import { handleRpcError, createRpcError } from 'src/common/error.detail';
 import { CreateClinicFormDto } from 'src/dto/clinic/clinic/create-clinic-form.dto';
 import { UpdateStatusClinicDto } from 'src/dto/clinic/clinic/update-status.dto';
 @UsePipes(
@@ -33,13 +33,19 @@ export class ClinicController {
     }
   }
 
-  @EventPattern({ cmd: 'registerClinic' })
-  async createClinicForm(CreateClinicFormData: any) {
+  @MessagePattern({ cmd: 'registerClinic' })
+  async createClinicForm(@Payload() CreateClinicFormData: any) {
     try {
       console.log('registerClinic123', CreateClinicFormData);
-      await this.clinicService.createClinicForm(CreateClinicFormData);
+      return await this.clinicService.createClinicForm(CreateClinicFormData);
     } catch (err) {
-      handleRpcError('ClinicController.createClinicForm', err);
+      console.error('🔥🔥🔥 LỖI THỰC SỰ TẠI SERVICE:', err);
+      throw createRpcError(
+        err.status || err.statusCode || 500,
+        err.message || 'Lỗi khi đăng ký phòng khám',
+        'ClinicRegisterError',
+        err
+      );
     }
   }
 
@@ -53,12 +59,12 @@ export class ClinicController {
     }
   }
 
-  @EventPattern({ cmd: 'updateStatusClinicForm' })
+  @MessagePattern({ cmd: 'updateStatusClinicForm' })
   async updateStatusClinicForm(
     @Payload() updateStatus: UpdateStatusClinicDto,
   ) {
     try {
-      await this.clinicService.updateStatusClincForm(updateStatus);
+      return await this.clinicService.updateStatusClincForm(updateStatus);
     } catch (err) {
       handleRpcError('ClinicController.updateStatusClinicForm', err);
     }
@@ -136,12 +142,12 @@ export class ClinicController {
     }
   }
 
-  @EventPattern({ cmd: 'updateClinicForm' })
+  @MessagePattern({ cmd: 'updateClinicForm' })
   async updateClinicForm(@Payload() data: any) {
     try {
       const { id, dto } = data;
       console.log('updateClinicForm data:', data);
-      await this.clinicService.updateClinicForm(id, dto);
+      return await this.clinicService.updateClinicForm(id, dto);
     } catch (err) {
       handleRpcError('ClinicController.updateClinicForm', err);
     }

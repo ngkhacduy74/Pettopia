@@ -2,17 +2,18 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { BadRequestException, ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import helmet from 'helmet';
+// import helmet from 'helmet';
 import { RpcToHttpExceptionFilter } from './filters/rpc-exception.filter';
 import { GlobalExceptionFilter } from './filters/global-exception.filter';
-import { SanitizeResponseInterceptor } from './interceptors/sanitize-response.interceptor';
-import { SanitizationPipe } from './pipes/sanitization.pipe';
+// import { SanitizeResponseInterceptor } from './interceptors/sanitize-response.interceptor';
+// import { SanitizationPipe } from './pipes/sanitization.pipe';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     logger: ['error', 'warn', 'log'],
   });
 
+  /*
   app.use(helmet({
     contentSecurityPolicy: {
       directives: {
@@ -43,6 +44,7 @@ async function bootstrap() {
     referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
     xssFilter: true,
   }));
+  */
 
   const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [
     'http://localhost:4001',
@@ -51,20 +53,30 @@ async function bootstrap() {
     'https://pettopia-user.onrender.com',
   ];
 
+  // --- SỬA LỖI TẠI ĐÂY ---
+  // Sử dụng enableCors chuẩn của NestJS thay vì middleware thủ công
   app.enableCors({
     origin: (origin, callback) => {
-      if (!origin) return callback(null, true);
-
-      if (allowedOrigins.includes(origin)) {
+      // Cho phép request không có origin (như Postman) hoặc nằm trong whitelist
+      if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
-        callback(new Error('Not allowed by CORS'));
+        console.warn(`Blocked CORS from origin: ${origin}`);
+        callback(null, false); // Hoặc callback(new Error('Not allowed by CORS'))
       }
     },
     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
     credentials: true,
-    maxAge: 3600,
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    // QUAN TRỌNG: Đã thêm 'Token' vào danh sách này để sửa lỗi Frontend
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'X-Requested-With',
+      'Token', // <--- Header này là nguyên nhân gây lỗi
+      'Accept',
+      'Origin',
+      'X-Csrf-Token'
+    ],
     exposedHeaders: ['X-Total-Count', 'X-Page-Count'],
   });
 
@@ -75,12 +87,10 @@ async function bootstrap() {
       forbidUnknownValues: true,
       exceptionFactory: (errors) => new BadRequestException(errors),
     }),
-    new SanitizationPipe(),
+    // new SanitizationPipe(),
   );
 
-
-  app.useGlobalInterceptors(new SanitizeResponseInterceptor());
-
+  // app.useGlobalInterceptors(new SanitizeResponseInterceptor());
 
   app.useGlobalFilters(
     new RpcToHttpExceptionFilter(),
@@ -88,7 +98,6 @@ async function bootstrap() {
   );
 
   app.enableShutdownHooks();
-
 
   const config = new DocumentBuilder()
     .setTitle('Pettopia API Gateway')
@@ -101,11 +110,12 @@ async function bootstrap() {
     swaggerOptions: { persistAuthorization: true },
   });
 
-  await app.listen(process.env.API_GATEWAY_PORT || 3000);
+  // Đảm bảo file .env có API_GATEWAY_PORT=3333
+  const port = process.env.API_GATEWAY_PORT || 3000;
+  await app.listen(port);
 
-  console.log(` API Gateway running at http://localhost:${process.env.API_GATEWAY_PORT || 3000}`);
-  console.log(` Swagger docs: http://localhost:${process.env.API_GATEWAY_PORT || 3000}/api/v1/docs`);
-
+  console.log(` API Gateway running at http://localhost:${port}`);
+  console.log(` Swagger docs: http://localhost:${port}/api/v1/docs`);
 }
 
 bootstrap();

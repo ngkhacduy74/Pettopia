@@ -28,12 +28,14 @@ export class AuthService {
   ) { }
 
   async login(data: LoginDto): Promise<any> {
-    console.log('data customer service', data);
+    console.log('data customer service LOGIN ATTEMPT start:', data);
     try {
       const identifier = data.username;
       const isEmail =
         typeof identifier === 'string' &&
         /^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$/.test(identifier);
+
+      console.log('Sending request to Customer Service:', isEmail ? 'getUserByEmailForAuth' : 'getUserByUsername', identifier);
 
       const exist_user = await lastValueFrom(
         this.customerClient.send(
@@ -45,15 +47,17 @@ export class AuthService {
       ).catch((error) => {
         console.error(
           `Error from customerClient[${isEmail ? 'getUserByEmailForAuth' : 'getUserByUsername'}]:`,
-          error.message,
+          error,
         );
         throw createRpcError(
           HttpStatus.NOT_FOUND,
-          'Tài khoản không tồn tại',
+          'Tài khoản không tồn tại (Service Error)',
           'Not Found',
           error.message,
         );
       });
+
+      console.log('User found from Customer Service:', exist_user ? 'YES' : 'NO');
 
       if (!exist_user) {
         throw createRpcError(
@@ -72,7 +76,7 @@ export class AuthService {
       }
 
       const isMatch = await bcrypt.compare(data.password, exist_user.password);
-      console.log('isMatch123132', isMatch);
+      console.log('Password match result:', isMatch);
       if (!isMatch) {
         throw createRpcError(
           HttpStatus.UNAUTHORIZED,
@@ -83,8 +87,10 @@ export class AuthService {
 
       const { password, ...result } = exist_user;
       const token = this.jwtService.sign(result);
+      console.log('Login successful, returning token.');
       return { status: 'success', token };
     } catch (error) {
+      console.error('LOGIN ERROR DETAILED:', error);
       if (error instanceof RpcException) {
         throw error;
       }
@@ -93,7 +99,7 @@ export class AuthService {
         HttpStatus.INTERNAL_SERVER_ERROR,
         'Đã xảy ra lỗi khi đăng nhập',
         'Internal Server Error',
-        error.message,
+        error.message || error,
       );
     }
   }

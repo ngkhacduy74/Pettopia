@@ -71,6 +71,10 @@ export class CreateUserDto {
   @IsOptional()
   avatar_url?: string;
 
+  @IsString()
+  @IsOptional()
+  clinic_id?: string;
+
   @ValidateNested()
   @Type(() => EmailDto)
   email: EmailDto;

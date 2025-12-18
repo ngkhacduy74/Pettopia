@@ -56,4 +56,8 @@ export class UpdateUserDto {
     @IsEmail()
     @IsOptional()
     email_address?: string;
+
+    @IsString()
+    @IsOptional()
+    clinic_id?: string;
 }
