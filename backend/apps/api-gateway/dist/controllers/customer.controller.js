@@ -29,6 +29,9 @@ let CustomerController = class CustomerController {
         const user = await (0, rxjs_1.lastValueFrom)(this.customerService.send({ cmd: 'getUserById' }, { id }));
         return user;
     }
+    async getVipRemainingDays(id) {
+        return await (0, rxjs_1.lastValueFrom)(this.customerService.send({ cmd: 'getVipRemainingDays' }, { id }));
+    }
     async getUserById(idUser, roles) {
         try {
             const roleArray = Array.isArray(roles) ? roles : [roles];
@@ -156,6 +159,15 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", Promise)
 ], CustomerController.prototype, "getUserProfile", null);
+__decorate([
+    (0, common_1.UseGuards)(jwtAuth_guard_1.JwtAuthGuard),
+    (0, common_1.Get)('/profile/vip-remaining-days'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    __param(0, (0, user_decorator_1.UserToken)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], CustomerController.prototype, "getVipRemainingDays", null);
 __decorate([
     (0, common_1.UseGuards)(jwtAuth_guard_1.JwtAuthGuard, role_guard_1.RoleGuard),
     (0, roles_decorator_1.Roles)(roles_decorator_1.Role.ADMIN, roles_decorator_1.Role.STAFF, roles_decorator_1.Role.CLINIC),
