@@ -123,18 +123,18 @@ async findByUserId(user_id: string): Promise<PostResponseDto[]> {
   
    return posts.map(mapToResponseDto)
 }
- async update(
+  async update(
   payload: {
     post_id: string;
     updateData: UpdatePostDto;
-    files?: string[]; // <-- Thêm lại để nhận base64 từ controller
+    // BỎ files?: string[] vì không cần nữa
     userId?: string;
     role?: string | string[];
     isAdminOrStaff?: boolean;
   },
 ): Promise<any> {
   try {
-    const { post_id, updateData, files, userId, isAdminOrStaff } = payload;
+    const { post_id, updateData, userId, isAdminOrStaff } = payload;
 
     const post = await this.postRepository.findById(post_id);
     if (!post) throw new NotFoundException(`Post with ID ${post_id} not found`);
@@ -146,31 +146,12 @@ async findByUserId(user_id: string): Promise<PostResponseDto[]> {
         message: 'Bạn không có quyền cập nhật bài viết này',
       });
     }
+    // Frontend đã upload ảnh riêng và gửi danh sách URL đầy đủ
+    const finalImages = Array.isArray(updateData.images)
+      ? updateData.images
+      : post.images || [];
 
-    // === XỬ LÝ ẢNH MỚI (nếu có file upload) ===
-    let finalImages = post.images || [];
-
-    if (files && files.length > 0) {
-      const uploadPromises = files.map(async (base64String) => {
-        const buffer = Buffer.from(base64String, 'base64');
-        const uploadResponse = await lastValueFrom(
-          this.authClient.send(
-            { cmd: 'upload_image' },
-            { fileBuffer: buffer },
-          ),
-        );
-        if (!uploadResponse?.secure_url)
-          throw new RpcException('Failed to upload image to Cloudinary');
-        return uploadResponse.secure_url;
-      });
-      const newImageUrls = await Promise.all(uploadPromises);
-      finalImages = newImageUrls; // Thay thế hoàn toàn ảnh cũ bằng ảnh mới (hoặc có thể concat nếu muốn giữ ảnh cũ)
-      // Nếu muốn giữ ảnh cũ + thêm ảnh mới: finalImages = [...post.images, ...newImageUrls]
-    } else if (updateData.images && Array.isArray(updateData.images)) {
-      // Trường hợp frontend gửi URL (ít dùng hơn)
-      finalImages = updateData.images;
-    }
-
+    // Validation tổng số ảnh (tùy chọn)
     const MAX_IMAGES = 3;
     if (finalImages.length > MAX_IMAGES) {
       throw new BadRequestException(`Tối đa ${MAX_IMAGES} ảnh mỗi bài viết`);
