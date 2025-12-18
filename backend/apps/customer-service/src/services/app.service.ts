@@ -191,7 +191,7 @@ export class AppService {
 
   async createUser(user: CreateUserDto): Promise<User> {
     try {
-      const salt = await bcrypt.genSalt(10);
+      const salt = await bcrypt.genSalt(12);
       const hashPass = await bcrypt.hash(user.password, salt);
       const new_user = { ...user, password: hashPass };
 
@@ -424,7 +424,7 @@ export class AppService {
       }
       throw new RpcException({
         status: HttpStatus.INTERNAL_SERVER_ERROR,
-        message: err.message || 'Lỗi khi cập nhật mật khẩu',
+        message: err.message || 'Lỗi khi cập nhật mật khẩu 1',
       });
     }
   }

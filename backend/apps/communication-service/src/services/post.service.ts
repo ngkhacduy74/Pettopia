@@ -123,71 +123,60 @@ async findByUserId(user_id: string): Promise<PostResponseDto[]> {
   
    return posts.map(mapToResponseDto)
 }
-  /**
-   * UPDATE
-   */
   async update(
-    payload: {
-      post_id: string;
-      updateData: UpdatePostDto;
-      files?: string[];
-      userId?: string;
-      role?: string | string[];
-      isAdminOrStaff?: boolean;
-    },
-  ): Promise<any> {
-    try {
-      const { post_id, updateData, files, userId, isAdminOrStaff } = payload;
+  payload: {
+    post_id: string;
+    updateData: UpdatePostDto;
+    // BỎ files?: string[] vì không cần nữa
+    userId?: string;
+    role?: string | string[];
+    isAdminOrStaff?: boolean;
+  },
+): Promise<any> {
+  try {
+    const { post_id, updateData, userId, isAdminOrStaff } = payload;
 
-      const post = await this.postRepository.findById(post_id);
-      if (!post) throw new NotFoundException(`Post with ID ${post_id} not found`);
+    const post = await this.postRepository.findById(post_id);
+    if (!post) throw new NotFoundException(`Post with ID ${post_id} not found`);
 
-      // Verify ownership: User chỉ được update post của chính mình
-      // Admin/Staff có thể update bất kỳ post nào
-      if (!isAdminOrStaff && userId) {
-        const authorId =
-          (post.author as any)?.user_id || (post.author as any)?.id;
-        if (authorId !== userId) {
-          throw new RpcException({
-            status: 403,
-            message: 'Bạn không có quyền cập nhật bài viết này',
-          });
-        }
-      }
-
-      // Upload ảnh mới
-      let newImages: string[] = [];
-      if (files && files.length > 0) {
-        const uploadPromises = files.map(async (base64) => {
-          const buffer = Buffer.from(base64, 'base64');
-          const res = await lastValueFrom(
-            this.authClient.send(
-              { cmd: 'upload_image' },
-              { fileBuffer: buffer },
-            ),
-          );
-          if (!res?.secure_url) throw new RpcException('Upload failed');
-          return res.secure_url;
-        });
-        newImages = await Promise.all(uploadPromises);
-      }
-
-      const updatedPost = await this.postRepository.update(post_id, {
-        ...updateData,
-        images: [...(post.images || []), ...newImages],
+    // Kiểm tra quyền
+    if (!isAdminOrStaff && userId && post.author.user_id !== userId) {
+      throw new RpcException({
+        status: 403,
+        message: 'Bạn không có quyền cập nhật bài viết này',
       });
-
-      return {
-        message: 'Cập nhật bài viết thành công!',
-        statusCode: 200,
-        post: mapToResponseDto(updatedPost), // DÙNG HÀM CỦA BẠN
-      };
-    } catch (error) {
-      console.error('Error updating post:', error);
-      if (error instanceof RpcException) throw error;
-      throw new BadRequestException('Failed to update post: ' + error.message);
     }
+    // Frontend đã upload ảnh riêng và gửi danh sách URL đầy đủ
+    const finalImages = Array.isArray(updateData.images)
+      ? updateData.images
+      : post.images || [];
+
+    // Validation tổng số ảnh (tùy chọn)
+    const MAX_IMAGES = 3;
+    if (finalImages.length > MAX_IMAGES) {
+      throw new BadRequestException(`Tối đa ${MAX_IMAGES} ảnh mỗi bài viết`);
+    }
+
+    const updatePayload: Partial<Post> = {
+      title: updateData.title ?? post.title,
+      content: updateData.content ?? post.content,
+      tags: updateData.tags ?? post.tags,
+      images: finalImages,
+    };
+
+    const updatedPost = await this.postRepository.update(post_id, updatePayload);
+
+    return {
+      message: 'Cập nhật bài viết thành công!',
+      statusCode: 200,
+      post: mapToResponseDto(updatedPost),
+    };
+  } catch (error) {
+    console.error('Error updating post:', error);
+    if (error instanceof RpcException) throw error;
+    throw new BadRequestException('Failed to update post: ' + error.message);
   }
+}
 
   /**
    * DELETE

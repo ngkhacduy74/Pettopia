@@ -41,7 +41,9 @@ export class CreatePetDto {
   @IsNotEmpty({ message: 'Breed is required' })
   breed: string;
   @IsString()
-  avatar_url: string;
+  avatar_url: string ;
+  @IsString()
+  qr_code_url: string ;
 
   @IsOptional()
   @IsEnum(PetSource)

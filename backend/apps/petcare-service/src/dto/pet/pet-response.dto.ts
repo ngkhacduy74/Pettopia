@@ -12,4 +12,5 @@ export class PetResponseDto {
   owner: object;
   avatar_url: string;
   medical_records?: any[];
+  qr_code_url?: string;
 }

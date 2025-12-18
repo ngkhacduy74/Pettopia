@@ -84,6 +84,9 @@ let PetController = class PetController {
         const isAdminOrStaff = roles.includes(roles_decorator_1.Role.ADMIN) || roles.includes(roles_decorator_1.Role.STAFF);
         return await (0, rxjs_1.lastValueFrom)(this.petService.send({ cmd: 'deletePet' }, { pet_id, userId: currentUserId, role: roles, isAdminOrStaff }));
     }
+    async getPetPublicInfo(pet_id) {
+        return await (0, rxjs_1.lastValueFrom)(this.petService.send({ cmd: 'getPetPublicInfo' }, { pet_id }));
+    }
 };
 exports.PetController = PetController;
 __decorate([
@@ -207,6 +210,14 @@ __decorate([
     __metadata("design:paramtypes", [String, String, Object]),
     __metadata("design:returntype", Promise)
 ], PetController.prototype, "deletePet", null);
+__decorate([
+    (0, common_1.Get)('/:id/info'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], PetController.prototype, "getPetPublicInfo", null);
 exports.PetController = PetController = __decorate([
     (0, common_1.Controller)('api/v1/pet'),
     __param(0, (0, common_1.Inject)('PETCARE_SERVICE')),

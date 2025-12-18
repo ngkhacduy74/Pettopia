@@ -9,6 +9,7 @@ import {
   Param,
   Post,
   Query,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 import { lastValueFrom } from 'rxjs';
@@ -23,12 +24,17 @@ export class AuthController {
   constructor(
     @Inject('AUTH_SERVICE') private readonly authService: ClientProxy,
     @Inject('CUSTOMER_SERVICE') private readonly customerService: ClientProxy,
-  ) {}
+  ) { }
 
   @Get('/test')
   @HttpCode(HttpStatus.OK)
-  async test(@Param('id') id: string) {
-    return lastValueFrom(this.customerService.send({ cmd: 'test' }, {}));
+  async test(@Param('id') id: string, @Req() request: any) {
+    const csrfToken = request.cookies['XSRF-TOKEN'];
+    return {
+      message: 'Test endpoint - CSRF token generated',
+      csrf_token: csrfToken,
+      note: 'Use this token in X-CSRF-Token header for POST/PUT/DELETE requests'
+    };
   }
 
   @Post('login')

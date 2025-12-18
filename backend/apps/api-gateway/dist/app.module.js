@@ -20,6 +20,8 @@ const ai_controller_1 = require("./controllers/ai.controller");
 const communication_controller_1 = require("./controllers/communication.controller");
 const healthcare_controller_1 = require("./controllers/healthcare.controller");
 const payment_controller_1 = require("./controllers/payment.controller");
+const throttler_1 = require("@nestjs/throttler");
+const core_1 = require("@nestjs/core");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -29,6 +31,23 @@ exports.AppModule = AppModule = __decorate([
             config_1.ConfigModule.forRoot({
                 isGlobal: true,
             }),
+            throttler_1.ThrottlerModule.forRoot([
+                {
+                    name: 'short',
+                    ttl: 1000,
+                    limit: 10,
+                },
+                {
+                    name: 'medium',
+                    ttl: 60000,
+                    limit: 100,
+                },
+                {
+                    name: 'long',
+                    ttl: 3600000,
+                    limit: 1000,
+                },
+            ]),
             microservices_1.ClientsModule.registerAsync([
                 {
                     name: 'AUTH_SERVICE',
@@ -134,7 +153,13 @@ exports.AppModule = AppModule = __decorate([
             communication_controller_1.CommunicationController,
             healthcare_controller_1.HealthcareController,
         ],
-        providers: [app_service_1.AppService],
+        providers: [
+            app_service_1.AppService,
+            {
+                provide: core_1.APP_GUARD,
+                useClass: throttler_1.ThrottlerGuard,
+            },
+        ],
     })
 ], AppModule);
 //# sourceMappingURL=app.module.js.map

@@ -209,6 +209,15 @@ export class AppController {
       handleRpcError('AppController.updateUserPassword', err);
     }
   }
+  @MessagePattern({ cmd: 'updateUserPasswordById' })
+async updateUserPasswordById(data: { id: string; newPassword: string }) {
+  try {
+    return await this.appService.updatePasswordById(data.id, data.newPassword);
+  } catch (error) {
+    handleRpcError('AppController.updateUserPassword', error)
+    
+  }
+}
 
   @MessagePattern({ cmd: 'updateUser' })
   async updateUser(
