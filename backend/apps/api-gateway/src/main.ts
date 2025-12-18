@@ -13,23 +13,12 @@ async function bootstrap() {
     logger: ['error', 'warn', 'log'],
   });
 
+  // Security headers with Helmet (CSP disabled to allow external images)
   app.use(helmet({
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        styleSrc: ["'self'", "'unsafe-inline'"],
-        scriptSrc: ["'self'"],
-        imgSrc: ["'self'", "data:", "https:"],
-        connectSrc: ["'self'"],
-        fontSrc: ["'self'"],
-        objectSrc: ["'none'"],
-        mediaSrc: ["'self'"],
-        frameSrc: ["'none'"],
-      },
-    },
-    crossOriginEmbedderPolicy: true,
-    crossOriginOpenerPolicy: true,
-    crossOriginResourcePolicy: { policy: "cross-origin" },
+    contentSecurityPolicy: false, // Disabled - causes issues with external resources
+    crossOriginEmbedderPolicy: false,
+    crossOriginOpenerPolicy: false,
+    crossOriginResourcePolicy: false,
     dnsPrefetchControl: true,
     frameguard: { action: 'deny' },
     hidePoweredBy: true,
@@ -40,7 +29,7 @@ async function bootstrap() {
     },
     ieNoOpen: true,
     noSniff: true,
-    referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+    referrerPolicy: { policy: 'no-referrer' },
     xssFilter: true,
   }));
 
@@ -64,7 +53,16 @@ async function bootstrap() {
     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
     credentials: true,
     maxAge: 3600,
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'X-Requested-With',
+      'token',
+      'Accept',
+      'Origin',
+      'Access-Control-Request-Method',
+      'Access-Control-Request-Headers'
+    ],
     exposedHeaders: ['X-Total-Count', 'X-Page-Count'],
   });
 
@@ -75,11 +73,11 @@ async function bootstrap() {
       forbidUnknownValues: true,
       exceptionFactory: (errors) => new BadRequestException(errors),
     }),
-    new SanitizationPipe(),
+    new SanitizationPipe(), // Fixed: now whitelists URLs
   );
 
 
-  app.useGlobalInterceptors(new SanitizeResponseInterceptor());
+  app.useGlobalInterceptors(new SanitizeResponseInterceptor()); // Fixed: now whitelists URLs
 
 
   app.useGlobalFilters(
