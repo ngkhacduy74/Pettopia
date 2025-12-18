@@ -38,24 +38,6 @@ export class PetService {
       );
       if (!user) throw new RpcException('User not found');
 
-      // Kiểm tra VIP status của user
-      const vipStatus = await lastValueFrom(
-        this.customerClient.send(
-          { cmd: 'getVipRemainingDays' },
-          { id: payload.user_id },
-        ),
-      );
-
-      // Nếu không phải VIP, kiểm tra số lượng pet
-      if (!vipStatus || !vipStatus.is_vip) {
-        const currentPetCount = await this.petRepository.countByOwnerId(payload.user_id);
-        if (currentPetCount >= 3) {
-          throw new BadRequestException(
-            'Tài khoản thường chỉ được tạo tối đa 3 thú cưng. Vui lòng nâng cấp VIP để tạo không giới hạn.',
-          );
-        }
-      }
-
       // Upload ảnh (nếu có)
       let imageUrl = payload.avatar_url;
       if (payload.fileBuffer) {
