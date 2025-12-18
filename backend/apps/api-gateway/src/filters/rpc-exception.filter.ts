@@ -3,70 +3,70 @@ import {
   ArgumentsHost,
   HttpStatus,
   ExceptionFilter,
+  Logger,
 } from '@nestjs/common';
 import { RpcException } from '@nestjs/microservices';
 
 @Catch(RpcException)
-export class RpcToHttpExceptionFilter implements ExceptionFilter { 
+export class RpcToHttpExceptionFilter implements ExceptionFilter {
+  private readonly logger = new Logger('RpcExceptionFilter');
+
   catch(exception: RpcException, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse();
     const request = ctx.getRequest();
 
-    // Lấy thông tin lỗi từ RPC exception
     const error = exception.getError();
     let statusCode = HttpStatus.INTERNAL_SERVER_ERROR;
     let message = 'Internal server error';
-    let errorDetails: any | null = null;
-
-    console.log('RPC Error:', error); // Log the raw error for debugging
+    let details: any = null;
 
     try {
-      if (error && typeof error === 'object') {
-        // Type assertion để tránh lỗi TypeScript
-        const errorObj = error as any;
-        const nestedError = errorObj.error || errorObj;
-        
-        // Lấy status code từ error object
-        statusCode = nestedError.statusCode || nestedError.status || statusCode;
-        
-        // Lấy message từ error object
-        message = nestedError.message || message;
-        
-        // Tạo bản sao của error để tránh thay đổi object gốc
-        errorDetails = { ...errorObj };
-        
-        // Loại bỏ các trường đã có ở ngoài
-        const fieldsToRemove = ['statusCode', 'status', 'message', 'error'];
-        fieldsToRemove.forEach(field => {
-          if (field in errorDetails) {
-            delete errorDetails[field];
-          }
-        });
-        
-        // Nếu errorDetails rỗng sau khi xóa các trường không cần thiết
-        if (Object.keys(errorDetails).length === 0) {
-          errorDetails = null;
+      if (typeof error === 'object' && error !== null) {
+        const err = error as any;
+
+        // Priority 1: Direct properties
+        statusCode = err.statusCode || err.status || err.code || HttpStatus.INTERNAL_SERVER_ERROR;
+        message = err.message || err.error || err.msg || message;
+
+        // Extract details if present
+        if (err.details || err.data || err.errorDetails) {
+          details = err.details || err.data || err.errorDetails;
+        }
+
+        // Priority 2: Nested error object
+        if (err.error && typeof err.error === 'object') {
+          const nestedError = err.error;
+          statusCode = nestedError.statusCode || nestedError.status || statusCode;
+          message = nestedError.message || message;
         }
       } else if (typeof error === 'string') {
-        // Nếu error là chuỗi
         try {
-          // Thử parse nếu là JSON string
-          const parsedError = JSON.parse(error);
-          statusCode = parsedError.statusCode || statusCode;
-          message = parsedError.message || message;
-          errorDetails = parsedError.error || null;
-        } catch (e) {
-          // Nếu không phải JSON, sử dụng làm message
+          const parsed = JSON.parse(error);
+          statusCode = parsed.statusCode || parsed.status || HttpStatus.INTERNAL_SERVER_ERROR;
+          message = parsed.message || error;
+          details = parsed.details || parsed.error || parsed.data;
+        } catch {
           message = error;
         }
+      } else if (typeof error === 'number') {
+        statusCode = error;
       }
     } catch (err) {
-      console.error('Error processing RPC exception:', err);
-      // Giữ nguyên giá trị mặc định nếu có lỗi khi xử lý
+      this.logger.error('Error processing RPC exception:', err);
     }
 
-    // Tạo response object
+    // Ensure statusCode is valid HTTP status
+    if (statusCode < 100 || statusCode > 599) {
+      statusCode = HttpStatus.INTERNAL_SERVER_ERROR;
+    }
+
+    // Log error (without sensitive data)
+    this.logger.error(
+      `[RPC Error] ${request.method} ${request.url} - ${statusCode}: ${message}`,
+    );
+
+    // Clean response
     const responseBody: any = {
       statusCode,
       message,
@@ -74,12 +74,10 @@ export class RpcToHttpExceptionFilter implements ExceptionFilter {
       path: request.url,
     };
 
-    // Thêm errorDetails nếu có
-    if (errorDetails) {
-      responseBody.error = errorDetails;
+    if (details) {
+      responseBody.details = details;
     }
 
-    // Trả về response với status code tương ứng
     return response.status(statusCode).json(responseBody);
   }
 }

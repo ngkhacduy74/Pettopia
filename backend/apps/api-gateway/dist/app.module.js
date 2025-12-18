@@ -20,6 +20,8 @@ const ai_controller_1 = require("./controllers/ai.controller");
 const communication_controller_1 = require("./controllers/communication.controller");
 const healthcare_controller_1 = require("./controllers/healthcare.controller");
 const payment_controller_1 = require("./controllers/payment.controller");
+const throttler_1 = require("@nestjs/throttler");
+const core_1 = require("@nestjs/core");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -29,21 +31,33 @@ exports.AppModule = AppModule = __decorate([
             config_1.ConfigModule.forRoot({
                 isGlobal: true,
             }),
+            throttler_1.ThrottlerModule.forRoot([
+                {
+                    name: 'short',
+                    ttl: 1000,
+                    limit: 10,
+                },
+                {
+                    name: 'medium',
+                    ttl: 60000,
+                    limit: 100,
+                },
+                {
+                    name: 'long',
+                    ttl: 3600000,
+                    limit: 1000,
+                },
+            ]),
             microservices_1.ClientsModule.registerAsync([
                 {
                     name: 'AUTH_SERVICE',
                     imports: [config_1.ConfigModule],
                     inject: [config_1.ConfigService],
                     useFactory: (configService) => ({
-                        transport: microservices_1.Transport.RMQ,
+                        transport: microservices_1.Transport.TCP,
                         options: {
-                            urls: [
-                                configService.get('RMQ_URL', 'amqp://guest:guest@rabbitmq:5672'),
-                            ],
-                            queue: 'auth_service_queue',
-                            queueOptions: {
-                                durable: true,
-                            },
+                            host: configService.get('AUTH_HOST') || 'auth-service',
+                            port: configService.get('TCP_AUTH_PORT') || 5001,
                         },
                     }),
                 },
@@ -52,15 +66,10 @@ exports.AppModule = AppModule = __decorate([
                     imports: [config_1.ConfigModule],
                     inject: [config_1.ConfigService],
                     useFactory: (configService) => ({
-                        transport: microservices_1.Transport.RMQ,
+                        transport: microservices_1.Transport.TCP,
                         options: {
-                            urls: [
-                                configService.get('RMQ_URL', 'amqp://guest:guest@rabbitmq:5672'),
-                            ],
-                            queue: 'customer_service_queue',
-                            queueOptions: {
-                                durable: true,
-                            },
+                            host: configService.get('CUSTOMER_HOST') || 'customer-service',
+                            port: configService.get('TCP_CUSTOMER_PORT') || 5002,
                         },
                     }),
                 },
@@ -69,15 +78,10 @@ exports.AppModule = AppModule = __decorate([
                     imports: [config_1.ConfigModule],
                     inject: [config_1.ConfigService],
                     useFactory: (configService) => ({
-                        transport: microservices_1.Transport.RMQ,
+                        transport: microservices_1.Transport.TCP,
                         options: {
-                            urls: [
-                                configService.get('RMQ_URL', 'amqp://guest:guest@rabbitmq:5672'),
-                            ],
-                            queue: 'petcare_service_queue',
-                            queueOptions: {
-                                durable: true,
-                            },
+                            host: configService.get('PETCARE_HOST') || 'petcare-service',
+                            port: configService.get('TCP_PETCARE_PORT') || 5003,
                         },
                     }),
                 },
@@ -86,15 +90,10 @@ exports.AppModule = AppModule = __decorate([
                     imports: [config_1.ConfigModule],
                     inject: [config_1.ConfigService],
                     useFactory: (configService) => ({
-                        transport: microservices_1.Transport.RMQ,
+                        transport: microservices_1.Transport.TCP,
                         options: {
-                            urls: [
-                                configService.get('RMQ_URL', 'amqp://guest:guest@rabbitmq:5672'),
-                            ],
-                            queue: 'partner_service_queue',
-                            queueOptions: {
-                                durable: true,
-                            },
+                            host: configService.get('PARTNER_HOST') || 'partner-service',
+                            port: configService.get('TCP_PARTNER_PORT') || 5004,
                         },
                     }),
                 },
@@ -103,15 +102,10 @@ exports.AppModule = AppModule = __decorate([
                     imports: [config_1.ConfigModule],
                     inject: [config_1.ConfigService],
                     useFactory: (configService) => ({
-                        transport: microservices_1.Transport.RMQ,
+                        transport: microservices_1.Transport.TCP,
                         options: {
-                            urls: [
-                                configService.get('RMQ_URL', 'amqp://guest:guest@rabbitmq:5672'),
-                            ],
-                            queue: 'healthcare_service_queue',
-                            queueOptions: {
-                                durable: true,
-                            },
+                            host: configService.get('HEALTHCARE_HOST') || 'healthcare-service',
+                            port: configService.get('TCP_HEALTHCARE_PORT') || 5005,
                         },
                     }),
                 },
@@ -120,15 +114,10 @@ exports.AppModule = AppModule = __decorate([
                     imports: [config_1.ConfigModule],
                     inject: [config_1.ConfigService],
                     useFactory: (configService) => ({
-                        transport: microservices_1.Transport.RMQ,
+                        transport: microservices_1.Transport.TCP,
                         options: {
-                            urls: [
-                                configService.get('RMQ_URL', 'amqp://guest:guest@rabbitmq:5672'),
-                            ],
-                            queue: 'communication_service_queue',
-                            queueOptions: {
-                                durable: true,
-                            },
+                            host: configService.get('COMMUNICATION_HOST') || 'communication-service',
+                            port: configService.get('TCP_COMMUNICATION_PORT') || 5006,
                         },
                     }),
                 },
@@ -137,15 +126,10 @@ exports.AppModule = AppModule = __decorate([
                     imports: [config_1.ConfigModule],
                     inject: [config_1.ConfigService],
                     useFactory: (configService) => ({
-                        transport: microservices_1.Transport.RMQ,
+                        transport: microservices_1.Transport.TCP,
                         options: {
-                            urls: [
-                                configService.get('RMQ_URL', 'amqp://guest:guest@rabbitmq:5672'),
-                            ],
-                            queue: 'billing_service_queue',
-                            queueOptions: {
-                                durable: true,
-                            },
+                            host: configService.get('BILLING_HOST') || 'billing-service',
+                            port: configService.get('TCP_BILLING_PORT') || 5007,
                         },
                     }),
                 },
@@ -169,7 +153,13 @@ exports.AppModule = AppModule = __decorate([
             communication_controller_1.CommunicationController,
             healthcare_controller_1.HealthcareController,
         ],
-        providers: [app_service_1.AppService],
+        providers: [
+            app_service_1.AppService,
+            {
+                provide: core_1.APP_GUARD,
+                useClass: throttler_1.ThrottlerGuard,
+            },
+        ],
     })
 ], AppModule);
 //# sourceMappingURL=app.module.js.map
