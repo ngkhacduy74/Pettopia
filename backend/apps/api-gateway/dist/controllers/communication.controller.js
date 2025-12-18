@@ -140,15 +140,6 @@ __decorate([
     (0, common_1.Patch)('/:id'),
     (0, common_1.UseGuards)(jwtAuth_guard_1.JwtAuthGuard, role_guard_1.RoleGuard),
     (0, roles_decorator_1.Roles)(roles_decorator_1.Role.USER, roles_decorator_1.Role.ADMIN, roles_decorator_1.Role.STAFF),
-    (0, common_1.UseInterceptors)((0, platform_express_1.FilesInterceptor)('images', 5, {
-        limits: { fileSize: 5 * 1024 * 1024 },
-        fileFilter: (req, file, cb) => {
-            if (!file.mimetype.match(/image\/(jpg|jpeg|png|gif)$/)) {
-                return cb(new Error('Only image files are allowed!'), false);
-            }
-            cb(null, true);
-        },
-    })),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
     __param(0, (0, common_1.UploadedFiles)()),
     __param(1, (0, common_1.Param)('id')),

@@ -63,18 +63,14 @@ let HealthcareController = class HealthcareController {
         }
     }
     async updateAppointmentStatus(appointmentId, updatedByUserId, updateData) {
-        this.healthcareService.emit({ cmd: 'updateAppointmentStatus' }, {
+        return await (0, rxjs_1.lastValueFrom)(this.healthcareService.send({ cmd: 'updateAppointmentStatus' }, {
             appointmentId,
             updateData,
             updatedByUserId,
-        });
-        return {
-            statusCode: common_1.HttpStatus.ACCEPTED,
-            message: 'Yêu cầu cập nhật trạng thái lịch hẹn đang được xử lý.',
-        };
+        }));
     }
     async cancelAppointment(appointmentId, cancelledByUserId, role, clinicId, cancelData = {}) {
-        this.healthcareService.emit({ cmd: 'cancelAppointment' }, {
+        return await (0, rxjs_1.lastValueFrom)(this.healthcareService.send({ cmd: 'cancelAppointment' }, {
             appointmentId,
             cancelledByUserId,
             role,
@@ -82,21 +78,13 @@ let HealthcareController = class HealthcareController {
             cancelData: {
                 cancel_reason: cancelData?.cancel_reason,
             },
-        });
-        return {
-            statusCode: common_1.HttpStatus.ACCEPTED,
-            message: 'Yêu cầu hủy lịch hẹn đang được xử lý.',
-        };
+        }));
     }
     async createAppointmentForCustomer(data, partnerId) {
-        this.healthcareService.emit({ cmd: 'createAppointmentForCustomer' }, {
+        return await (0, rxjs_1.lastValueFrom)(this.healthcareService.send({ cmd: 'createAppointmentForCustomer' }, {
             data,
             partner_id: partnerId,
-        });
-        return {
-            statusCode: common_1.HttpStatus.ACCEPTED,
-            message: 'Yêu cầu tạo lịch hẹn hộ khách hàng đang được xử lý.',
-        };
+        }));
     }
     async createPetForCustomer(data, staffId) {
         const ownerId = data.customer_id || data.owner_id;

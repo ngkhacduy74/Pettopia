@@ -165,6 +165,10 @@ export class PetController {
       } as any;
     }
   }
+  @MessagePattern({ cmd: 'getPetPublicInfo' })
+async getPetPublicInfo(@Payload() data: { pet_id: string }) {
+  return await this.petService.getPublicPetInfo(data.pet_id);
+}
   @MessagePattern({ cmd: 'claimPet' })
   async claimPet(data: { userId: string; petId: string }): Promise<any> {
     try {
