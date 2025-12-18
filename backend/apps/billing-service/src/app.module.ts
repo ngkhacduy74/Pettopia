@@ -7,6 +7,7 @@ import { PaymentModule } from './payment/payment.module';
 import { SgStableDiffusionModule } from './AI_img/sg-stable-diffusion/sg-stable-diffusion.module';
 import { StableDifusionIntegrationModule } from './AI_img/stable-difusion-integration/stable-difusion-integration.module';
 import { GeminiModule } from './AI_req_res/gemini/gemini.module';
+// ĐÃ XÓA: import { GeminiService } from ... (Không cần thiết ở đây)
 
 @Module({
   imports: [
@@ -23,9 +24,9 @@ import { GeminiModule } from './AI_req_res/gemini/gemini.module';
     PaymentModule,
     SgStableDiffusionModule,
     StableDifusionIntegrationModule,
-    GeminiModule,
+    GeminiModule, // GeminiService đã nằm trong này rồi
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService], // ĐÃ SỬA: Chỉ giữ lại AppService
 })
-export class AppModule {}
+export class AppModule { }

@@ -119,6 +119,8 @@ import { APP_GUARD } from '@nestjs/core';
           options: {
             host: configService.get<string>('BILLING_HOST') || 'billing-service',
             port: configService.get<number>('TCP_BILLING_PORT') || 5007,
+
+            timeout: 60000,
           },
         }),
       },
