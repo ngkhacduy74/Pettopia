@@ -55,6 +55,23 @@ export class VetRepository {
     }
   }
 
+  async findPendingVetFormByUserId(user_id: string): Promise<any | null> {
+    try {
+      return await this.vetFormModel
+        .findOne({
+          user_id,
+          status: RegisterStatus.PENDING,
+        })
+        .exec();
+    } catch (err) {
+      console.error(
+        'Lỗi khi tìm form pending theo user_id:',
+        err.message,
+      );
+      throw new InternalServerErrorException('Không thể kiểm tra trạng thái đăng ký.');
+    }
+  }
+
   async findOneVetByFormId(formId: string): Promise<VetDocument | null> {
     try {
       const vet = await this.vetModel.findOne({ vet_form_id: formId }).exec();
