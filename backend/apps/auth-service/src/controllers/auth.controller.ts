@@ -6,8 +6,8 @@ import { RegisterDto } from '../dtos/register.dto';
 import { OtpService } from 'src/services/otp.service';
 import { SendEmailOtpDto } from 'src/dtos/send-mail.dto';
 import { handleRpcError } from 'src/common/error.detail';
-import { ForgotPasswordDto } from '../dtos/forgot-password.dto';
-import { ResetPasswordDto } from '../dtos/reset-password.dto';
+import { ForgotPasswordDto } from '../dtos/forgot-password.dto'; 
+import { ResetPasswordDto } from '../dtos/reset-password.dto'; 
 import { ChangePasswordDto } from '../dtos/change-password.dto';
 
 @Controller()
@@ -15,18 +15,18 @@ export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly otpService: OtpService,
-  ) { }
+  ) {}
 
   @MessagePattern({ cmd: 'login' })
   login(data: LoginDto) {
     return this.authService.login(data);
   }
-
+  
   @MessagePattern({ cmd: 'register' })
   register(data: RegisterDto) {
     return this.authService.register(data);
   }
-
+  
   @EventPattern({ cmd: 'send-otp-email' })
   async sendOtpMail(@Payload() data: SendEmailOtpDto) {
     try {

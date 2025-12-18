@@ -32,9 +32,6 @@ let PaymentController = class PaymentController {
     async handleWebhook(data) {
         return await (0, rxjs_1.lastValueFrom)(this.paymentService.send({ cmd: 'handleWebhook' }, data));
     }
-    async checkPaymentStatus(orderCode) {
-        return await (0, rxjs_1.lastValueFrom)(this.paymentService.send({ cmd: 'checkPaymentStatus' }, { orderCode }));
-    }
 };
 exports.PaymentController = PaymentController;
 __decorate([
@@ -62,15 +59,6 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], PaymentController.prototype, "handleWebhook", null);
-__decorate([
-    (0, common_1.UseGuards)(jwtAuth_guard_1.JwtAuthGuard),
-    (0, common_1.Get)(':orderCode/status'),
-    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
-    __param(0, (0, common_1.Param)('orderCode', common_1.ParseIntPipe)),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Number]),
-    __metadata("design:returntype", Promise)
-], PaymentController.prototype, "checkPaymentStatus", null);
 exports.PaymentController = PaymentController = __decorate([
     (0, common_1.Controller)('api/v1/payments'),
     __param(0, (0, common_1.Inject)('BILLING_SERVICE')),

@@ -112,16 +112,18 @@ export class HealthcareController {
     @UserToken('id') updatedByUserId: string,
     @Body() updateData: { status: string; cancel_reason?: string },
   ) {
-    return await lastValueFrom(
-      this.healthcareService.send(
-        { cmd: 'updateAppointmentStatus' },
-        {
-          appointmentId,
-          updateData,
-          updatedByUserId,
-        },
-      ),
+    this.healthcareService.emit(
+      { cmd: 'updateAppointmentStatus' },
+      {
+        appointmentId,
+        updateData,
+        updatedByUserId,
+      },
     );
+    return {
+      statusCode: HttpStatus.ACCEPTED,
+      message: 'Yêu cầu cập nhật trạng thái lịch hẹn đang được xử lý.',
+    };
   }
 
   @UseGuards(JwtAuthGuard, RoleGuard)
@@ -135,20 +137,22 @@ export class HealthcareController {
     @UserToken('clinic_id') clinicId: string,
     @Body() cancelData: { cancel_reason?: string } = {},
   ) {
-    return await lastValueFrom(
-      this.healthcareService.send(
-        { cmd: 'cancelAppointment' },
-        {
-          appointmentId,
-          cancelledByUserId,
-          role,
-          clinicId,
-          cancelData: {
-            cancel_reason: cancelData?.cancel_reason,
-          },
+    this.healthcareService.emit(
+      { cmd: 'cancelAppointment' },
+      {
+        appointmentId,
+        cancelledByUserId,
+        role,
+        clinicId,
+        cancelData: {
+          cancel_reason: cancelData?.cancel_reason,
         },
-      ),
+      },
     );
+    return {
+      statusCode: HttpStatus.ACCEPTED,
+      message: 'Yêu cầu hủy lịch hẹn đang được xử lý.',
+    };
   }
 
   @UseGuards(JwtAuthGuard, RoleGuard)
@@ -159,15 +163,17 @@ export class HealthcareController {
     @Body() data: any,
     @UserToken('id') partnerId: string,
   ) {
-    return await lastValueFrom(
-      this.healthcareService.send(
-        { cmd: 'createAppointmentForCustomer' },
-        {
-          data,
-          partner_id: partnerId,
-        },
-      ),
+    this.healthcareService.emit(
+      { cmd: 'createAppointmentForCustomer' },
+      {
+        data,
+        partner_id: partnerId,
+      },
     );
+    return {
+      statusCode: HttpStatus.ACCEPTED,
+      message: 'Yêu cầu tạo lịch hẹn hộ khách hàng đang được xử lý.',
+    };
   }
 
   @UseGuards(JwtAuthGuard, RoleGuard)

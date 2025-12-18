@@ -321,8 +321,8 @@ export class AuthService {
         );
       }
 
-      // Hash password mới với salt rounds = 12 (bảo mật cao hơn)
-      const salt = await bcrypt.genSalt(12);
+      // Hash password mới
+      const salt = await bcrypt.genSalt(10);
       const hashPass = await bcrypt.hash(data.newPassword, salt);
 
       const updateResult = await lastValueFrom(
@@ -358,7 +358,7 @@ export class AuthService {
         'thành lỗi Khi reset password hoặc sai OTP',
         'Internal Server Error',
         error.message,
-      );
+      );  
     }
   }
   async changePassword(data: ChangePasswordDto & { userId: string }) {
@@ -384,7 +384,7 @@ export class AuthService {
         );
       }
 
-      const salt = await bcrypt.genSalt(12);
+      const salt = await bcrypt.genSalt(10);
       const hashPass = await bcrypt.hash(data.newPassword, salt);
 
       await lastValueFrom(

@@ -1,37 +1,36 @@
-
+# --- Builder image ---
 FROM node:20-slim AS builder
-WORKDIR /app
+WORKDIR /usr/src/app
 
-
+# Copy & install dependencies
 COPY package*.json ./
 
+# Install full deps (dev + prod)
+RUN npm ci --legacy-peer-deps --prefer-offline
 
-RUN npm ci --legacy-peer-deps
-
-
+# Copy toàn bộ source và build
 COPY . .
-
 RUN npm run build
 
+# Remove devDependencies để tạo node_modules production-only
+RUN npm prune --production
 
 
-FROM node:20-slim AS deps
-WORKDIR /app
-
-COPY package*.json ./
-RUN npm ci --omit=dev --legacy-peer-deps
-
-
+# --- Runner image ---
 FROM node:20-slim AS runner
-WORKDIR /app
+WORKDIR /usr/src/app
 
 ENV NODE_ENV=production
 
-COPY --from=builder /app/dist ./dist
+# Copy built files + production node_modules
+COPY --from=builder /usr/src/app/dist ./dist
+COPY --from=builder /usr/src/app/node_modules ./node_modules
 
-COPY --from=deps /app/node_modules ./node_modules
-COPY package.json ./
+# Copy package.json (lockfile không cần trong runner)
+COPY --from=builder /usr/src/app/package.json ./
+
 
 USER node
+
 EXPOSE 3000
 CMD ["node", "dist/main.js"]

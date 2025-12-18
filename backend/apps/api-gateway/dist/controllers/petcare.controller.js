@@ -26,12 +26,9 @@ let PetController = class PetController {
     constructor(petService) {
         this.petService = petService;
     }
-    async createPet(file, data, userId) {
+    async createPet(file, data, user_id) {
         const fileBufferString = file ? file.buffer.toString('base64') : undefined;
-        return await (0, rxjs_1.lastValueFrom)(this.petService.send({ cmd: 'createPet' }, { ...data, user_id: userId, fileBuffer: fileBufferString }));
-    }
-    async claimPet(pet_id, userId) {
-        return await (0, rxjs_1.lastValueFrom)(this.petService.send({ cmd: 'claimPet' }, { petId: pet_id, userId }));
+        return await (0, rxjs_1.lastValueFrom)(this.petService.send({ cmd: 'createPet' }, { ...data, user_id, fileBuffer: fileBufferString }));
     }
     async getAllPets(userId, userRole, page = 1, limit = 15, search, species, gender, sort_field, sort_order) {
         const roles = Array.isArray(userRole) ? userRole : [userRole];
@@ -50,13 +47,11 @@ let PetController = class PetController {
     async getPetCount() {
         return await (0, rxjs_1.lastValueFrom)(this.petService.send({ cmd: 'getPetCount' }, {}));
     }
-    async getMyPets(currentUserId) {
-        return await (0, rxjs_1.lastValueFrom)(this.petService.send({ cmd: 'getPetsByOwner' }, { user_id: currentUserId }));
+    async getPetById(pet_id) {
+        return await (0, rxjs_1.lastValueFrom)(this.petService.send({ cmd: 'getPetById' }, { pet_id }));
     }
-    async getPetById(pet_id, user) {
-        const role = user?.role;
-        const userId = user?.id;
-        return await (0, rxjs_1.lastValueFrom)(this.petService.send({ cmd: 'getPetById' }, { pet_id, role, userId }));
+    async getMyPets(user_id) {
+        return await (0, rxjs_1.lastValueFrom)(this.petService.send({ cmd: 'getPetsByOwner' }, { user_id }));
     }
     async getPetsByOwner(user_id, currentUserId, userRole) {
         const roles = Array.isArray(userRole) ? userRole : [userRole];
@@ -84,16 +79,13 @@ let PetController = class PetController {
         const isAdminOrStaff = roles.includes(roles_decorator_1.Role.ADMIN) || roles.includes(roles_decorator_1.Role.STAFF);
         return await (0, rxjs_1.lastValueFrom)(this.petService.send({ cmd: 'deletePet' }, { pet_id, userId: currentUserId, role: roles, isAdminOrStaff }));
     }
-    async getPetPublicInfo(pet_id) {
-        return await (0, rxjs_1.lastValueFrom)(this.petService.send({ cmd: 'getPetPublicInfo' }, { pet_id }));
-    }
 };
 exports.PetController = PetController;
 __decorate([
-    (0, common_1.Post)('/create'),
     (0, common_1.UseGuards)(jwtAuth_guard_1.JwtAuthGuard),
+    (0, common_1.Post)('/create'),
     (0, common_1.UseInterceptors)((0, platform_express_1.FileInterceptor)('avatar', {
-        limits: { fileSize: 5 * 1024 * 1024 },
+        limits: { fileSize: 1 * 1024 * 1024 },
         fileFilter: (req, file, cb) => {
             if (!file.mimetype.match(/image\/(jpg|jpeg|png|gif)$/)) {
                 return cb(new Error('Only image files are allowed!'), false);
@@ -110,16 +102,8 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], PetController.prototype, "createPet", null);
 __decorate([
-    (0, common_1.Post)('/claim'),
-    (0, common_1.UseGuards)(jwtAuth_guard_1.JwtAuthGuard),
-    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
-    __param(0, (0, common_1.Body)('pet_id')),
-    __param(1, (0, user_decorator_1.UserToken)('id')),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, String]),
-    __metadata("design:returntype", Promise)
-], PetController.prototype, "claimPet", null);
-__decorate([
+    (0, common_1.UseGuards)(jwtAuth_guard_1.JwtAuthGuard, role_guard_1.RoleGuard),
+    (0, roles_decorator_1.Roles)(roles_decorator_1.Role.ADMIN, roles_decorator_1.Role.STAFF),
     (0, common_1.Get)('/all'),
     (0, common_1.UseGuards)(jwtAuth_guard_1.JwtAuthGuard),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
@@ -146,23 +130,21 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], PetController.prototype, "getPetCount", null);
 __decorate([
-    (0, common_1.Get)('/me'),
     (0, common_1.UseGuards)(jwtAuth_guard_1.JwtAuthGuard),
-    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, common_1.Get)('/:id'),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], PetController.prototype, "getPetById", null);
+__decorate([
+    (0, common_1.UseGuards)(jwtAuth_guard_1.JwtAuthGuard),
+    (0, common_1.Get)('/my'),
     __param(0, (0, user_decorator_1.UserToken)('id')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", Promise)
 ], PetController.prototype, "getMyPets", null);
-__decorate([
-    (0, common_1.Get)('/:id'),
-    (0, common_1.UseGuards)(jwtAuth_guard_1.JwtAuthGuard),
-    __param(0, (0, common_1.Param)('id')),
-    __param(1, (0, user_decorator_1.UserToken)()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, Object]),
-    __metadata("design:returntype", Promise)
-], PetController.prototype, "getPetById", null);
 __decorate([
     (0, common_1.Get)('/owner/:user_id'),
     (0, common_1.UseGuards)(jwtAuth_guard_1.JwtAuthGuard, role_guard_1.RoleGuard),
@@ -176,11 +158,12 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], PetController.prototype, "getPetsByOwner", null);
 __decorate([
+    (0, common_1.UseGuards)(jwtAuth_guard_1.JwtAuthGuard),
     (0, common_1.Patch)('/:id'),
     (0, common_1.UseGuards)(jwtAuth_guard_1.JwtAuthGuard, role_guard_1.RoleGuard),
     (0, roles_decorator_1.Roles)(roles_decorator_1.Role.USER, roles_decorator_1.Role.ADMIN, roles_decorator_1.Role.STAFF),
     (0, common_1.UseInterceptors)((0, platform_express_1.FileInterceptor)('avatar', {
-        limits: { fileSize: 5 * 1024 * 1024 },
+        limits: { fileSize: 1 * 1024 * 1024 },
         fileFilter: (req, file, cb) => {
             if (!file.mimetype.match(/image\/(jpg|jpeg|png|gif)$/)) {
                 return cb(new Error('Only image files are allowed!'), false);
@@ -199,6 +182,7 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], PetController.prototype, "updatePet", null);
 __decorate([
+    (0, common_1.UseGuards)(jwtAuth_guard_1.JwtAuthGuard),
     (0, common_1.Delete)('/:id'),
     (0, common_1.UseGuards)(jwtAuth_guard_1.JwtAuthGuard, role_guard_1.RoleGuard),
     (0, roles_decorator_1.Roles)(roles_decorator_1.Role.USER, roles_decorator_1.Role.ADMIN, roles_decorator_1.Role.STAFF),
@@ -210,14 +194,6 @@ __decorate([
     __metadata("design:paramtypes", [String, String, Object]),
     __metadata("design:returntype", Promise)
 ], PetController.prototype, "deletePet", null);
-__decorate([
-    (0, common_1.Get)('/:id/info'),
-    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
-    __param(0, (0, common_1.Param)('id')),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
-    __metadata("design:returntype", Promise)
-], PetController.prototype, "getPetPublicInfo", null);
 exports.PetController = PetController = __decorate([
     (0, common_1.Controller)('api/v1/pet'),
     __param(0, (0, common_1.Inject)('PETCARE_SERVICE')),

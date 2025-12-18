@@ -1,29 +1,38 @@
+# -------- BUILD STAGE --------
 FROM node:20-slim AS builder
 WORKDIR /usr/src/app
 
+# Copy package files trước để cache dependency layer
 COPY package*.json ./
 
+# Install full dependencies (dev + prod)
 RUN npm ci --legacy-peer-deps
 
+# Copy toàn bộ source code vào
 COPY . .
 
+# Build NestJS → dist
 RUN npm run build
 
+# Remove devDependencies → giữ lại prod dependencies
 RUN npm prune --production
 
 
 
+# -------- RUN STAGE --------
 FROM node:20-slim AS runner
 WORKDIR /usr/src/app
 
 ENV NODE_ENV=production
 ENV PORT=3005
 
+# Copy built dist + production node_modules
 COPY --from=builder /usr/src/app/dist ./dist
 COPY --from=builder /usr/src/app/node_modules ./node_modules
 COPY --from=builder /usr/src/app/package*.json ./
 
 
+# Create non-root user for security
 RUN useradd -m appuser
 USER appuser
 

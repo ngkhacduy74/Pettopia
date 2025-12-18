@@ -27,13 +27,8 @@ let AuthController = class AuthController {
         this.authService = authService;
         this.customerService = customerService;
     }
-    async test(id, request) {
-        const csrfToken = request.cookies['XSRF-TOKEN'];
-        return {
-            message: 'Test endpoint - CSRF token generated',
-            csrf_token: csrfToken,
-            note: 'Use this token in X-CSRF-Token header for POST/PUT/DELETE requests'
-        };
+    async test(id) {
+        return (0, rxjs_1.lastValueFrom)(this.customerService.send({ cmd: 'test' }, {}));
     }
     async login(data) {
         console.log(data);
@@ -91,9 +86,8 @@ __decorate([
     (0, common_1.Get)('/test'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
     __param(0, (0, common_1.Param)('id')),
-    __param(1, (0, common_1.Req)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "test", null);
 __decorate([

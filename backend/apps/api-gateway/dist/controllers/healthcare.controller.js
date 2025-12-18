@@ -29,10 +29,14 @@ let HealthcareController = class HealthcareController {
         this.petcareService = petcareService;
     }
     async createAppointment(data, userId) {
-        return await (0, rxjs_1.lastValueFrom)(this.healthcareService.send({ cmd: 'createAppointment' }, {
+        this.healthcareService.emit({ cmd: 'createAppointment' }, {
             data,
             user_id: userId,
-        }));
+        });
+        return {
+            statusCode: common_1.HttpStatus.ACCEPTED,
+            message: 'Yêu cầu tạo lịch hẹn đang được xử lý.',
+        };
     }
     async getAppointments(userId, role, clinicId, page = 1, limit = 10) {
         return await (0, rxjs_1.lastValueFrom)(this.healthcareService.send({ cmd: 'getAppointments' }, {
@@ -63,14 +67,18 @@ let HealthcareController = class HealthcareController {
         }
     }
     async updateAppointmentStatus(appointmentId, updatedByUserId, updateData) {
-        return await (0, rxjs_1.lastValueFrom)(this.healthcareService.send({ cmd: 'updateAppointmentStatus' }, {
+        this.healthcareService.emit({ cmd: 'updateAppointmentStatus' }, {
             appointmentId,
             updateData,
             updatedByUserId,
-        }));
+        });
+        return {
+            statusCode: common_1.HttpStatus.ACCEPTED,
+            message: 'Yêu cầu cập nhật trạng thái lịch hẹn đang được xử lý.',
+        };
     }
     async cancelAppointment(appointmentId, cancelledByUserId, role, clinicId, cancelData = {}) {
-        return await (0, rxjs_1.lastValueFrom)(this.healthcareService.send({ cmd: 'cancelAppointment' }, {
+        this.healthcareService.emit({ cmd: 'cancelAppointment' }, {
             appointmentId,
             cancelledByUserId,
             role,
@@ -78,13 +86,21 @@ let HealthcareController = class HealthcareController {
             cancelData: {
                 cancel_reason: cancelData?.cancel_reason,
             },
-        }));
+        });
+        return {
+            statusCode: common_1.HttpStatus.ACCEPTED,
+            message: 'Yêu cầu hủy lịch hẹn đang được xử lý.',
+        };
     }
     async createAppointmentForCustomer(data, partnerId) {
-        return await (0, rxjs_1.lastValueFrom)(this.healthcareService.send({ cmd: 'createAppointmentForCustomer' }, {
+        this.healthcareService.emit({ cmd: 'createAppointmentForCustomer' }, {
             data,
             partner_id: partnerId,
-        }));
+        });
+        return {
+            statusCode: common_1.HttpStatus.ACCEPTED,
+            message: 'Yêu cầu tạo lịch hẹn hộ khách hàng đang được xử lý.',
+        };
     }
     async createPetForCustomer(data, staffId) {
         const ownerId = data.customer_id || data.owner_id;
@@ -155,7 +171,7 @@ let HealthcareController = class HealthcareController {
         if (!result || !Array.isArray(result.data)) {
             return result;
         }
-        if ((role === roles_decorator_1.Role.CLINIC || role === roles_decorator_1.Role.STAFF) &&
+        if ((role === roles_decorator_1.Role.CLINIC || role === roles_decorator_1.Role.STAFF || role === roles_decorator_1.Role.VET) &&
             clinicId) {
             result.data = result.data.filter((item) => {
                 const recordClinicId = item?.medicalRecord?.clinic_id;
@@ -175,30 +191,6 @@ let HealthcareController = class HealthcareController {
             });
         }
         return result;
-    }
-    async getMedicalRecordByAppointment(appointmentId, userId, role) {
-        return await (0, rxjs_1.lastValueFrom)(this.healthcareService.send({ cmd: 'getMedicalRecordByAppointment' }, { appointmentId, userId, role }));
-    }
-    async updateMedicalRecord(appointmentId, userId, role, updateData) {
-        return await (0, rxjs_1.lastValueFrom)(this.healthcareService.send({ cmd: 'updateMedicalRecord' }, { appointmentId, userId, role, updateData }));
-    }
-    async createAppointmentRating(appointmentId, userId, body) {
-        try {
-            return await (0, rxjs_1.lastValueFrom)(this.healthcareService.send({ cmd: 'createAppointmentRating' }, {
-                appointmentId,
-                userId,
-                ratingData: body,
-            }));
-        }
-        catch (error) {
-            throw new common_1.HttpException({
-                status: error.status || common_1.HttpStatus.INTERNAL_SERVER_ERROR,
-                message: error.message || 'Lỗi khi tạo đánh giá phòng khám',
-            }, error.status || common_1.HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
-    async getClinicRatingSummary(clinicId) {
-        return await (0, rxjs_1.lastValueFrom)(this.healthcareService.send({ cmd: 'getClinicRatingSummary' }, { clinicId }));
     }
 };
 exports.HealthcareController = HealthcareController;
@@ -228,7 +220,7 @@ __decorate([
 ], HealthcareController.prototype, "getAppointments", null);
 __decorate([
     (0, common_1.UseGuards)(jwtAuth_guard_1.JwtAuthGuard, role_guard_1.RoleGuard),
-    (0, roles_decorator_1.Roles)(roles_decorator_1.Role.USER, roles_decorator_1.Role.ADMIN, roles_decorator_1.Role.STAFF, roles_decorator_1.Role.CLINIC, roles_decorator_1.Role.VET),
+    (0, roles_decorator_1.Roles)(roles_decorator_1.Role.USER, roles_decorator_1.Role.ADMIN, roles_decorator_1.Role.STAFF, roles_decorator_1.Role.CLINIC),
     (0, common_1.Get)('/appointments/:id'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
     __param(0, (0, common_1.Param)('id')),
@@ -388,51 +380,6 @@ __decorate([
     __metadata("design:paramtypes", [String, String, String, String]),
     __metadata("design:returntype", Promise)
 ], HealthcareController.prototype, "getMedicalRecordsByPet", null);
-__decorate([
-    (0, common_1.UseGuards)(jwtAuth_guard_1.JwtAuthGuard, role_guard_1.RoleGuard),
-    (0, roles_decorator_1.Roles)(roles_decorator_1.Role.USER, roles_decorator_1.Role.VET, roles_decorator_1.Role.CLINIC, roles_decorator_1.Role.STAFF, roles_decorator_1.Role.ADMIN),
-    (0, common_1.Get)('/appointments/:id/medical-record'),
-    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
-    __param(0, (0, common_1.Param)('id')),
-    __param(1, (0, user_decorator_1.UserToken)('id')),
-    __param(2, (0, user_decorator_1.UserToken)('role')),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, String, String]),
-    __metadata("design:returntype", Promise)
-], HealthcareController.prototype, "getMedicalRecordByAppointment", null);
-__decorate([
-    (0, common_1.UseGuards)(jwtAuth_guard_1.JwtAuthGuard, role_guard_1.RoleGuard),
-    (0, roles_decorator_1.Roles)(roles_decorator_1.Role.VET),
-    (0, common_1.Patch)('/appointments/:id/medical-record'),
-    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
-    __param(0, (0, common_1.Param)('id')),
-    __param(1, (0, user_decorator_1.UserToken)('id')),
-    __param(2, (0, user_decorator_1.UserToken)('role')),
-    __param(3, (0, common_1.Body)()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, String, String, Object]),
-    __metadata("design:returntype", Promise)
-], HealthcareController.prototype, "updateMedicalRecord", null);
-__decorate([
-    (0, common_1.UseGuards)(jwtAuth_guard_1.JwtAuthGuard, role_guard_1.RoleGuard),
-    (0, roles_decorator_1.Roles)(roles_decorator_1.Role.USER),
-    (0, common_1.Post)('/appointments/:id/rating'),
-    (0, common_1.HttpCode)(common_1.HttpStatus.CREATED),
-    __param(0, (0, common_1.Param)('id')),
-    __param(1, (0, user_decorator_1.UserToken)('id')),
-    __param(2, (0, common_1.Body)()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, String, Object]),
-    __metadata("design:returntype", Promise)
-], HealthcareController.prototype, "createAppointmentRating", null);
-__decorate([
-    (0, common_1.Get)('/clinics/:id/rating'),
-    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
-    __param(0, (0, common_1.Param)('id')),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
-    __metadata("design:returntype", Promise)
-], HealthcareController.prototype, "getClinicRatingSummary", null);
 exports.HealthcareController = HealthcareController = __decorate([
     (0, common_1.Controller)('api/v1/healthcare'),
     __param(0, (0, common_1.Inject)('HEALTHCARE_SERVICE')),

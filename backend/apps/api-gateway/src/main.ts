@@ -4,69 +4,13 @@ import { BadRequestException, ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
 import { RpcToHttpExceptionFilter } from './filters/rpc-exception.filter';
-import { GlobalExceptionFilter } from './filters/global-exception.filter';
-import { SanitizeResponseInterceptor } from './interceptors/sanitize-response.interceptor';
-import { SanitizationPipe } from './pipes/sanitization.pipe';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     logger: ['error', 'warn', 'log'],
   });
 
-  app.use(helmet({
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        styleSrc: ["'self'", "'unsafe-inline'"],
-        scriptSrc: ["'self'"],
-        imgSrc: ["'self'", "data:", "https:"],
-        connectSrc: ["'self'"],
-        fontSrc: ["'self'"],
-        objectSrc: ["'none'"],
-        mediaSrc: ["'self'"],
-        frameSrc: ["'none'"],
-      },
-    },
-    crossOriginEmbedderPolicy: true,
-    crossOriginOpenerPolicy: true,
-    crossOriginResourcePolicy: { policy: "cross-origin" },
-    dnsPrefetchControl: true,
-    frameguard: { action: 'deny' },
-    hidePoweredBy: true,
-    hsts: {
-      maxAge: 31536000,
-      includeSubDomains: true,
-      preload: true
-    },
-    ieNoOpen: true,
-    noSniff: true,
-    referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
-    xssFilter: true,
-  }));
-
-  const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [
-    'http://localhost:4001',
-    'http://localhost:4000',
-    'https://pettopia-fe.onrender.com',
-    'https://pettopia-user.onrender.com',
-  ];
-
-  app.enableCors({
-    origin: (origin, callback) => {
-      if (!origin) return callback(null, true);
-
-      if (allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error('Not allowed by CORS'));
-      }
-    },
-    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
-    credentials: true,
-    maxAge: 3600,
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-    exposedHeaders: ['X-Total-Count', 'X-Page-Count'],
-  });
+  app.use(helmet());
 
   app.useGlobalPipes(
     new ValidationPipe({
@@ -75,24 +19,44 @@ async function bootstrap() {
       forbidUnknownValues: true,
       exceptionFactory: (errors) => new BadRequestException(errors),
     }),
-    new SanitizationPipe(),
   );
 
+  app.enableCors({
+    origin: [
+      'http://localhost:4001',
+      'http://localhost:4000',
+      'https://pettopia-fe.onrender.com',
+      'https://pettopia-user.onrender.com',
+    ],
+    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+    credentials: true,
+  });
+  // const doubleCsrfOptions = {
+  //   getSecret: (req: any) => req.secret,
+  //   cookieName: 'XSRF-TOKEN',
+  //   cookieOptions: {
+  //     httpOnly: false,
+  //     sameSite: 'strict',
+  //     secure: false,
+  //   } as const,
+  // };
 
-  app.useGlobalInterceptors(new SanitizeResponseInterceptor());
+  // const { doubleCsrfProtection } = doubleCsrf(doubleCsrfOptions);
 
-
-  app.useGlobalFilters(
-    new RpcToHttpExceptionFilter(),
-    new GlobalExceptionFilter(),
-  );
+  // app.use((req, res, next) => {
+  //   const safeMethods = ['GET', 'HEAD', 'OPTIONS'];
+  //   if (!safeMethods.includes(req.method)) {
+  //     return doubleCsrfProtection(req, res, next);
+  //   }
+  //   next();
+  // });
 
   app.enableShutdownHooks();
-
+  app.useGlobalFilters(new RpcToHttpExceptionFilter());
 
   const config = new DocumentBuilder()
-    .setTitle('Pettopia API Gateway')
-    .setDescription('Secured API Gateway with CORS, XSS, and SQL Injection Protection')
+    .setTitle('API Gateway')
+    .setDescription('Tài liệu API tổng hợp cho hệ thống')
     .addBearerAuth()
     .build();
 
@@ -101,11 +65,13 @@ async function bootstrap() {
     swaggerOptions: { persistAuthorization: true },
   });
 
-  await app.listen(process.env.API_GATEWAY_PORT || 3000);
-
-  console.log(` API Gateway running at http://localhost:${process.env.API_GATEWAY_PORT || 3000}`);
-  console.log(` Swagger docs: http://localhost:${process.env.API_GATEWAY_PORT || 3000}/api/v1/docs`);
-
+  await app.listen(process.env.API_GATEWAY_PORT!);
+  console.log(
+    `🚀 API Gateway running at http://localhost:${process.env.API_GATEWAY_PORT}`,
+  );
+  console.log(
+    `📘 Swagger docs: http://localhost:${process.env.API_GATEWAY_PORT}/api/v1/docs`,
+  );
 }
 
 bootstrap();

@@ -10,7 +10,6 @@ exports.RpcToHttpExceptionFilter = void 0;
 const common_1 = require("@nestjs/common");
 const microservices_1 = require("@nestjs/microservices");
 let RpcToHttpExceptionFilter = class RpcToHttpExceptionFilter {
-    logger = new common_1.Logger('RpcExceptionFilter');
     catch(exception, host) {
         const ctx = host.switchToHttp();
         const response = ctx.getResponse();
@@ -18,51 +17,48 @@ let RpcToHttpExceptionFilter = class RpcToHttpExceptionFilter {
         const error = exception.getError();
         let statusCode = common_1.HttpStatus.INTERNAL_SERVER_ERROR;
         let message = 'Internal server error';
-        let details = null;
+        let errorDetails = null;
+        console.log('RPC Error:', error);
         try {
-            if (typeof error === 'object' && error !== null) {
-                const err = error;
-                statusCode = err.statusCode || err.status || err.code || common_1.HttpStatus.INTERNAL_SERVER_ERROR;
-                message = err.message || err.error || err.msg || message;
-                if (err.details || err.data || err.errorDetails) {
-                    details = err.details || err.data || err.errorDetails;
-                }
-                if (err.error && typeof err.error === 'object') {
-                    const nestedError = err.error;
-                    statusCode = nestedError.statusCode || nestedError.status || statusCode;
-                    message = nestedError.message || message;
+            if (error && typeof error === 'object') {
+                const errorObj = error;
+                const nestedError = errorObj.error || errorObj;
+                statusCode = nestedError.statusCode || nestedError.status || statusCode;
+                message = nestedError.message || message;
+                errorDetails = { ...errorObj };
+                const fieldsToRemove = ['statusCode', 'status', 'message', 'error'];
+                fieldsToRemove.forEach(field => {
+                    if (field in errorDetails) {
+                        delete errorDetails[field];
+                    }
+                });
+                if (Object.keys(errorDetails).length === 0) {
+                    errorDetails = null;
                 }
             }
             else if (typeof error === 'string') {
                 try {
-                    const parsed = JSON.parse(error);
-                    statusCode = parsed.statusCode || parsed.status || common_1.HttpStatus.INTERNAL_SERVER_ERROR;
-                    message = parsed.message || error;
-                    details = parsed.details || parsed.error || parsed.data;
+                    const parsedError = JSON.parse(error);
+                    statusCode = parsedError.statusCode || statusCode;
+                    message = parsedError.message || message;
+                    errorDetails = parsedError.error || null;
                 }
-                catch {
+                catch (e) {
                     message = error;
                 }
             }
-            else if (typeof error === 'number') {
-                statusCode = error;
-            }
         }
         catch (err) {
-            this.logger.error('Error processing RPC exception:', err);
+            console.error('Error processing RPC exception:', err);
         }
-        if (statusCode < 100 || statusCode > 599) {
-            statusCode = common_1.HttpStatus.INTERNAL_SERVER_ERROR;
-        }
-        this.logger.error(`[RPC Error] ${request.method} ${request.url} - ${statusCode}: ${message}`);
         const responseBody = {
             statusCode,
             message,
             timestamp: new Date().toISOString(),
             path: request.url,
         };
-        if (details) {
-            responseBody.details = details;
+        if (errorDetails) {
+            responseBody.error = errorDetails;
         }
         return response.status(statusCode).json(responseBody);
     }
