@@ -114,14 +114,14 @@ export class AppointmentService {
         );
       }
 
-      // Chỉ cho phép gán bác sĩ khi lịch hẹn đã được xác nhận hoặc khách đã check-in
+      // Rule 4: Chỉ cho assign vet khi appointment.status >= CHECKED_IN
       if (
-        appointment.status !== AppointmentStatus.Confirmed &&
-        appointment.status !== AppointmentStatus.Checked_In
+        appointment.status !== AppointmentStatus.Checked_In &&
+        appointment.status !== AppointmentStatus.In_Progress
       ) {
         throw createRpcError(
           HttpStatus.BAD_REQUEST,
-          'Chỉ có thể gán bác sĩ cho lịch hẹn ở trạng thái Confirmed hoặc Checked_In',
+          'Chỉ có thể gán bác sĩ cho lịch hẹn đã Check-in',
           'INVALID_APPOINTMENT_STATUS'
         );
       }
@@ -169,22 +169,22 @@ export class AppointmentService {
         );
       }
 
-      if (appointment.id !== data.appointment_id) {
-        data.appointment_id = appointment.id;
+      // Rule 3: Không cho tạo Medical Record nếu petId == null
+      if (!appointment.pet_ids || appointment.pet_ids.length === 0) {
+        throw createRpcError(
+          HttpStatus.BAD_REQUEST,
+          'Lịch hẹn chưa có pet (pet_id). Không thể tạo hồ sơ bệnh án.',
+          'MISSING_PET_IN_APPOINTMENT'
+        );
       }
 
-      // Tự động lấy clinic_id từ appointment
-      data.clinic_id = appointment.clinic_id;
-
-      // Tự động lấy vet_id từ appointment nếu có (đảm bảo tính nhất quán)
-      if (appointment.vet_id) {
-        data.vet_id = appointment.vet_id;
-      }
+      // Auto-filled from Appointment Check-in Logic
+      data.pet_id = appointment.pet_ids[0];
 
       if (!appointment.pet_ids || !appointment.pet_ids.includes(data.pet_id)) {
         throw createRpcError(
           HttpStatus.BAD_REQUEST,
-          'pet_id không thuộc lịch hẹn này',
+          'pet_id không hợp lệ (không thuộc danh sách đăng ký ban đầu)',
           'INVALID_PET_FOR_APPOINTMENT'
         );
       }
@@ -203,10 +203,10 @@ export class AppointmentService {
       }
 
       const medicalRecord = await this.medicalRecordModel.create({
-        appointment_id: data.appointment_id,
+        appointment_id: appointment.id,
         pet_id: data.pet_id,
-        vet_id: data.vet_id,
-        clinic_id: data.clinic_id,
+        vet_id: appointment.vet_id,
+        clinic_id: appointment.clinic_id,
         symptoms: data.symptoms,
         diagnosis: data.diagnosis,
         notes: data.notes,
@@ -322,10 +322,11 @@ export class AppointmentService {
         );
       }
 
+      // Rule 2: Rule Check-in: Không cho CHECK-IN nếu appointment.petId == null
       if (!appointment.pet_ids || appointment.pet_ids.length === 0) {
         throw createRpcError(
           HttpStatus.BAD_REQUEST,
-          'Lịch hẹn chưa có pet. Vui lòng tạo pet cho khách và gán vào lịch hẹn trước khi check-in',
+          'Lịch hẹn chưa có pet (pet_id). Vui lòng gán pet vào lịch hẹn trước khi check-in',
           'MISSING_PET_FOR_CHECKIN'
         );
       }
@@ -453,7 +454,7 @@ export class AppointmentService {
       const newPetIds = Array.from(new Set([...currentPetIds, petId]));
 
       const updated = await this.appointmentRepositories.update(appointmentId, {
-        pet_ids: newPetIds,
+        pet_ids: newPetIds, // Update the single checked-in pet ID
       } as Partial<Appointment>);
 
       if (!updated) {
@@ -930,6 +931,8 @@ export class AppointmentService {
           } else if (isPartnerRole) {
             newAppointmentData.created_by = AppointmentCreatedBy.Partner;
           }
+
+
           appointmentsToCreate.push(newAppointmentData);
         }
       }
@@ -948,37 +951,7 @@ export class AppointmentService {
         { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' },
       );
 
-      try {
-        const userEmail = user.email?.email_address || user.email;
-        const userName = user.full_name || user.username || 'Quý khách';
-        const serviceNames =
-          services && services.length > 0
-            ? services.map((s) => s.name)
-            : ['Khám tổng quát/Chưa chỉ định'];
-
-        const firstAppointment = result[0];
-        if (firstAppointment) {
-          await lastValueFrom(
-            this.authService.send(
-              { cmd: 'sendAppointmentConfirmation' },
-              {
-                email: userEmail,
-                appointmentDetails: {
-                  userName: userName,
-                  appointmentDate: appointmentDateFormatted,
-                  appointmentTime: `${shift.data.start_time} - ${shift.data.end_time}`,
-                  clinicName: clinic.data.clinic_name,
-                  clinicAddress: clinic.data.address,
-                  services: serviceNames,
-                  appointmentId: firstAppointment.id,
-                },
-              },
-            ),
-          );
-        }
-      } catch (emailError) {
-        console.error('Không thể gửi email xác nhận:', emailError);
-      }
+      console.log('Created appointments count:', result.length);
 
       return result;
     } catch (error) {

@@ -17,18 +17,10 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
         imports: [ConfigModule],
         inject: [ConfigService],
         useFactory: (configService: ConfigService) => ({
-          transport: Transport.RMQ,
+          transport: Transport.TCP,
           options: {
-            urls: [
-              configService.get<string>(
-                'RMQ_URL',
-                'amqp://guest:guest@rabbitmq:5672',
-              ),
-            ],
-            queue: 'customer_service_queue',
-            queueOptions: {
-              durable: true,
-            },
+            host: configService.get<string>('CUSTOMER_HOST') || 'customer-service',
+            port: configService.get<number>('TCP_CUSTOMER_PORT') || 5002,
           },
         }),
       },
@@ -38,4 +30,4 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
   providers: [PaymentService],
   exports: [PaymentService],
 })
-export class PaymentModule {}
+export class PaymentModule { }
