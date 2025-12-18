@@ -41,6 +41,12 @@ export class GlobalExceptionFilter implements ExceptionFilter {
                     name: exception.name,
                 };
             }
+        } else if (typeof exception === 'object' && exception !== null) {
+            // Handle plain objects (often from microservices calls)
+            const err = exception as any;
+            statusCode = err.statusCode || err.status || statusCode;
+            message = err.message || message;
+            details = err.details || err.data || null;
         }
 
         // Log error with context

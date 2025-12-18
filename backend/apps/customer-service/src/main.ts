@@ -5,6 +5,7 @@ import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 import { getModelToken } from '@nestjs/mongoose';
 import { User } from './schemas/user.schema';
 import { ConfigService } from '@nestjs/config';
+import { GlobalRpcExceptionFilter } from './filters/rpc-exception.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -31,6 +32,7 @@ async function bootstrap() {
 
   const userModel = app.get(getModelToken(User.name));
   await userModel.syncIndexes();
+  app.useGlobalFilters(new GlobalRpcExceptionFilter());
   await app.startAllMicroservices();
   await app.listen(port);
   console.log('Customer-service run successfull');
