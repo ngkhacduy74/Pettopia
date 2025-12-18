@@ -30,6 +30,9 @@ let PetController = class PetController {
         const fileBufferString = file ? file.buffer.toString('base64') : undefined;
         return await (0, rxjs_1.lastValueFrom)(this.petService.send({ cmd: 'createPet' }, { ...data, user_id: userId, fileBuffer: fileBufferString }));
     }
+    async claimPet(pet_id, userId) {
+        return await (0, rxjs_1.lastValueFrom)(this.petService.send({ cmd: 'claimPet' }, { petId: pet_id, userId }));
+    }
     async getAllPets(userId, userRole, page = 1, limit = 15, search, species, gender, sort_field, sort_order) {
         const roles = Array.isArray(userRole) ? userRole : [userRole];
         return await (0, rxjs_1.lastValueFrom)(this.petService.send({ cmd: 'getAllPets' }, {
@@ -103,6 +106,16 @@ __decorate([
     __metadata("design:paramtypes", [Object, Object, String]),
     __metadata("design:returntype", Promise)
 ], PetController.prototype, "createPet", null);
+__decorate([
+    (0, common_1.Post)('/claim'),
+    (0, common_1.UseGuards)(jwtAuth_guard_1.JwtAuthGuard),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    __param(0, (0, common_1.Body)('pet_id')),
+    __param(1, (0, user_decorator_1.UserToken)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", Promise)
+], PetController.prototype, "claimPet", null);
 __decorate([
     (0, common_1.Get)('/all'),
     (0, common_1.UseGuards)(jwtAuth_guard_1.JwtAuthGuard),
