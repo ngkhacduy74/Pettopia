@@ -60,6 +60,10 @@ export class SanitizationPipe implements PipeTransform {
             for (const key in value) {
 
                 if (dangerousKeys.includes(key)) {
+<<<<<<< HEAD
+=======
+                    console.warn(`⚠️  [Security] Blocked dangerous MongoDB operator: ${key}`);
+>>>>>>> main
                     continue;
                 }
 
