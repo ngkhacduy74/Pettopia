@@ -195,11 +195,19 @@ let HealthcareController = class HealthcareController {
         return await (0, rxjs_1.lastValueFrom)(this.healthcareService.send({ cmd: 'updateMedicalRecord' }, { appointmentId, userId, role, updateData }));
     }
     async createAppointmentRating(appointmentId, userId, body) {
-        return await (0, rxjs_1.lastValueFrom)(this.healthcareService.send({ cmd: 'createAppointmentRating' }, {
-            appointmentId,
-            userId,
-            ratingData: body,
-        }));
+        try {
+            return await (0, rxjs_1.lastValueFrom)(this.healthcareService.send({ cmd: 'createAppointmentRating' }, {
+                appointmentId,
+                userId,
+                ratingData: body,
+            }));
+        }
+        catch (error) {
+            throw new common_1.HttpException({
+                status: error.status || common_1.HttpStatus.INTERNAL_SERVER_ERROR,
+                message: error.message || 'Lỗi khi tạo đánh giá phòng khám',
+            }, error.status || common_1.HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
     async getClinicRatingSummary(clinicId) {
         return await (0, rxjs_1.lastValueFrom)(this.healthcareService.send({ cmd: 'getClinicRatingSummary' }, { clinicId }));
@@ -232,7 +240,7 @@ __decorate([
 ], HealthcareController.prototype, "getAppointments", null);
 __decorate([
     (0, common_1.UseGuards)(jwtAuth_guard_1.JwtAuthGuard, role_guard_1.RoleGuard),
-    (0, roles_decorator_1.Roles)(roles_decorator_1.Role.USER, roles_decorator_1.Role.ADMIN, roles_decorator_1.Role.STAFF, roles_decorator_1.Role.CLINIC),
+    (0, roles_decorator_1.Roles)(roles_decorator_1.Role.USER, roles_decorator_1.Role.ADMIN, roles_decorator_1.Role.STAFF, roles_decorator_1.Role.CLINIC, roles_decorator_1.Role.VET),
     (0, common_1.Get)('/appointments/:id'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
     __param(0, (0, common_1.Param)('id')),
