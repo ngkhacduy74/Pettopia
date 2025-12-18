@@ -4,7 +4,7 @@ import { Model } from 'mongoose';
 import { Service, ServiceDocument } from '../../schemas/clinic/service.schema';
 import { CreateServiceDto } from 'src/dto/clinic/services/create-service.dto';
 
-import redisClient from '../../common/redis/redis.module.js';
+import redisClient from '../../common/redis/redis.module';
 
 @Injectable()
 export class ServiceRepository {

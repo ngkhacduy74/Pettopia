@@ -548,12 +548,22 @@ export class PartnerController {
     @Query('limit', new ParseIntPipe({ optional: true })) limit = 10,
     @UserToken('id') clinic_id: string,
   ) {
-    return await lastValueFrom(
+    console.log('DEBUG: getMyServices - clinic_id:', clinic_id);
+    if (!clinic_id) {
+       console.error('DEBUG: Missing clinic_id in UserToken');
+    }
+    const result = await lastValueFrom(
       this.partnerService.send(
         { cmd: 'getServicesByClinicId' },
         { clinic_id, page, limit },
       ),
+      { defaultValue: null }
     );
+    if (!result) {
+      console.error('DEBUG: Received empty/null response from partner-service');
+      throw new HttpException('Lỗi kết nối đến dịch vụ đối tác (Empty Response)', HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+    return result;
   }
 
   @UseGuards(JwtAuthGuard, RoleGuard)

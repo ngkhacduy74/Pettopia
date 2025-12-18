@@ -25,12 +25,12 @@ export class ServiceController {
     private readonly serviceService: ServiceService,
   ) {}
 
-  @EventPattern({ cmd: 'createService' })
+  @MessagePattern({ cmd: 'createService' })
   async createService(
     @Payload() data: { data: CreateServiceDto; clinic_id: string },
   ) {
     try {
-      await this.clinicService.createService(data.data, data.clinic_id);
+      return await this.clinicService.createService(data.data, data.clinic_id);
     } catch (err) {
      throw handleRpcError('PartnerController.createService', err);
     }
@@ -49,7 +49,7 @@ export class ServiceController {
     }
   }
 
-  @EventPattern({ cmd: 'update_service' })
+  @MessagePattern({ cmd: 'update_service' })
   async updateService(
     @Payload()
     payload: {
@@ -60,7 +60,7 @@ export class ServiceController {
   ) {
     try {
       const { serviceId, updateServiceDto, clinic_id } = payload;
-      await this.clinicService.updateService(
+      return await this.clinicService.updateService(
         serviceId,
         updateServiceDto,
         clinic_id,
@@ -70,13 +70,13 @@ export class ServiceController {
     }
   }
 
-  @EventPattern({ cmd: 'remove_service' })
+  @MessagePattern({ cmd: 'remove_service' })
   async removeService(
     @Payload() payload: { serviceId: string; clinic_id: string },
   ) {
     try {
       const { serviceId, clinic_id } = payload;
-      await this.clinicService.removeService(serviceId, clinic_id);
+      return await this.clinicService.removeService(serviceId, clinic_id);
     } catch (err) {
      throw handleRpcError('PartnerController.removeService', err);
     }
@@ -102,6 +102,7 @@ export class ServiceController {
   async getServicesByClinicId(
     @Payload() payload: { clinic_id: string; page?: number; limit?: number },
   ) {
+    console.log('DEBUG: Partner Service received getServicesByClinicId:', payload);
     try {
       const { clinic_id, page = 1, limit = 10 } = payload;
       return await this.serviceService.getServicesByClinicId(
@@ -110,6 +111,7 @@ export class ServiceController {
         limit,
       );
     } catch (err) {
+     console.error('DEBUG: Error in getServicesByClinicId:', err);
      throw handleRpcError('ServiceController.getServicesByClinicId', err);
     }
   }
