@@ -27,10 +27,6 @@ export class SanitizationPipe implements PipeTransform {
 
     private sanitizeValue(value: any): any {
         if (typeof value === 'string') {
-            // Skip sanitization for URLs and data URIs (images, videos, etc.)
-            if (this.isUrlOrDataUri(value)) {
-                return value;
-            }
 
             return value
                 .replace(/['";]/g, '')
@@ -75,16 +71,5 @@ export class SanitizationPipe implements PipeTransform {
         }
 
         return value;
-    }
-
-    private isUrlOrDataUri(str: string): boolean {
-        // Check if string is a URL or data URI
-        return (
-            str.startsWith('http://') ||
-            str.startsWith('https://') ||
-            str.startsWith('data:image/') ||
-            str.startsWith('data:video/') ||
-            str.startsWith('data:audio/')
-        );
     }
 }
