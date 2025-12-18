@@ -29,10 +29,18 @@ import { PrometheusMiddleware } from './middleware/prometheus.middleware';
         imports: [ConfigModule],
         inject: [ConfigService],
         useFactory: (configService: ConfigService) => ({
-          transport: Transport.TCP,
+          transport: Transport.RMQ,
           options: {
-            host: configService.get<string>('CUSTOMER_HOST') || 'customer-service',
-            port: configService.get<number>('TCP_CUSTOMER_PORT') || 5002,
+            urls: [
+              configService.get<string>(
+                'RMQ_URL',
+                'amqp://guest:guest@rabbitmq:5672',
+              ),
+            ],
+            queue: 'customer_service_queue',
+            queueOptions: {
+              durable: true,
+            },
           },
         }),
       },
@@ -42,10 +50,18 @@ import { PrometheusMiddleware } from './middleware/prometheus.middleware';
         imports: [ConfigModule],
         inject: [ConfigService],
         useFactory: (configService: ConfigService) => ({
-          transport: Transport.TCP,
+          transport: Transport.RMQ,
           options: {
-            host: configService.get<string>('AUTH_HOST') || 'auth-service',
-            port: configService.get<number>('TCP_AUTH_PORT') || 5001,
+            urls: [
+              configService.get<string>(
+                'RMQ_URL',
+                'amqp://guest:guest@rabbitmq:5672',
+              ),
+            ],
+            queue: 'auth_service_queue',
+            queueOptions: {
+              durable: true,
+            },
           },
         }),
       },

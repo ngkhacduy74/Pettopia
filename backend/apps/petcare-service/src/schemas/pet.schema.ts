@@ -43,11 +43,6 @@ function transformValue(doc: any, ret: { [key: string]: any }) {
   return ret;
 }
 
-export enum PetSource {
-  USER = 'USER',
-  CLINIC = 'CLINIC',
-}
-
 @Schema({
   timestamps: true,
   toJSON: { transform: transformValue },
@@ -56,19 +51,6 @@ export enum PetSource {
 export class Pet {
   @Prop({ type: String, unique: true, default: () => uuidv4() })
   id: string;
-
-  @Prop({
-    type: String,
-    enum: PetSource,
-    default: PetSource.USER,
-  })
-  source: PetSource;
-
-  @Prop({
-    type: Boolean,
-    default: true,
-  })
-  isClaimed: boolean;
 
   @Prop({
     type: String,

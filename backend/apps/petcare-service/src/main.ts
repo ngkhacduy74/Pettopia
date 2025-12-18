@@ -21,10 +21,18 @@ async function bootstrap() {
   );
 
   app.connectMicroservice<MicroserviceOptions>({
-    transport: Transport.TCP,
+    transport: Transport.RMQ,
     options: {
-      host: '0.0.0.0',
-      port: configService.get<number>('TCP_PETCARE_PORT') || 5003,
+      urls: [
+        configService.get<string>(
+          'RMQ_URL',
+          'amqp://guest:guest@rabbitmq:5672',
+        ),
+      ],
+      queue: 'petcare_service_queue',
+      queueOptions: {
+        durable: true,
+      },
     },
   });
 

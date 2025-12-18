@@ -8,7 +8,7 @@ import {
   IsOptional,
   IsDate,
 } from 'class-validator';
-import { Gender, PetSource } from '../../schemas/pet.schema';
+import { Gender } from '../../schemas/pet.schema';
 
 export class CreatePetDto {
   @IsString()
@@ -44,14 +44,6 @@ export class CreatePetDto {
   avatar_url: string ;
   @IsString()
   qr_code_url: string ;
-
-  @IsOptional()
-  @IsEnum(PetSource)
-  source?: PetSource;
-
-  @IsOptional()
-  isClaimed?: boolean;
-
   @IsOptional()
   medical_records?: string[];
 }

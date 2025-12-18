@@ -57,21 +57,6 @@ export class PetController {
       ),
     );
   }
-
-  @Post('/claim')
-  @UseGuards(JwtAuthGuard)
-  @HttpCode(HttpStatus.OK)
-  async claimPet(
-    @Body('pet_id') pet_id: string,
-    @UserToken('id') userId: string,
-  ) {
-    return await lastValueFrom(
-      this.petService.send(
-        { cmd: 'claimPet' },
-        { petId: pet_id, userId },
-      ),
-    );
-  }
   @Get('/all')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)

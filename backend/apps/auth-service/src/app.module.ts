@@ -54,10 +54,18 @@ const customer_port = parseInt(process.env.TCP_CUSTOMER_PORT || '5002', 10);
         imports: [ConfigModule],
         inject: [ConfigService],
         useFactory: (configService: ConfigService) => ({
-          transport: Transport.TCP,
+          transport: Transport.RMQ,
           options: {
-            host: configService.get<string>('CUSTOMER_HOST') || 'customer-service',
-            port: configService.get<number>('TCP_CUSTOMER_PORT') || 5002,
+            urls: [
+              configService.get<string>(
+                'RMQ_URL',
+                'amqp://guest:guest@rabbitmq:5672',
+              ),
+            ],
+            queue: 'customer_service_queue',
+            queueOptions: {
+              durable: true,
+            },
           },
         }),
       },
@@ -66,10 +74,18 @@ const customer_port = parseInt(process.env.TCP_CUSTOMER_PORT || '5002', 10);
         imports: [ConfigModule],
         inject: [ConfigService],
         useFactory: (configService: ConfigService) => ({
-          transport: Transport.TCP,
+          transport: Transport.RMQ,
           options: {
-            host: configService.get<string>('PARTNER_HOST') || 'partner-service',
-            port: configService.get<number>('TCP_PARTNER_PORT') || 5004,
+            urls: [
+              configService.get<string>(
+                'RMQ_URL',
+                'amqp://guest:guest@rabbitmq:5672',
+              ),
+            ],
+            queue: 'partner_service_queue',
+            queueOptions: {
+              durable: true,
+            },
           },
         }),
       },
