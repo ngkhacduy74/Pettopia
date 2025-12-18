@@ -473,7 +473,7 @@ export class PetService {
       );
 
       if (medicalRecords && medicalRecords.data) {
-        // Ẩn thông tin nhạy cảm cho public (clinic_id, vet_id)
+        // Luôn ẩn thông tin nhạy cảm cho public (clinic_id, vet_id)
         petResponse.medical_records = medicalRecords.data.map((record: any) => {
           if (record.medicalRecord) {
             const { clinic_id, vet_id, ...rest } = record.medicalRecord;
@@ -497,7 +497,7 @@ export class PetService {
       // phone: undefined, email: undefined, address: undefined → nếu muốn ẩn
     };
 
-    return petResponse; 
+    return petResponse;
   } catch (error) {
     if (error instanceof NotFoundException) throw error;
     throw new BadRequestException('Failed to fetch public pet info');
