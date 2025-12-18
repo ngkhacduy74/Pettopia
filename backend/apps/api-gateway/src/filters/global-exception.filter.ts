@@ -57,9 +57,15 @@ export class GlobalExceptionFilter implements ExceptionFilter {
             path: request.url,
         };
 
-        // Only include details in development or if explicitly provided
-        if (details && (process.env.NODE_ENV === 'development' || details.userFacing)) {
+        if (details) {
             responseBody.details = details;
+        }
+
+        // Always log stack trace for non-validation errors to help debugging
+        if (statusCode === HttpStatus.INTERNAL_SERVER_ERROR && exception instanceof Error) {
+            this.logger.error(`[Global Error] ${request.method} ${request.url}`, exception.stack);
+        } else {
+            this.logger.error(`[Global Error] ${request.method} ${request.url} - ${statusCode}: ${message}`);
         }
 
         return response.status(statusCode).json(responseBody);

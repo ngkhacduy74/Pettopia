@@ -1,7 +1,7 @@
 import { Controller, Get, UsePipes, ValidationPipe } from '@nestjs/common';
 import { AppointmentService } from '../services/appointment.service';
 import { MessagePattern, Payload, RpcException } from '@nestjs/microservices';
-import { handleRpcError } from 'src/common/error.detail';
+import { createRpcError, handleRpcError } from 'src/common/error.detail';
 import {
   CreateAppointmentDto,
   UpdateAppointmentStatusDto,
@@ -49,10 +49,7 @@ export class AppointmentController {
         throw error;
       }
       console.error('Error in createAppointment:', error);
-      throw new RpcException({
-        status: HttpStatus.INTERNAL_SERVER_ERROR,
-        message: 'Đã xảy ra lỗi khi tạo lịch hẹn',
-      });
+      throw createRpcError(HttpStatus.INTERNAL_SERVER_ERROR, 'Đã xảy ra lỗi khi tạo lịch hẹn', 'Internal Server Error');
     }
   }
 
@@ -105,10 +102,7 @@ export class AppointmentController {
         payload;
 
       if (!appointmentId) {
-        throw new RpcException({
-          status: HttpStatus.BAD_REQUEST,
-          message: 'Thiếu thông tin ID lịch hẹn',
-        });
+        throw createRpcError(HttpStatus.BAD_REQUEST, 'Thiếu thông tin ID lịch hẹn', 'Bad Request');
       }
 
       const result = await this.appointmentService.updateAppointmentStatus(
@@ -148,17 +142,11 @@ export class AppointmentController {
         payload;
 
       if (!appointmentId) {
-        throw new RpcException({
-          status: HttpStatus.BAD_REQUEST,
-          message: 'Thiếu thông tin ID lịch hẹn',
-        });
+        throw createRpcError(HttpStatus.BAD_REQUEST, 'Thiếu thông tin ID lịch hẹn', 'Bad Request');
       }
 
       if (!cancelledByUserId) {
-        throw new RpcException({
-          status: HttpStatus.BAD_REQUEST,
-          message: 'Thiếu thông tin người hủy',
-        });
+        throw createRpcError(HttpStatus.BAD_REQUEST, 'Thiếu thông tin người hủy', 'Bad Request');
       }
 
       // Đảm bảo cancelData luôn là object, ngay cả khi undefined
@@ -221,10 +209,7 @@ export class AppointmentController {
       const { appointmentId, role, userId, clinicId } = payload;
 
       if (!appointmentId) {
-        throw new RpcException({
-          status: HttpStatus.BAD_REQUEST,
-          message: 'Thiếu thông tin ID lịch hẹn',
-        });
+        throw createRpcError(HttpStatus.BAD_REQUEST, 'Thiếu thông tin ID lịch hẹn', 'Bad Request');
       }
 
       const result = await this.appointmentService.getAppointmentById(
@@ -315,10 +300,7 @@ export class AppointmentController {
       const { clinicId, statuses, date } = payload;
 
       if (!clinicId) {
-        throw new RpcException({
-          status: HttpStatus.BAD_REQUEST,
-          message: 'Thiếu thông tin phòng khám',
-        });
+        throw createRpcError(HttpStatus.BAD_REQUEST, 'Thiếu thông tin phòng khám', 'Bad Request');
       }
 
       const parsedDate = date ? new Date(date) : undefined;
@@ -354,10 +336,7 @@ export class AppointmentController {
       const { vetId } = payload;
 
       if (!vetId) {
-        throw new RpcException({
-          status: HttpStatus.BAD_REQUEST,
-          message: 'Thiếu thông tin bác sĩ thú y',
-        });
+        throw createRpcError(HttpStatus.BAD_REQUEST, 'Thiếu thông tin bác sĩ thú y', 'Bad Request');
       }
 
       const result = await this.appointmentService.getMyAppointments(vetId);
@@ -385,10 +364,7 @@ export class AppointmentController {
       const { appointmentId, petId, clinicId } = payload;
 
       if (!appointmentId || !petId) {
-        throw new RpcException({
-          status: HttpStatus.BAD_REQUEST,
-          message: 'Thiếu thông tin lịch hẹn hoặc pet',
-        });
+        throw createRpcError(HttpStatus.BAD_REQUEST, 'Thiếu thông tin lịch hẹn hoặc pet', 'Bad Request');
       }
 
       const result = await this.appointmentService.assignPetToAppointment(
@@ -419,17 +395,11 @@ export class AppointmentController {
       const { appointmentId, vetId } = payload;
 
       if (!appointmentId) {
-        throw new RpcException({
-          status: HttpStatus.BAD_REQUEST,
-          message: 'Thiếu thông tin ID lịch hẹn',
-        });
+        throw createRpcError(HttpStatus.BAD_REQUEST, 'Thiếu thông tin ID lịch hẹn', 'Bad Request');
       }
 
       if (!vetId) {
-        throw new RpcException({
-          status: HttpStatus.BAD_REQUEST,
-          message: 'Thiếu thông tin ID bác sĩ thú y',
-        });
+        throw createRpcError(HttpStatus.BAD_REQUEST, 'Thiếu thông tin ID bác sĩ thú y', 'Bad Request');
       }
 
       const result = await this.appointmentService.assignVetAndStart(
@@ -458,10 +428,7 @@ export class AppointmentController {
       const { appointmentId } = payload;
 
       if (!appointmentId) {
-        throw new RpcException({
-          status: HttpStatus.BAD_REQUEST,
-          message: 'Thiếu thông tin ID lịch hẹn',
-        });
+        throw createRpcError(HttpStatus.BAD_REQUEST, 'Thiếu thông tin ID lịch hẹn', 'Bad Request');
       }
 
       const result = await this.appointmentService.confirmAppointment(
@@ -489,10 +456,7 @@ export class AppointmentController {
       const { appointmentId } = payload;
 
       if (!appointmentId) {
-        throw new RpcException({
-          status: HttpStatus.BAD_REQUEST,
-          message: 'Thiếu thông tin ID lịch hẹn',
-        });
+        throw createRpcError(HttpStatus.BAD_REQUEST, 'Thiếu thông tin ID lịch hẹn', 'Bad Request');
       }
 
       const result = await this.appointmentService.checkInAppointment(
@@ -521,10 +485,7 @@ export class AppointmentController {
       const { appointmentId, medicalRecordData } = payload;
 
       if (!appointmentId) {
-        throw new RpcException({
-          status: HttpStatus.BAD_REQUEST,
-          message: 'Thiếu thông tin ID lịch hẹn',
-        });
+        throw createRpcError(HttpStatus.BAD_REQUEST, 'Thiếu thông tin ID lịch hẹn', 'Bad Request');
       }
 
       const result = await this.appointmentService.createMedicalRecordWithMedications(
@@ -556,10 +517,7 @@ export class AppointmentController {
       const { appointmentId } = payload;
 
       if (!appointmentId) {
-        throw new RpcException({
-          status: HttpStatus.BAD_REQUEST,
-          message: 'Thiếu thông tin ID lịch hẹn',
-        });
+        throw createRpcError(HttpStatus.BAD_REQUEST, 'Thiếu thông tin ID lịch hẹn', 'Bad Request');
       }
 
       const result = await this.appointmentService.completeAppointment(
@@ -629,10 +587,7 @@ export class AppointmentController {
       const { petId, role, clinicId, vetId } = payload;
 
       if (!petId) {
-        throw new RpcException({
-          status: HttpStatus.BAD_REQUEST,
-          message: 'Thiếu thông tin petId',
-        });
+        throw createRpcError(HttpStatus.BAD_REQUEST, 'Thiếu thông tin petId', 'Bad Request');
       }
 
       const data = await this.appointmentService.getMedicalRecordsByPet(
@@ -668,10 +623,7 @@ export class AppointmentController {
       const { appointmentId, userId, role } = payload;
 
       if (!appointmentId) {
-        throw new RpcException({
-          status: HttpStatus.BAD_REQUEST,
-          message: 'Thiếu thông tin ID lịch hẹn',
-        });
+        throw createRpcError(HttpStatus.BAD_REQUEST, 'Thiếu thông tin ID lịch hẹn', 'Bad Request');
       }
 
       const result = await this.appointmentService.getMedicalRecordByAppointment(
@@ -707,10 +659,7 @@ export class AppointmentController {
       const { appointmentId, userId, role, updateData } = payload;
 
       if (!appointmentId) {
-        throw new RpcException({
-          status: HttpStatus.BAD_REQUEST,
-          message: 'Thiếu thông tin ID lịch hẹn',
-        });
+        throw createRpcError(HttpStatus.BAD_REQUEST, 'Thiếu thông tin ID lịch hẹn', 'Bad Request');
       }
 
       const result = await this.appointmentService.updateMedicalRecord(
@@ -742,10 +691,7 @@ export class AppointmentController {
       const { vetId, status } = payload;
 
       if (!vetId) {
-        throw new RpcException({
-          status: HttpStatus.BAD_REQUEST,
-          message: 'Thiếu thông tin ID bác sĩ thú y',
-        });
+        throw createRpcError(HttpStatus.BAD_REQUEST, 'Thiếu thông tin ID bác sĩ thú y', 'Bad Request');
       }
 
       const result = await this.appointmentService.getAssignedAppointments(
@@ -776,10 +722,7 @@ export class AppointmentController {
       const { appointmentId, userId, ratingData } = payload;
 
       if (!appointmentId || !userId) {
-        throw new RpcException({
-          status: HttpStatus.BAD_REQUEST,
-          message: 'Thiếu thông tin lịch hẹn hoặc người dùng',
-        });
+        throw createRpcError(HttpStatus.BAD_REQUEST, 'Thiếu thông tin lịch hẹn hoặc người dùng', 'Bad Request');
       }
 
       const result = await this.appointmentService.createAppointmentRating(

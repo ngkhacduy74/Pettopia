@@ -6,6 +6,8 @@ import {
   IdentificationDocument,
 } from 'src/schemas/identification.schema';
 import { RpcException } from '@nestjs/microservices';
+import { createRpcError } from '../common/error.detail';
+import { HttpStatus } from '@nestjs/common';
 
 import redisClient from '../common/redis/redis.module.js';
 
@@ -17,7 +19,7 @@ export class IdentificationRepository {
   constructor(
     @InjectModel(Identification.name)
     private identificationModel: Model<IdentificationDocument>,
-  ) {}
+  ) { }
 
   private isRedisReady(): boolean {
     return this.redis && this.redis.isOpen;
@@ -36,14 +38,14 @@ export class IdentificationRepository {
     try {
       if (!this.isRedisReady()) return;
       await this.redis.set(key, value, options);
-    } catch {}
+    } catch { }
   }
 
   private async safeDel(keys: string | string[]) {
     try {
       if (!this.isRedisReady()) return;
       await this.redis.del(keys);
-    } catch {}
+    } catch { }
   }
 
   private getKeyByPetId(pet_id: string): string {
@@ -87,7 +89,7 @@ export class IdentificationRepository {
 
       return saved;
     } catch (err) {
-      throw new RpcException(err.message || 'Không thể lưu identification');
+      throw createRpcError(HttpStatus.INTERNAL_SERVER_ERROR, err.message || 'Không thể lưu identification', 'Internal Server Error');
     }
   }
 
@@ -108,9 +110,7 @@ export class IdentificationRepository {
 
       return result;
     } catch (err) {
-      throw new RpcException(
-        err.message || 'Không thể tìm identification theo pet_id',
-      );
+      throw createRpcError(HttpStatus.INTERNAL_SERVER_ERROR, err.message || 'Không thể tìm identification theo pet_id', 'Internal Server Error');
     }
   }
 
@@ -137,9 +137,7 @@ export class IdentificationRepository {
 
       return updated;
     } catch (err) {
-      throw new RpcException(
-        err.message || 'Không thể cập nhật identification theo pet_id',
-      );
+      throw createRpcError(HttpStatus.INTERNAL_SERVER_ERROR, err.message || 'Không thể cập nhật identification theo pet_id', 'Internal Server Error');
     }
   }
 
@@ -162,7 +160,7 @@ export class IdentificationRepository {
 
       return result;
     } catch (err) {
-      throw new RpcException(err.message || 'Không thể check identification');
+      throw createRpcError(HttpStatus.INTERNAL_SERVER_ERROR, err.message || 'Không thể check identification', 'Internal Server Error');
     }
   }
 

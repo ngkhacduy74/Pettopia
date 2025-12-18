@@ -7,6 +7,7 @@ import { User, UserRole } from '../schemas/user.schema';
 import * as bcrypt from 'bcrypt';
 import { RpcException } from '@nestjs/microservices'; // Chỉ cần RpcException
 import { UsersRepository } from '../repositories/user.repositories';
+import { createRpcError } from '../common/error.detail';
 import { CreateUserDto } from '../dto/user/create-user.dto';
 import { UserStatus } from '../dto/request/update-user-status.dto';
 import { UpdateUserDto } from '../dto/request/update-user.dto';
@@ -37,10 +38,7 @@ export class AppService {
       }
 
       if (!user) {
-        throw new RpcException({
-          status: HttpStatus.NOT_FOUND,
-          message: `Không tìm thấy người dùng với id: ${id}`,
-        });
+        throw createRpcError(HttpStatus.NOT_FOUND, `Không tìm thấy người dùng với id: ${id}`, 'Not Found');
       }
 
       return user;
@@ -49,10 +47,7 @@ export class AppService {
 
       console.error('ERROR LOG:', err);
       if (err instanceof RpcException) throw err;
-      throw new RpcException({
-        status: HttpStatus.INTERNAL_SERVER_ERROR,
-        message: err.message
-      });
+      throw createRpcError(HttpStatus.INTERNAL_SERVER_ERROR, err.message, 'Internal Server Error');
     }
   }
 
@@ -99,10 +94,7 @@ export class AppService {
       };
     } catch (err) {
       console.error('ERROR LOG getVipRemainingDays:', err);
-      throw new RpcException({
-        status: HttpStatus.INTERNAL_SERVER_ERROR,
-        message: err.message || 'Lỗi khi lấy số ngày VIP còn lại',
-      });
+      throw createRpcError(HttpStatus.INTERNAL_SERVER_ERROR, err.message || 'Lỗi khi lấy số ngày VIP còn lại', 'Internal Server Error');
     }
   }
 
@@ -111,20 +103,14 @@ export class AppService {
       const user = await this.userRepositories.findOneByUsername(username);
       console.log('user by username', user);
       if (!user) {
-        throw new RpcException({
-          status: HttpStatus.NOT_FOUND,
-          message: `Không tìm thấy người dùng với username: ${username}`,
-        });
+        throw createRpcError(HttpStatus.NOT_FOUND, `Không tìm thấy người dùng với username: ${username}`, 'Not Found');
       }
       return user;
     } catch (err) {
       if (err instanceof RpcException) {
         throw err;
       }
-      throw new RpcException({
-        status: HttpStatus.INTERNAL_SERVER_ERROR,
-        message: err.message || 'Lỗi khi truy vấn người dùng theo username',
-      });
+      throw createRpcError(HttpStatus.INTERNAL_SERVER_ERROR, err.message || 'Lỗi khi truy vấn người dùng theo username', 'Internal Server Error');
     }
   }
 
@@ -136,10 +122,7 @@ export class AppService {
       }
       return user;
     } catch (err) {
-      throw new RpcException({
-        status: HttpStatus.INTERNAL_SERVER_ERROR,
-        message: err.message || 'Error while fetching user by email',
-      });
+      throw createRpcError(HttpStatus.INTERNAL_SERVER_ERROR, err.message || 'Error while fetching user by email', 'Internal Server Error');
     }
   }
 
@@ -148,20 +131,14 @@ export class AppService {
       const user =
         await this.userRepositories.findOneByEmailWithPassword(email_address);
       if (!user) {
-        throw new RpcException({
-          status: HttpStatus.NOT_FOUND,
-          message: `Không tìm thấy người dùng với email: ${email_address}`,
-        });
+        throw createRpcError(HttpStatus.NOT_FOUND, `Không tìm thấy người dùng với email: ${email_address}`, 'Not Found');
       }
       return user as unknown as User;
     } catch (err) {
       if (err instanceof RpcException) {
         throw err;
       }
-      throw new RpcException({
-        status: HttpStatus.INTERNAL_SERVER_ERROR,
-        message: err.message || 'Lỗi khi truy vấn người dùng theo email',
-      });
+      throw createRpcError(HttpStatus.INTERNAL_SERVER_ERROR, err.message || 'Lỗi khi truy vấn người dùng theo email', 'Internal Server Error');
     }
   }
 
@@ -170,10 +147,7 @@ export class AppService {
       const exist = await this.userRepositories.checkPhoneExist(phone_number);
       return exist;
     } catch (err) {
-      throw new RpcException({
-        status: HttpStatus.INTERNAL_SERVER_ERROR,
-        message: err.message || 'Error checking phone number existence',
-      });
+      throw createRpcError(HttpStatus.INTERNAL_SERVER_ERROR, err.message || 'Error checking phone number existence', 'Internal Server Error');
     }
   }
 
@@ -182,10 +156,7 @@ export class AppService {
       const exist = await this.userRepositories.checkUsernameExist(username);
       return exist;
     } catch (err) {
-      throw new RpcException({
-        status: HttpStatus.INTERNAL_SERVER_ERROR,
-        message: err.message || 'Error checking username existence',
-      });
+      throw createRpcError(HttpStatus.INTERNAL_SERVER_ERROR, err.message || 'Error checking username existence', 'Internal Server Error');
     }
   }
 
@@ -198,24 +169,15 @@ export class AppService {
       const save_user = await this.userRepositories.createUser(new_user);
 
       if (!save_user) {
-        throw new RpcException({
-          status: HttpStatus.INTERNAL_SERVER_ERROR,
-          message: 'Failed to create user',
-        });
+        throw createRpcError(HttpStatus.INTERNAL_SERVER_ERROR, 'Failed to create user', 'Internal Server Error');
       }
       return save_user;
     } catch (err) {
       if (err.code === 11000) {
-        throw new RpcException({
-          status: HttpStatus.CONFLICT,
-          message: 'User already exists (duplicate field)',
-        });
+        throw createRpcError(HttpStatus.CONFLICT, 'User already exists (duplicate field)', 'Conflict');
       }
 
-      throw new RpcException({
-        status: HttpStatus.INTERNAL_SERVER_ERROR,
-        message: err.message || 'Error creating user',
-      });
+      throw createRpcError(HttpStatus.INTERNAL_SERVER_ERROR, err.message || 'Error creating user', 'Internal Server Error');
     }
   }
 
@@ -224,10 +186,7 @@ export class AppService {
       const delete_user = await this.userRepositories.deleteUserById(id);
 
       if (!delete_user) {
-        throw new RpcException({
-          status: HttpStatus.NOT_FOUND,
-          message: `User with id ${id} not found or already deleted`,
-        });
+        throw createRpcError(HttpStatus.NOT_FOUND, `User with id ${id} not found or already deleted`, 'Not Found');
       }
       return delete_user;
     } catch (err) {
@@ -235,10 +194,7 @@ export class AppService {
         throw err;
       }
 
-      throw new RpcException({
-        status: HttpStatus.INTERNAL_SERVER_ERROR,
-        message: err.message || 'Failed to delete user',
-      });
+      throw createRpcError(HttpStatus.INTERNAL_SERVER_ERROR, err.message || 'Failed to delete user', 'Internal Server Error');
     }
   }
 
@@ -250,10 +206,7 @@ export class AppService {
       );
 
       if (!update_user) {
-        throw new RpcException({
-          status: HttpStatus.NOT_FOUND,
-          message: `User with id ${id} not found or could not be updated`,
-        });
+        throw createRpcError(HttpStatus.NOT_FOUND, `User with id ${id} not found or could not be updated`, 'Not Found');
       }
       return update_user;
     } catch (err) {
@@ -261,10 +214,7 @@ export class AppService {
         throw err;
       }
 
-      throw new RpcException({
-        status: HttpStatus.INTERNAL_SERVER_ERROR,
-        message: err.message || 'Something went wrong',
-      });
+      throw createRpcError(HttpStatus.INTERNAL_SERVER_ERROR, err.message || 'Something went wrong', 'Internal Server Error');
     }
   }
 
@@ -274,10 +224,7 @@ export class AppService {
     try {
       return await this.userRepositories.getAllUsers(data);
     } catch (err) {
-      throw new RpcException({
-        status: HttpStatus.INTERNAL_SERVER_ERROR,
-        message: err.message || 'Lỗi khi lấy danh sách người dùng',
-      });
+      throw createRpcError(HttpStatus.INTERNAL_SERVER_ERROR, err.message || 'Lỗi khi lấy danh sách người dùng', 'Internal Server Error');
     }
   }
 
@@ -293,19 +240,13 @@ export class AppService {
       );
 
       if (!updatedUser) {
-        throw new RpcException({
-          status: HttpStatus.NOT_FOUND,
-          message: `Không tìm thấy người dùng với id: ${id}`,
-        });
+        throw createRpcError(HttpStatus.NOT_FOUND, `Không tìm thấy người dùng với id: ${id}`, 'Not Found');
       }
       return updatedUser;
     } catch (err) {
       if (err instanceof RpcException) throw err;
 
-      throw new RpcException({
-        status: HttpStatus.INTERNAL_SERVER_ERROR,
-        message: err.message || 'Lỗi khi thêm role cho user',
-      });
+      throw createRpcError(HttpStatus.INTERNAL_SERVER_ERROR, err.message || 'Lỗi khi thêm role cho user', 'Internal Server Error');
     }
   }
 
@@ -317,18 +258,12 @@ export class AppService {
       );
 
       if (!updatedUser) {
-        throw new RpcException({
-          status: HttpStatus.NOT_FOUND,
-          message: `Không tìm thấy người dùng với id: ${userId}`,
-        });
+        throw createRpcError(HttpStatus.NOT_FOUND, `Không tìm thấy người dùng với id: ${userId}`, 'Not Found');
       }
       return updatedUser;
     } catch (err) {
       if (err instanceof RpcException) throw err;
-      throw new RpcException({
-        status: HttpStatus.INTERNAL_SERVER_ERROR,
-        message: err.message || 'Lỗi khi xóa role khỏi người dùng',
-      });
+      throw createRpcError(HttpStatus.INTERNAL_SERVER_ERROR, err.message || 'Lỗi khi xóa role khỏi người dùng', 'Internal Server Error');
     }
   }
 
@@ -336,29 +271,20 @@ export class AppService {
     try {
       const user = await this.userRepositories.findOneById(userId);
       if (!user) {
-        throw new RpcException({
-          status: HttpStatus.NOT_FOUND,
-          message: `Không tìm thấy người dùng với id: ${userId}`,
-        });
+        throw createRpcError(HttpStatus.NOT_FOUND, `Không tìm thấy người dùng với id: ${userId}`, 'Not Found');
       }
       const hasRole = Array.isArray(user.role) ? user.role.includes(role) : user.role === role;
       return { hasRole, user };
     } catch (err) {
       if (err instanceof RpcException) throw err;
-      throw new RpcException({
-        status: HttpStatus.INTERNAL_SERVER_ERROR,
-        message: err.message || 'Lỗi khi kiểm tra role của người dùng',
-      });
+      throw createRpcError(HttpStatus.INTERNAL_SERVER_ERROR, err.message || 'Lỗi khi kiểm tra role của người dùng', 'Internal Server Error');
     }
   }
   async totalDetailAccount(): Promise<any> {
     try {
       const total_user = await this.userRepositories.totalDetailAccount();
       if (!total_user) {
-        throw new RpcException({
-          status: HttpStatus.NOT_FOUND,
-          message: 'Không lấy được danh sách người dùng',
-        });
+        throw createRpcError(HttpStatus.NOT_FOUND, 'Không lấy được danh sách người dùng', 'Not Found');
       }
       return total_user;
     } catch (err) { }
@@ -369,10 +295,7 @@ export class AppService {
       const updatedUser = await this.userRepositories.updateRole(userId, role);
       console.log('updatedUser auto add role', updatedUser);
       if (!updatedUser) {
-        throw new RpcException({
-          status: HttpStatus.NOT_FOUND,
-          message: `Không tìm thấy user với id: ${userId}`,
-        });
+        throw createRpcError(HttpStatus.NOT_FOUND, `Không tìm thấy user với id: ${userId}`, 'Not Found');
       }
 
       return {
@@ -382,68 +305,47 @@ export class AppService {
     } catch (error) {
       if (error instanceof RpcException) throw error;
 
-      throw new RpcException({
-        status: HttpStatus.INTERNAL_SERVER_ERROR,
-        message: error.message || 'Không thể thêm role cho user.',
-      });
+      throw createRpcError(HttpStatus.INTERNAL_SERVER_ERROR, error.message || 'Không thể thêm role cho user.', 'Internal Server Error');
     }
   }
   async updatePasswordByEmail(email: string, newPassword: string): Promise<{ success: boolean }> {
     try {
       const user = await this.userRepositories.updatePasswordByEmail(email, newPassword);
       if (!user) {
-        throw new RpcException({
-          status: HttpStatus.NOT_FOUND,
-          message: `Không tìm thấy người dùng với email: ${email}`,
-        });
+        throw createRpcError(HttpStatus.NOT_FOUND, `Không tìm thấy người dùng với email: ${email}`, 'Not Found');
       }
       return { success: true };
     } catch (err) {
       if (err instanceof RpcException) {
         throw err;
       }
-      throw new RpcException({
-        status: HttpStatus.INTERNAL_SERVER_ERROR,
-        message: err.message || 'Lỗi khi cập nhật mật khẩu',
-      });
+      throw createRpcError(HttpStatus.INTERNAL_SERVER_ERROR, err.message || 'Lỗi khi cập nhật mật khẩu', 'Internal Server Error');
     }
   }
   async updatePasswordById(id: string, newPassword: string): Promise<{ success: boolean }> {
     try {
       const user = await this.userRepositories.updatePasswordById(id, newPassword);
       if (!user) {
-        throw new RpcException({
-          status: HttpStatus.NOT_FOUND,
-          message: `Không tìm thấy người dùng với id: ${id}`,
-        });
+        throw createRpcError(HttpStatus.NOT_FOUND, `Không tìm thấy người dùng với id: ${id}`, 'Not Found');
       }
       return { success: true };
     } catch (err) {
       if (err instanceof RpcException) {
         throw err;
       }
-      throw new RpcException({
-        status: HttpStatus.INTERNAL_SERVER_ERROR,
-        message: err.message || 'Lỗi khi cập nhật mật khẩu 1',
-      });
+      throw createRpcError(HttpStatus.INTERNAL_SERVER_ERROR, err.message || 'Lỗi khi cập nhật mật khẩu 1', 'Internal Server Error');
     }
   }
   async updateUser(id: string, updateData: UpdateUserDto): Promise<User> {
     try {
       const updatedUser = await this.userRepositories.updateUser(id, updateData);
       if (!updatedUser) {
-        throw new RpcException({
-          status: HttpStatus.NOT_FOUND,
-          message: `Không tìm thấy người dùng với id: ${id}`,
-        });
+        throw createRpcError(HttpStatus.NOT_FOUND, `Không tìm thấy người dùng với id: ${id}`, 'Not Found');
       }
       return updatedUser;
     } catch (err) {
       if (err instanceof RpcException) throw err;
-      throw new RpcException({
-        status: HttpStatus.INTERNAL_SERVER_ERROR,
-        message: err.message || 'Lỗi khi cập nhật thông tin người dùng',
-      });
+      throw createRpcError(HttpStatus.INTERNAL_SERVER_ERROR, err.message || 'Lỗi khi cập nhật thông tin người dùng', 'Internal Server Error');
     }
   }
 
@@ -457,10 +359,7 @@ export class AppService {
       return { expiredCount };
     } catch (err) {
       console.error('Error expiring VIP users:', err);
-      throw new RpcException({
-        status: HttpStatus.INTERNAL_SERVER_ERROR,
-        message: err.message || 'Lỗi khi expire VIP users',
-      });
+      throw createRpcError(HttpStatus.INTERNAL_SERVER_ERROR, err.message || 'Lỗi khi expire VIP users', 'Internal Server Error');
     }
   }
 }

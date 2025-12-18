@@ -11,6 +11,7 @@ import {
 } from '../openai/dto/create-chat-completion.request';
 import { ConversationService } from './conversation.service';
 import { Conversation } from './schemas/conversation.schema';
+import { createRpcError } from '../../common/error.detail';
 
 @Injectable()
 export class GeminiService {
@@ -143,11 +144,7 @@ export class GeminiService {
       const result = await this.model.generateContent({ contents }).catch(err => {
         this.logger.error('❌ GOOGLE GEMINI API ERROR:', JSON.stringify(err, null, 2));
         if (err.status === 429 || err.message?.includes('429') || err.message?.includes('quota')) {
-          throw new RpcException({
-            statusCode: 429,
-            message: 'Hệ thống AI đang quá tải (Hết quota). Vui lòng thử lại sau vài phút.',
-            error: 'Too Many Requests'
-          });
+          throw createRpcError(HttpStatus.TOO_MANY_REQUESTS, 'Hệ thống AI đang quá tải (Hết quota). Vui lòng thử lại sau vài phút.', 'Too Many Requests');
         }
         throw err;
       });
@@ -206,12 +203,11 @@ export class GeminiService {
       const status = err.status || err.statusCode || 500;
       const msg = err.message || 'Internal Server Error';
 
-      throw new RpcException({
-        statusCode: status,
-        message: msg,
-        error: status === 429 ? 'Too Many Requests' : 'Internal Server Error',
-        timestamp: new Date().toISOString(),
-      });
+      throw createRpcError(
+        status,
+        msg,
+        status === 429 ? 'Too Many Requests' : 'Internal Server Error',
+      );
     }
   }
 

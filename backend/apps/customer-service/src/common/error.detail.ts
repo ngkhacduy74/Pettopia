@@ -4,7 +4,7 @@ export function handleRpcError(context: string, error: any): never {
   if (error instanceof RpcException) {
     throw error;
   }
-  
+
   // Nếu error là một đối tượng lỗi HTTP từ NestJS
   if (error?.response) {
     throw new RpcException({
@@ -34,6 +34,21 @@ export function handleRpcError(context: string, error: any): never {
     message: typeof error === 'string' ? error : 'Lỗi không xác định trong microservice',
     error: 'Internal Server Error',
     context,
+    timestamp: new Date().toISOString(),
+  });
+}
+
+export function createRpcError(
+  statusCode: number,
+  message: string,
+  error: string,
+  details?: any,
+): RpcException {
+  return new RpcException({
+    statusCode,
+    message,
+    error,
+    ...(details && { details }),
     timestamp: new Date().toISOString(),
   });
 }

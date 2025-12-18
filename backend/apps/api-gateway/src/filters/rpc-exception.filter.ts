@@ -29,16 +29,17 @@ export class RpcToHttpExceptionFilter implements ExceptionFilter {
         statusCode = err.statusCode || err.status || err.code || HttpStatus.INTERNAL_SERVER_ERROR;
         message = err.message || err.error || err.msg || message;
 
-        // Extract details if present
+        // Extract details
         if (err.details || err.data || err.errorDetails) {
           details = err.details || err.data || err.errorDetails;
         }
 
         // Priority 2: Nested error object
         if (err.error && typeof err.error === 'object') {
-          const nestedError = err.error;
+          const nestedError = err.error as any;
           statusCode = nestedError.statusCode || nestedError.status || statusCode;
           message = nestedError.message || message;
+          if (nestedError.details) details = nestedError.details;
         }
       } else if (typeof error === 'string') {
         try {
@@ -56,14 +57,14 @@ export class RpcToHttpExceptionFilter implements ExceptionFilter {
       this.logger.error('Error processing RPC exception:', err);
     }
 
-    // Ensure statusCode is valid HTTP status
-    if (statusCode < 100 || statusCode > 599) {
+    // Ensure legitimate HTTP status code
+    if (typeof statusCode !== 'number' || statusCode < 100 || statusCode > 599) {
       statusCode = HttpStatus.INTERNAL_SERVER_ERROR;
     }
 
-    // Log error (without sensitive data)
     this.logger.error(
-      `[RPC Error] ${request.method} ${request.url} - ${statusCode}: ${message}`,
+      `[RPC Error] ${request.method} ${request.url} -> Status: ${statusCode}, Message: ${message}`,
+      JSON.stringify(details || error),
     );
 
     // Clean response
