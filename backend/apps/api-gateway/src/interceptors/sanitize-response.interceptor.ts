@@ -36,14 +36,30 @@ export class SanitizeResponseInterceptor implements NestInterceptor {
     }
 
     private escapeHtml(text: string): string {
+        // Skip sanitization for URLs and data URIs (images)
+        if (this.isUrl(text)) {
+            return text;
+        }
+
         const map: { [key: string]: string } = {
             '&': '&amp;',
             '<': '&lt;',
             '>': '&gt;',
             '"': '&quot;',
             "'": '&#039;',
-            '/': '&#x2F;',
+            // Removed '/' from escaping to allow URLs
         };
-        return text.replace(/[&<>"'/]/g, (char) => map[char]);
+        return text.replace(/[&<>"']/g, (char) => map[char]);
+    }
+
+    private isUrl(str: string): boolean {
+        // Check if string is a URL or data URI
+        return (
+            str.startsWith('http://') ||
+            str.startsWith('https://') ||
+            str.startsWith('data:image/') ||
+            str.startsWith('data:video/') ||
+            str.startsWith('data:audio/')
+        );
     }
 }
