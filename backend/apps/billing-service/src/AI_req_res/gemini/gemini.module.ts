@@ -79,7 +79,7 @@ import {
         configService: ConfigService,
       ): GenerativeModel => {
         const modelName =
-          configService.get<string>('GEMINI_MODEL') ?? 'gemini-2.0-flash';
+          configService.get<string>('GEMINI_MODEL') ?? 'gemini-2.5-flash-lite';
         const systemInstruction =
           configService.get<string>('GEMINI_SYSTEM_PROMPT') ||
           'You are a helpful assistant. Always continue the conversation based on prior messages and keep context across turns. Answer in the language of the user.';
