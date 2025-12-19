@@ -254,16 +254,21 @@ export class CommunicationController {
   @HttpCode(HttpStatus.OK)
   async reportPost(
     @Param('id') post_id: string,
-    @Body('reason') reason: string,
+    @Body() body: {reason: string},
     @UserToken('id') userId: string,
   ) {
+    const { reason } = body;
+
+  if (!reason || reason.trim() === '') {
+    throw ('Lý do báo cáo là bắt buộc');
+  }
     return await lastValueFrom(
       this.communicationService.send(
         { cmd: 'reportPost' },
         { post_id, user_id: userId, reason },
       ),
     );
-  }
+  } 
 
   // === LẤY DANH SÁCH BÀI BỊ REPORT (Staff) ===
   @Get('staff/reported')

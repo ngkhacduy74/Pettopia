@@ -145,7 +145,7 @@ async reportPost(
     return await this.postService.reportPost(data.post_id, data.user_id, dto);
   } catch (error) {
     this.logger.error('Error reporting post:', error);
-    return { message: 'Failed to report post', error: error.message };
+    return { message: 'Bạn đã báo cáo bài viết', error: error.message };
   }
 }
 
