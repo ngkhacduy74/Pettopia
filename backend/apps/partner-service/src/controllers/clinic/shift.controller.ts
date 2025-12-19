@@ -48,12 +48,12 @@ export class ShiftController {
     }
   }
 
-  @EventPattern({ cmd: 'createClinicShift' })
+  @MessagePattern({ cmd: 'createClinicShift' })
   async createClinicShift(@Payload() data: CreateClinicShiftDto) {
     try {
-      await this.shiftService.createClinicShift(data);
+      return await this.shiftService.createClinicShift(data);
     } catch (err) {
-      handleRpcError('ShiftController.createClinicShift', err);
+      throw handleRpcError('ShiftController.createClinicShift', err);
     }
   }
 
@@ -65,19 +65,19 @@ export class ShiftController {
       const { page, limit, clinic_id } = payload;
       return await this.shiftService.getClinicShifts(page, limit, clinic_id);
     } catch (err) {
-      handleRpcError('ShiftController.getClinicShifts', err);
+      throw handleRpcError('ShiftController.getClinicShifts', err);
     }
   }
 
-  @EventPattern({ cmd: 'updateClinicShift' })
+  @MessagePattern({ cmd: 'updateClinicShift' })
   async updateClinicShift(@Payload() payload: any) {
     try {
       const { id, ...updateData } = payload;
       const dto: UpdateClinicShiftDto = updateData;
 
-      await this.shiftService.updateClinicShift(id, dto);
+      return await this.shiftService.updateClinicShift(id, dto);
     } catch (err) {
-      handleRpcError('ShiftController.updateClinicShift', err);
+      throw handleRpcError('ShiftController.updateClinicShift', err);
     }
   }
   
@@ -86,11 +86,11 @@ export class ShiftController {
     try {
       return await this.shiftService.getShiftsByClinicId(data.clinic_id);
     } catch (err) {
-      handleRpcError('ShiftController.getShiftsByClinicId', err);
+      throw handleRpcError('ShiftController.getShiftsByClinicId', err);
     }
   }
   
-  @EventPattern({ cmd: 'deleteClinicShift' })
+  @MessagePattern({ cmd: 'deleteClinicShift' })
   async deleteClinicShift(
     @Payload() payload: { id: string; clinic_id: string },
   ) {
@@ -98,9 +98,9 @@ export class ShiftController {
       if (!payload.id || !payload.clinic_id) {
         throw new RpcException('Thiếu thông tin bắt buộc');
       }
-      await this.shiftService.deleteShift(payload.id, payload.clinic_id);
+      return await this.shiftService.deleteShift(payload.id, payload.clinic_id);
     } catch (err) {
-      handleRpcError('ShiftController.deleteClinicShift', err);
+      throw handleRpcError('ShiftController.deleteClinicShift', err);
     }
   }
   

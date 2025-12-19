@@ -122,17 +122,6 @@ export class CommunicationController {
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(Role.USER, Role.ADMIN, Role.STAFF)
   @HttpCode(HttpStatus.OK)
-  @UseInterceptors(
-    FilesInterceptor('images', 5, {
-      limits: { fileSize: 5 * 1024 * 1024 },
-      fileFilter: (req, file, cb) => {
-        if (!file.mimetype.match(/image\/(jpg|jpeg|png|gif)$/)) {
-          return cb(new Error('Only image files are allowed!'), false);
-        }
-        cb(null, true);
-      },
-    }),
-  )
   async updatePost(
     @UploadedFiles() files: Express.Multer.File[],
     @Param('id') post_id: string,

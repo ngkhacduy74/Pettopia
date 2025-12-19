@@ -5,7 +5,9 @@ import {
   NotFoundException,
   Inject,
   InternalServerErrorException,
+  HttpStatus,
 } from '@nestjs/common';
+import { createRpcError } from '../common/error.detail';
 import { PostRepository } from '../repositories/post.repository';
 import { CreatePostDto } from '../dto/create-post.dto';
 import { UpdatePostDto } from '../dto/update-post.dto';
@@ -23,7 +25,7 @@ export class PostService {
     private readonly postRepository: PostRepository,
     @Inject('CUSTOMER_SERVICE') private readonly userClient: ClientProxy,
     @Inject('AUTH_SERVICE') private readonly authClient: ClientProxy,
-  ) {}
+  ) { }
 
   /**
    * CREATE POST
@@ -34,12 +36,12 @@ export class PostService {
     try {
       // 1. Lấy user - user_id có thể từ payload hoặc từ token
       const userId = payload.user_id;
-      if (!userId) throw new RpcException('User ID is required');
+      if (!userId) throw createRpcError(HttpStatus.BAD_REQUEST, 'User ID is required', 'Bad Request');
 
       const user = await lastValueFrom(
         this.userClient.send({ cmd: 'getUserById' }, { id: userId }),
       );
-      if (!user) throw new RpcException('User not found');
+      if (!user) throw createRpcError(HttpStatus.NOT_FOUND, 'User not found', 'Not Found');
 
       // 2. Upload ảnh (nếu có)
       let imageUrls: string[] = [];
@@ -53,7 +55,7 @@ export class PostService {
             ),
           );
           if (!uploadResponse?.secure_url)
-            throw new RpcException('Failed to upload image to Cloudinary');
+            throw createRpcError(HttpStatus.INTERNAL_SERVER_ERROR, 'Failed to upload image to Cloudinary', 'Internal Server Error');
           return uploadResponse.secure_url;
         });
         imageUrls = await Promise.all(uploadPromises);
@@ -114,88 +116,66 @@ export class PostService {
     if (!post) throw new NotFoundException(`Post with ID ${post_id} not found`);
     return mapToResponseDto(post); // DÙNG HÀM CỦA BẠN
   }
-/**
- * LẤY TẤT CẢ BÀI VIẾT CỦA 1 USER
- */
-async findByUserId(user_id: string): Promise<PostResponseDto[]> {
-  // DÙNG HÀM TRONG REPOSITORY
-  const posts = await this.postRepository.findByAuthorId(user_id);
-  
-   return posts.map(mapToResponseDto)
-}
- async update(
-  payload: {
-    post_id: string;
-    updateData: UpdatePostDto;
-    files?: string[]; // <-- Thêm lại để nhận base64 từ controller
-    userId?: string;
-    role?: string | string[];
-    isAdminOrStaff?: boolean;
-  },
-): Promise<any> {
-  try {
-    const { post_id, updateData, files, userId, isAdminOrStaff } = payload;
+  /**
+   * LẤY TẤT CẢ BÀI VIẾT CỦA 1 USER
+   */
+  async findByUserId(user_id: string): Promise<PostResponseDto[]> {
+    // DÙNG HÀM TRONG REPOSITORY
+    const posts = await this.postRepository.findByAuthorId(user_id);
 
-    const post = await this.postRepository.findById(post_id);
-    if (!post) throw new NotFoundException(`Post with ID ${post_id} not found`);
-
-    // Kiểm tra quyền
-    if (!isAdminOrStaff && userId && post.author.user_id !== userId) {
-      throw new RpcException({
-        status: 403,
-        message: 'Bạn không có quyền cập nhật bài viết này',
-      });
-    }
-
-    // === XỬ LÝ ẢNH MỚI (nếu có file upload) ===
-    let finalImages = post.images || [];
-
-    if (files && files.length > 0) {
-      const uploadPromises = files.map(async (base64String) => {
-        const buffer = Buffer.from(base64String, 'base64');
-        const uploadResponse = await lastValueFrom(
-          this.authClient.send(
-            { cmd: 'upload_image' },
-            { fileBuffer: buffer },
-          ),
-        );
-        if (!uploadResponse?.secure_url)
-          throw new RpcException('Failed to upload image to Cloudinary');
-        return uploadResponse.secure_url;
-      });
-      const newImageUrls = await Promise.all(uploadPromises);
-      finalImages = newImageUrls; // Thay thế hoàn toàn ảnh cũ bằng ảnh mới (hoặc có thể concat nếu muốn giữ ảnh cũ)
-      // Nếu muốn giữ ảnh cũ + thêm ảnh mới: finalImages = [...post.images, ...newImageUrls]
-    } else if (updateData.images && Array.isArray(updateData.images)) {
-      // Trường hợp frontend gửi URL (ít dùng hơn)
-      finalImages = updateData.images;
-    }
-
-    const MAX_IMAGES = 3;
-    if (finalImages.length > MAX_IMAGES) {
-      throw new BadRequestException(`Tối đa ${MAX_IMAGES} ảnh mỗi bài viết`);
-    }
-
-    const updatePayload: Partial<Post> = {
-      title: updateData.title ?? post.title,
-      content: updateData.content ?? post.content,
-      tags: updateData.tags ?? post.tags,
-      images: finalImages,
-    };
-
-    const updatedPost = await this.postRepository.update(post_id, updatePayload);
-
-    return {
-      message: 'Cập nhật bài viết thành công!',
-      statusCode: 200,
-      post: mapToResponseDto(updatedPost),
-    };
-  } catch (error) {
-    console.error('Error updating post:', error);
-    if (error instanceof RpcException) throw error;
-    throw new BadRequestException('Failed to update post: ' + error.message);
+    return posts.map(mapToResponseDto)
   }
-}
+  async update(
+    payload: {
+      post_id: string;
+      updateData: UpdatePostDto;
+      // BỎ files?: string[] vì không cần nữa
+      userId?: string;
+      role?: string | string[];
+      isAdminOrStaff?: boolean;
+    },
+  ): Promise<any> {
+    try {
+      const { post_id, updateData, userId, isAdminOrStaff } = payload;
+
+      const post = await this.postRepository.findById(post_id);
+      if (!post) throw new NotFoundException(`Post with ID ${post_id} not found`);
+
+      // Kiểm tra quyền
+      if (!isAdminOrStaff && userId && post.author.user_id !== userId) {
+        throw createRpcError(HttpStatus.FORBIDDEN, 'Bạn không có quyền cập nhật bài viết này', 'Forbidden');
+      }
+      // Frontend đã upload ảnh riêng và gửi danh sách URL đầy đủ
+      const finalImages = Array.isArray(updateData.images)
+        ? updateData.images
+        : post.images || [];
+
+      // Validation tổng số ảnh (tùy chọn)
+      const MAX_IMAGES = 3;
+      if (finalImages.length > MAX_IMAGES) {
+        throw new BadRequestException(`Tối đa ${MAX_IMAGES} ảnh mỗi bài viết`);
+      }
+
+      const updatePayload: Partial<Post> = {
+        title: updateData.title ?? post.title,
+        content: updateData.content ?? post.content,
+        tags: updateData.tags ?? post.tags,
+        images: finalImages,
+      };
+
+      const updatedPost = await this.postRepository.update(post_id, updatePayload);
+
+      return {
+        message: 'Cập nhật bài viết thành công!',
+        statusCode: 200,
+        post: mapToResponseDto(updatedPost),
+      };
+    } catch (error) {
+      console.error('Error updating post:', error);
+      if (error instanceof RpcException) throw error;
+      throw new BadRequestException('Failed to update post: ' + error.message);
+    }
+  }
 
   /**
    * DELETE
@@ -217,10 +197,7 @@ async findByUserId(user_id: string): Promise<PostResponseDto[]> {
       const authorId =
         (post.author as any)?.user_id || (post.author as any)?.id;
       if (authorId !== userId) {
-        throw new RpcException({
-          status: 403,
-          message: 'Bạn không có quyền xóa bài viết này',
-        });
+        throw createRpcError(HttpStatus.FORBIDDEN, 'Bạn không có quyền xóa bài viết này', 'Forbidden');
       }
     }
 
@@ -229,144 +206,144 @@ async findByUserId(user_id: string): Promise<PostResponseDto[]> {
     return { message: 'Xóa bài viết thành công!' };
   }
   // LIKE / UNLIKE
-async likePost(post_id: string, user_id: string) {
-  const post = await this.postRepository.findById(post_id);
-  if (!post) throw new NotFoundException('Post not found');
+  async likePost(post_id: string, user_id: string) {
+    const post = await this.postRepository.findById(post_id);
+    if (!post) throw new NotFoundException('Post not found');
 
-  const likedIndex = post.likes.findIndex(l => l.user_id === user_id);
-  if (likedIndex > -1) {
-    // Unlike
-    post.likes.splice(likedIndex, 1);
-    post.likeCount = Math.max(0, post.likeCount - 1);
-  } else {
-    // Like
-    post.likes.push({ user_id, likedAt: new Date() });
-    post.likeCount += 1;
+    const likedIndex = post.likes.findIndex(l => l.user_id === user_id);
+    if (likedIndex > -1) {
+      // Unlike
+      post.likes.splice(likedIndex, 1);
+      post.likeCount = Math.max(0, post.likeCount - 1);
+    } else {
+      // Like
+      post.likes.push({ user_id, likedAt: new Date() });
+      post.likeCount += 1;
+    }
+
+    const updated = await this.postRepository.update(post_id, {
+      likes: post.likes,
+      likeCount: post.likeCount,
+    });
+
+    return {
+      message: likedIndex > -1 ? 'Đã bỏ thích' : 'Đã thích',
+      post: mapToResponseDto(updated),
+    };
   }
 
-  const updated = await this.postRepository.update(post_id, {
-    likes: post.likes,
-    likeCount: post.likeCount,
-  });
+  // ADD COMMENT
+  async addComment(post_id: string, user_id: string, content: string) {
+    const post = await this.postRepository.findById(post_id);
+    if (!post) throw new NotFoundException('Post not found');
 
-  return {
-    message: likedIndex > -1 ? 'Đã bỏ thích' : 'Đã thích',
-    post: mapToResponseDto(updated),
-  };
-}
+    const user = await lastValueFrom(
+      this.userClient.send({ cmd: 'getUserById' }, { id: user_id }),
+    );
 
-// ADD COMMENT
-async addComment(post_id: string, user_id: string, content: string) {
-  const post = await this.postRepository.findById(post_id);
-  if (!post) throw new NotFoundException('Post not found');
+    const newComment = {
+      comment_id: uuidv4(),
+      author: {
+        user_id: user.id,
+        fullname: user.fullname,
+        avatar: user.avatar_url || null,
+      },
+      content,
+      likes: [],
+      reports: [],
+      isHidden: false,
+      isDeleted: false,
+      createdAt: new Date(),
+    };
 
-  const user = await lastValueFrom(
-    this.userClient.send({ cmd: 'getUserById' }, { id: user_id }),
-  );
+    post.comments.push(newComment);
+    post.commentCount += 1;
 
-  const newComment = {
-    comment_id: uuidv4(),
-    author: {
-      user_id: user.id,
-      fullname: user.fullname,
-      avatar: user.avatar_url || null,
-    },
-    content,
-    likes: [],
-    reports: [],
-    isHidden: false,
-    isDeleted: false,
-    createdAt: new Date(),
-  };
+    const updated = await this.postRepository.update(post_id, {
+      comments: post.comments,
+      commentCount: post.commentCount,
+    });
 
-  post.comments.push(newComment);
-  post.commentCount += 1;
-
-  const updated = await this.postRepository.update(post_id, {
-    comments: post.comments,
-    commentCount: post.commentCount,
-  });
-
-  return {
-    message: 'Bình luận thành công!',
-    comment: newComment,
-    post: mapToResponseDto(updated),
-  };
-}
-
-// DELETE COMMENT
-async deleteComment(post_id: string, comment_id: string, user_id: string) {
-  const post = await this.postRepository.findById(post_id);
-  if (!post) throw new NotFoundException('Post not found');
-
-  const comment = post.comments.find(c => c.comment_id === comment_id);
-  if (!comment) throw new NotFoundException('Comment not found');
-  if (comment.author.user_id !== user_id) throw new BadRequestException('Không có quyền');
-
-  comment.isDeleted = true;
-  post.commentCount = Math.max(0, post.commentCount - 1);
-
-  const updated = await this.postRepository.update(post_id, {
-    comments: post.comments,
-    commentCount: post.commentCount,
-  });
-
-  return { message: 'Đã xóa bình luận', post: mapToResponseDto(updated) };
-}
-// === REPORT POST ===
-async reportPost(post_id: string, user_id: string, dto: ReportPostDto) {
-  const post = await this.postRepository.findById(post_id);
-  if (!post) throw new NotFoundException('Post not found');
-
-  // Kiểm tra user đã report chưa
-  const alreadyReported = post.reports.some(r => r.user_id === user_id);
-  if (alreadyReported) {
-    throw new BadRequestException('Bạn đã báo cáo bài viết này rồi');
+    return {
+      message: 'Bình luận thành công!',
+      comment: newComment,
+      post: mapToResponseDto(updated),
+    };
   }
 
-  const newReport = {
-    user_id,
-    reason: dto.reason,
-    reportedAt: new Date(),
-  };
+  // DELETE COMMENT
+  async deleteComment(post_id: string, comment_id: string, user_id: string) {
+    const post = await this.postRepository.findById(post_id);
+    if (!post) throw new NotFoundException('Post not found');
 
-  post.reports.push(newReport);
-  post.reportCount += 1;
+    const comment = post.comments.find(c => c.comment_id === comment_id);
+    if (!comment) throw new NotFoundException('Comment not found');
+    if (comment.author.user_id !== user_id) throw new BadRequestException('Không có quyền');
 
-  const updated = await this.postRepository.update(post_id, {
-    reports: post.reports,
-    reportCount: post.reportCount,
-  });
+    comment.isDeleted = true;
+    post.commentCount = Math.max(0, post.commentCount - 1);
 
-  return {
-    message: 'Đã báo cáo bài viết thành công',
-    reportCount: updated.reportCount,
-  };
-}
- // === LẤY DANH SÁCH BÀI VIẾT BỊ REPORT (dành cho Staff) ===
-async getReportedPosts(): Promise<PostResponseDto[]> {
-  const posts = await this.postRepository.findAll();
+    const updated = await this.postRepository.update(post_id, {
+      comments: post.comments,
+      commentCount: post.commentCount,
+    });
 
-  // Chỉ lấy bài có ít nhất 1 report
-  const reportedPosts = posts
-    .filter(p => p.reportCount > 0)
-    .sort((a, b) => b.reportCount - a.reportCount);
+    return { message: 'Đã xóa bình luận', post: mapToResponseDto(updated) };
+  }
+  // === REPORT POST ===
+  async reportPost(post_id: string, user_id: string, dto: ReportPostDto) {
+    const post = await this.postRepository.findById(post_id);
+    if (!post) throw new NotFoundException('Post not found');
 
-  return reportedPosts.map(mapToResponseDto);
-}
-// === ẨN / BỎ ẨN BÀI VIẾT (Staff only) ===
-async toggleHidePost(post_id: string, isHidden: boolean, staff_id: string): Promise<any> {
-  const post = await this.postRepository.findById(post_id);
-  if (!post) throw new NotFoundException('Post not found');
+    // Kiểm tra user đã report chưa
+    const alreadyReported = post.reports.some(r => r.user_id === user_id);
+    if (alreadyReported) {
+      throw new BadRequestException('Bạn đã báo cáo bài viết này rồi');
+    }
 
-  // Optional: Log hành động staff
-  console.log(`Staff ${staff_id} ${isHidden ? 'ẩn' : 'bỏ ẩn'} bài viết ${post_id}`);
+    const newReport = {
+      user_id,
+      reason: dto.reason,
+      reportedAt: new Date(),
+    };
 
-  const updated = await this.postRepository.update(post_id, { isHidden });
+    post.reports.push(newReport);
+    post.reportCount += 1;
 
-  return {
-    message: isHidden ? 'Đã ẩn bài viết' : 'Đã bỏ ẩn bài viết',
-    post: mapToResponseDto(updated),
-  };
-}
+    const updated = await this.postRepository.update(post_id, {
+      reports: post.reports,
+      reportCount: post.reportCount,
+    });
+
+    return {
+      message: 'Đã báo cáo bài viết thành công',
+      reportCount: updated.reportCount,
+    };
+  }
+  // === LẤY DANH SÁCH BÀI VIẾT BỊ REPORT (dành cho Staff) ===
+  async getReportedPosts(): Promise<PostResponseDto[]> {
+    const posts = await this.postRepository.findAll();
+
+    // Chỉ lấy bài có ít nhất 1 report
+    const reportedPosts = posts
+      .filter(p => p.reportCount > 0)
+      .sort((a, b) => b.reportCount - a.reportCount);
+
+    return reportedPosts.map(mapToResponseDto);
+  }
+  // === ẨN / BỎ ẨN BÀI VIẾT (Staff only) ===
+  async toggleHidePost(post_id: string, isHidden: boolean, staff_id: string): Promise<any> {
+    const post = await this.postRepository.findById(post_id);
+    if (!post) throw new NotFoundException('Post not found');
+
+    // Optional: Log hành động staff
+    console.log(`Staff ${staff_id} ${isHidden ? 'ẩn' : 'bỏ ẩn'} bài viết ${post_id}`);
+
+    const updated = await this.postRepository.update(post_id, { isHidden });
+
+    return {
+      message: isHidden ? 'Đã ẩn bài viết' : 'Đã bỏ ẩn bài viết',
+      post: mapToResponseDto(updated),
+    };
+  }
 }

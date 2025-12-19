@@ -3,6 +3,7 @@ import { AppModule } from './app.module';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { GlobalRpcExceptionFilter } from './filters/rpc-exception.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -60,6 +61,7 @@ async function bootstrap() {
     console.error('Failed to setup DLX/DLQ:', error);
   }
 
+  app.useGlobalFilters(new GlobalRpcExceptionFilter());
   await app.startAllMicroservices();
   await app.listen(configService.get<number>('AUTH_PORT') || 5001);
   console.log('Auth-service run successfull');

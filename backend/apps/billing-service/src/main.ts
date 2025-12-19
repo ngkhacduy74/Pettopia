@@ -8,6 +8,7 @@ import {
   RpcException,
 } from '@nestjs/microservices';
 import { ConfigService } from '@nestjs/config';
+import { GlobalRpcExceptionFilter } from './filters/rpc-exception.filter';
 
 async function bootstrap() {
   const PORT = process.env.PORT ?? 3020;
@@ -50,6 +51,7 @@ async function bootstrap() {
   app.use(urlencoded({ extended: true }));
   app.use(json({}));
 
+  app.useGlobalFilters(new GlobalRpcExceptionFilter());
   await app.startAllMicroservices();
   await app.listen(PORT);
 

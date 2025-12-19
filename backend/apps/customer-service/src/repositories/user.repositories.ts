@@ -221,7 +221,9 @@ export class UsersRepository {
     if (updateData.address) updateFields.address = updateData.address;
     if (updateData.is_active !== undefined) updateFields.is_active = updateData.is_active;
     if (updateData.is_vip !== undefined) updateFields.is_vip = updateData.is_vip;
+    if (updateData.is_vip !== undefined) updateFields.is_vip = updateData.is_vip;
     if (updateData.vip_expires_at !== undefined) updateFields.vip_expires_at = updateData.vip_expires_at;
+    if (updateData.clinic_id) updateFields.clinic_id = updateData.clinic_id;
 
     // Handle nested fields update carefully
     if (updateData.phone_number) {

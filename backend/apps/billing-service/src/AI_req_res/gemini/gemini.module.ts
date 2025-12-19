@@ -91,5 +91,7 @@ import {
       inject: [GoogleGenerativeAI, ConfigService],
     },
   ],
+  // 👇 QUAN TRỌNG: Thêm dòng này để các module khác dùng được GeminiService
+  exports: [GeminiService],
 })
-export class GeminiModule {}
+export class GeminiModule { }
