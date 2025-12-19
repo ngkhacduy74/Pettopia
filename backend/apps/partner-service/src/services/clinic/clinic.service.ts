@@ -665,7 +665,8 @@ export class ClinicService {
   async updateService(
     serviceId: string,
     updateServiceDto: any,
-    clinic_id: string,
+    clinic_id?: string,
+    isAdminOrStaff: boolean = false,
   ): Promise<any> {
     try {
       if (!serviceId) {
@@ -684,8 +685,18 @@ export class ClinicService {
         );
       }
 
+      if (!isAdminOrStaff && !clinic_id) {
+        throw createRpcError(
+          HttpStatus.FORBIDDEN,
+          'Bạn không có quyền cập nhật dịch vụ này',
+          'Forbidden',
+        );
+      }
+
+      const effectiveClinicId = isAdminOrStaff ? undefined : clinic_id;
+
       const result = await this.serviceRepositories
-        .updateService(serviceId, updateServiceDto, clinic_id)
+        .updateService(serviceId, updateServiceDto, effectiveClinicId)
         .catch((error) => {
           console.error('Error updating service:', error);
           throw createRpcError(
