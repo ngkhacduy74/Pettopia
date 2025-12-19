@@ -55,15 +55,17 @@ export class ServiceController {
     payload: {
       serviceId: string;
       updateServiceDto: any;
-      clinic_id: string;
+      clinic_id?: string;
+      isAdminOrStaff?: boolean;
     },
   ) {
     try {
-      const { serviceId, updateServiceDto, clinic_id } = payload;
+      const { serviceId, updateServiceDto, clinic_id, isAdminOrStaff } = payload;
       return await this.clinicService.updateService(
         serviceId,
         updateServiceDto,
         clinic_id,
+        isAdminOrStaff,
       );
     } catch (err) {
     throw  handleRpcError('PartnerController.updateService', err);

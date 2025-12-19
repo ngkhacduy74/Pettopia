@@ -608,28 +608,34 @@ export class PartnerController {
   // >>> Các route DELETE/PATCH có :id xuống dưới
 
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles(Role.CLINIC)
-  @Patch(':id') // Cẩn thận route này, nó là patch trực tiếp vào /partner/:id ?? Hay là /partner/service/:id?
-  // Trong code gốc bạn để @Patch(':id'), tức là /partner/:id. Nó sẽ đè lên các patch cụ thể nếu có.
-  // Nên đặt tên route rõ ràng hơn, ví dụ @Patch('/service/:id')
-  update(
+  @Roles(Role.CLINIC, Role.ADMIN, Role.STAFF)
+  @Patch('/service/:id')
+  async update(
     @Param('id') id: string,
     @Body() updateServiceDto: any,
-    @UserToken() clinic_id: any,
+    @UserToken('clinic_id') clinic_id: string,
+    @UserToken('role') role: string | string[],
   ) {
-    return this.partnerService.send(
-      { cmd: 'update_service' },
-      { serviceId: id, updateServiceDto, clinic_id },
+    const roles = Array.isArray(role) ? role : [role];
+    const isAdminOrStaff = roles.includes(Role.ADMIN) || roles.includes(Role.STAFF);
+
+    return await lastValueFrom(
+      this.partnerService.send(
+        { cmd: 'update_service' },
+        { serviceId: id, updateServiceDto, clinic_id, isAdminOrStaff },
+      ),
     );
   }
 
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(Role.CLINIC)
   @Delete(':id') // Tương tự patch trên
-  remove(@Param('id') id: string, @UserToken() clinic_id: any) {
-    return this.partnerService.send(
-      { cmd: 'remove_service' },
-      { serviceId: id, clinic_id },
+  async remove(@Param('id') id: string, @UserToken('clinic_id') clinic_id: any) {
+    return await lastValueFrom(
+      this.partnerService.send(
+        { cmd: 'remove_service' },
+        { serviceId: id, clinic_id },
+      ),
     );
   }
 

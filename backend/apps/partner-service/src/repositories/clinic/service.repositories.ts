@@ -187,11 +187,16 @@ export class ServiceRepository {
   async updateService(
     serviceId: string,
     updateServiceDto: any,
-    clinic_id: string,
+    clinic_id?: string,
   ): Promise<Service | null> {
     try {
+      const query: any = { id: serviceId };
+      if (clinic_id) {
+        query.clinic_id = clinic_id;
+      }
+
       const result = await this.serviceModel.findOneAndUpdate(
-        { id: serviceId, clinic_id },
+        query,
         { $set: updateServiceDto },
         { new: true },
       );
