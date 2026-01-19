@@ -241,6 +241,17 @@ async updateUserPasswordById(data: { id: string; newPassword: string }) {
     }
   }
 
+  @MessagePattern({ cmd: 'checkUserExistence' })
+  async checkUserExistence(
+    @Payload() data: { email?: string; phone?: string },
+  ): Promise<{ exists: boolean; field?: string }> {
+    try {
+      return await this.appService.checkUserExistence(data.email, data.phone);
+    } catch (err) {
+      throw handleRpcError('AppController.checkUserExistence', err);
+    }
+  }
+
   @MessagePattern({ cmd: 'getVipRemainingDays' })
   async getVipRemainingDays(
     @Payload() data: { id: string },

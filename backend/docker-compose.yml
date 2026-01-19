@@ -86,6 +86,7 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+
   api-gateway-1:
     build:
       context: ./apps/api-gateway
@@ -121,7 +122,7 @@ services:
         condition: service_healthy
     environment:
       - NODE_ENV=production
-      - REDIS_HOST=redis # <--- Thêm dòng này
+      - REDIS_HOST=redis
       - REDIS_PORT=6379
     networks:
       - pettopia-network
@@ -141,6 +142,8 @@ services:
     restart: always
     environment:
       - NODE_ENV=production
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
     networks:
       - pettopia-network
 
@@ -158,6 +161,8 @@ services:
         condition: service_healthy
     environment:
       - NODE_ENV=production
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
     networks:
       - pettopia-network
 
@@ -175,6 +180,8 @@ services:
         condition: service_healthy
     environment:
       - NODE_ENV=production
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
     networks:
       - pettopia-network
 
@@ -192,6 +199,8 @@ services:
         condition: service_healthy
     environment:
       - NODE_ENV=production
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
     networks:
       - pettopia-network
 
@@ -209,6 +218,8 @@ services:
         condition: service_healthy
     environment:
       - NODE_ENV=production
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
     networks:
       - pettopia-network
 
@@ -226,6 +237,8 @@ services:
         condition: service_healthy
     environment:
       - NODE_ENV=production
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
     networks:
       - pettopia-network
 
@@ -243,17 +256,19 @@ services:
         condition: service_healthy
     environment:
       - NODE_ENV=production
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
     networks:
       - pettopia-network
 
-  # logging
+  # --- MONITORING & INFRASTRUCTURE ---
+
   prometheus:
     image: prom/prometheus:v2.40.1
     container_name: prometheus
     ports:
       - "9090:9090"
     volumes:
-      # Trỏ đến file config bạn sẽ tạo ở Bước 2
       - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
       - prometheus_data:/prometheus
     networks:
@@ -277,7 +292,6 @@ services:
     image: grafana/promtail:2.7.0
     container_name: promtail
     volumes:
-      # Trỏ đến file config bạn sẽ tạo ở Bước 3
       - ./monitoring/promtail/promtail-config.yml:/etc/promtail/promtail-config.yml
       - /var/run/docker.sock:/var/run/docker.sock
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
@@ -304,6 +318,7 @@ services:
     networks:
       - pettopia-network
     restart: always
+
   redis:
     image: redis:7-alpine
     container_name: redis
@@ -314,6 +329,7 @@ services:
     volumes:
       - redis_data:/data
     restart: always
+
   redis-commander:
     image: rediscommander/redis-commander:latest
     container_name: redis-commander
@@ -326,6 +342,7 @@ services:
     networks:
       - pettopia-network
     restart: always
+
   rabbitmq:
     image: rabbitmq:3.13-management
     container_name: rabbitmq

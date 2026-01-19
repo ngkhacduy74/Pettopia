@@ -220,7 +220,7 @@ export class PetService {
       try {
         const medicalRecords = await lastValueFrom(
           this.healthcareClient.send(
-            { cmd: 'getMedicalRecordsByPet' },
+            { cmd: 'getMedicalRecordsByPetInternal' },
             { petId: pet_id, role },
           ),
         );

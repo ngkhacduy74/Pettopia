@@ -122,8 +122,8 @@ export class Clinic_Register {
   })
   id: string;
 
-  @Prop({ type: String, required: true, trim: true })
-  user_id: string;
+  @Prop({ type: String, required: false, trim: true })
+  user_id?: string;
 
   @Prop({ type: String, required: true, trim: true })
   clinic_name: string;

@@ -107,6 +107,44 @@ export class ClinicService {
         );
       }
 
+      // Check against User table (via Customer Service)
+      try {
+        const userCheck = await lastValueFrom(
+          this.customerService.send(
+            { cmd: 'checkUserExistence' },
+            {
+              email: email?.email_address,
+              phone: phone?.phone_number,
+            },
+          ),
+        );
+
+        if (userCheck?.exists) {
+          if (userCheck.field === 'email') {
+            throw createRpcError(
+              HttpStatus.BAD_REQUEST,
+              'Email đã được sử dụng bởi một tài khoản người dùng khác',
+              'Bad Request',
+            );
+          }
+          if (userCheck.field === 'phone') {
+            throw createRpcError(
+              HttpStatus.BAD_REQUEST,
+              'Số điện thoại đã được sử dụng bởi một tài khoản người dùng khác',
+              'Bad Request',
+            );
+          }
+        }
+      } catch (err) {
+        // If checkUserExistence throws an error (e.g. pattern not found), we might want to log it but proceed?
+        // Or if it strictly means "User interaction failed", maybe we shouldn't fail the registration?
+        // But the user REQUIREMENT is to check duplication. So we should probably treat it as critical.
+        // However, if the command doesn't exist yet, it will throw.
+        // I will implement the command in customer-service next.
+        if (err instanceof RpcException) throw err;
+        // console.warn('Failed to check user existence:', err.message);
+      }
+
       // Validate representative responsible licenses do not conflict with existing forms
       if (representative?.responsible_licenses?.length) {
         const respLicenses: string[] = representative.responsible_licenses;

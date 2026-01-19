@@ -1,7 +1,7 @@
 import { createClient } from 'redis';
 
 // Ở local không có docker thì host thường là 'localhost'
-const REDIS_HOST = process.env.REDIS_HOST || 'localhost';
+const REDIS_HOST = process.env.REDIS_HOST || 'redis';
 const REDIS_PORT = process.env.REDIS_PORT || 6379;
 
 const redisUrl = `redis://${REDIS_HOST}:${REDIS_PORT}`;

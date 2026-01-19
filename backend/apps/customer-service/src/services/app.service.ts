@@ -352,6 +352,41 @@ export class AppService {
   /**
    * Expire VIP status cho các user đã hết hạn
    */
+  async checkUserExistence(email?: string, phone?: string): Promise<{ exists: boolean; field?: string }> {
+    try {
+      if (email) {
+        // Use findActualUserByEmail to get actual user object (not custom response)
+        const userByEmail = await this.userRepositories.findActualUserByEmail(email);
+        // Only check if the user with this email has role 'Clinic'
+        // Normal users (role: 'User') should not block clinic registration
+        if (userByEmail) {
+          const roles = Array.isArray(userByEmail.role) ? userByEmail.role : [userByEmail.role];
+          if (roles.includes('Clinic')) {
+            return { exists: true, field: 'email' };
+          }
+        }
+      }
+
+      if (phone) {
+        // Use findUserByPhoneNumber to get actual user object
+        const userByPhone = await this.userRepositories.findUserByPhoneNumber(phone);
+        // Only check if the user with this phone has role 'Clinic'
+        if (userByPhone) {
+          const roles = Array.isArray(userByPhone.role) ? userByPhone.role : [userByPhone.role];
+          if (roles.includes('Clinic')) {
+            return { exists: true, field: 'phone' };
+          }
+        }
+      }
+
+      return { exists: false };
+    } catch (err) {
+      // If error occurs, we assume not exists or let the caller decide? 
+      // Better to throw so caller knows something went wrong.
+      throw createRpcError(HttpStatus.INTERNAL_SERVER_ERROR, err.message || 'Error checking user existence', 'Internal Server Error');
+    }
+  }
+
   async expireVipUsers(): Promise<{ expiredCount: number }> {
     try {
       const expiredCount = await this.userRepositories.expireVipUsers();

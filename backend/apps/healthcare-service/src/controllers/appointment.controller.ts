@@ -595,6 +595,7 @@ export class AppointmentController {
         role,
         clinicId,
         vetId,
+        false, // Explicitly false for external calls
       );
 
       return {
@@ -605,6 +606,39 @@ export class AppointmentController {
     } catch (error) {
       return handleRpcError(
         'AppointmentController.getMedicalRecordsByPet',
+        error,
+      );
+    }
+  }
+
+  @MessagePattern({ cmd: 'getMedicalRecordsByPetInternal' })
+  async getMedicalRecordsByPetInternal(
+    @Payload()
+    payload: {
+      petId: string;
+      role?: string | string[];
+    },
+  ) {
+    try {
+      const { petId, role } = payload;
+      // Internal call -> isInternal = true
+      // This bypasses strict role checks (like Vet active appointment) and returns unmasked data
+      const data = await this.appointmentService.getMedicalRecordsByPet(
+        petId,
+        role,
+        undefined,
+        undefined,
+        true,
+      );
+
+      return {
+        status: 'success',
+        message: 'Lấy hồ sơ bệnh án (Internal) thành công',
+        data,
+      };
+    } catch (error) {
+      return handleRpcError(
+        'AppointmentController.getMedicalRecordsByPetInternal',
         error,
       );
     }

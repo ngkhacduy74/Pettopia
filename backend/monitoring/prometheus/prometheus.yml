@@ -1,24 +1,31 @@
 global:
-  scrape_interval: 15s #
+  scrape_interval: 15s
 
 scrape_configs:
   - job_name: "prometheus"
     static_configs:
       - targets: ["prometheus:9090"]
+
+  # Phần này QUAN TRỌNG để hiện biểu đồ Kong
   - job_name: "kong"
     static_configs:
       - targets: ["kong-gateway:8001"]
+
+  # Phần này cần lưu ý về CỔNG (PORT)
   - job_name: "pettopia-services"
     metrics_path: /metrics
-
     static_configs:
       - targets:
+          # Các container này nằm cùng mạng Docker, nên thường
+          # chúng đều lắng nghe ở cổng gốc (thường là 3000)
+          # chứ KHÔNG PHẢI cổng bạn map ra ngoài (3001, 3002...).
           - "api-gateway-1:3000"
           - "api-gateway-2:3000"
-          - "auth-service:3001"
-          - "billing-service:3007"
-          - "communication-service:3006"
-          - "customer-service:3002"
-          - "healthcare-service:3005"
-          - "partner-service:3004"
-          - "petcare-service:3003"
+          # Nếu trong code Nodejs bạn không đổi PORT, hãy sửa hết về 3000
+          - "auth-service:3000"       # Sửa 3001 -> 3000
+          - "billing-service:3000"    # Sửa 3007 -> 3000
+          - "communication-service:3000" # Sửa 3006 -> 3000
+          - "customer-service:3000"   # Sửa 3002 -> 3000
+          - "healthcare-service:3000" # Sửa 3005 -> 3000
+          - "partner-service:3000"    # Sửa 3004 -> 3000
+          - "petcare-service:3000"    # Sửa 3003 -> 3000

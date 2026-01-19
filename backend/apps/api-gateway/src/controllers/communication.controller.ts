@@ -13,7 +13,9 @@ import {
   UseGuards,
   UseInterceptors,
   UploadedFiles,
+  Req,
 } from '@nestjs/common';
+import type { Request } from 'express';
 import { lastValueFrom } from 'rxjs';
 import { ClientProxy } from '@nestjs/microservices';
 import { FilesInterceptor } from '@nestjs/platform-express';
@@ -21,7 +23,6 @@ import { JwtAuthGuard } from 'src/guard/jwtAuth.guard';
 import { RoleGuard } from 'src/guard/role.guard';
 import { Role, Roles } from 'src/decorators/roles.decorator';
 import { UserToken } from 'src/decorators/user.decorator';
-
 @Controller('api/v1/communication')
 export class CommunicationController {
   constructor(
@@ -118,37 +119,55 @@ export class CommunicationController {
   }
 
   // UPDATE POST
-  @Patch('/:id')
-  @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles(Role.USER, Role.ADMIN, Role.STAFF)
-  @HttpCode(HttpStatus.OK)
-  async updatePost(
-    @UploadedFiles() files: Express.Multer.File[],
-    @Param('id') post_id: string,
-    @Body() updateData: any,
-    @UserToken('id') currentUserId: string,
-    @UserToken('role') userRole: string | string[],
-  ) {
-    // CHUYỂN BUFFER → BASE64 (như Pet)
-    const fileBuffers = files?.map((f) => f.buffer.toString('base64')) || [];
-    const roles = Array.isArray(userRole) ? userRole : [userRole];
-    const isAdminOrStaff =
-      roles.includes(Role.ADMIN) || roles.includes(Role.STAFF);
+  // UPDATE POST
+@Patch('/:id')
+@UseGuards(JwtAuthGuard, RoleGuard)
+@Roles(Role.USER, Role.ADMIN, Role.STAFF)
+@HttpCode(HttpStatus.OK)
+@UseInterceptors(
+  FilesInterceptor('images', 5, {
+    limits: { fileSize: 5 * 1024 * 1024 },
+    fileFilter: (req, file, cb) => {
+      if (!file.mimetype.match(/image\/(jpg|jpeg|png|gif)$/)) {
+        return cb(new Error('Only image files are allowed!'), false);
+      }
+      cb(null, true);
+    },
+  }),
+)
+async updatePost(
+  @UploadedFiles() files: Express.Multer.File[],
+  @Param('id') post_id: string,
+  @Req() req: Request,  // <-- Thêm @Req() từ @nestjs/common
+  @UserToken('id') currentUserId: string,
+  @UserToken('role') userRole: string | string[],
+) {
+  // Parse body text từ multipart
+  const updateData = req.body as any;  // req.body giờ sẽ chứa { title, content, tags, ... }
 
-    return await lastValueFrom(
-      this.communicationService.send(
-        { cmd: 'updatePost' },
-        {
-          post_id,
-          updateData,
-          files: fileBuffers,
-          userId: currentUserId,
-          role: roles,
-          isAdminOrStaff,
-        },
-      ),
-    );
+  // Xử lý tags nếu cần (nếu frontend gửi string "tag1,tag2")
+  if (updateData.tags && typeof updateData.tags === 'string') {
+    updateData.tags = updateData.tags.split(',').map((t: string) => t.trim());
   }
+
+  const fileBuffers = files?.map((f) => f.buffer.toString('base64')) || [];
+  const roles = Array.isArray(userRole) ? userRole : [userRole];
+  const isAdminOrStaff = roles.includes(Role.ADMIN) || roles.includes(Role.STAFF);
+
+  return await lastValueFrom(
+    this.communicationService.send(
+      { cmd: 'updatePost' },
+      {
+        post_id,
+        updateData,  // <-- Giờ updateData có đầy đủ text
+        files: fileBuffers,
+        userId: currentUserId,
+        role: roles,
+        isAdminOrStaff,
+      },
+    ),
+  );
+}
 
   // DELETE POST
   @Delete('/:id')
@@ -243,16 +262,21 @@ export class CommunicationController {
   @HttpCode(HttpStatus.OK)
   async reportPost(
     @Param('id') post_id: string,
-    @Body('reason') reason: string,
+    @Body() body: {reason: string},
     @UserToken('id') userId: string,
   ) {
+    const { reason } = body;
+
+  if (!reason || reason.trim() === '') {
+    throw ('Lý do báo cáo là bắt buộc');
+  }
     return await lastValueFrom(
       this.communicationService.send(
         { cmd: 'reportPost' },
         { post_id, user_id: userId, reason },
       ),
     );
-  }
+  } 
 
   // === LẤY DANH SÁCH BÀI BỊ REPORT (Staff) ===
   @Get('staff/reported')

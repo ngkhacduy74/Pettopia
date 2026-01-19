@@ -464,11 +464,13 @@ export class AppointmentService {
     role?: string | string[],
     clinicId?: string,
     vetId?: string,
+    isInternal?: boolean,
   ): Promise<{ medicalRecord: MedicalRecord; medications: Medication[] }[]> {
     try {
+      // Nếu là Internal request (từ service khác) thì coi như quyền cao nhất, bỏ qua check active appointment của Vet
       // Nếu là Vet thì chỉ được xem hồ sơ:
       // - Khi đang có ít nhất một lịch hẹn ACTIVE với pet đó (bất kể khám ở clinic nào)
-      if (role && this.hasRole(role, 'Vet')) {
+      if (!isInternal && role && this.hasRole(role, 'Vet')) {
         if (!vetId) {
           return [];
         }
@@ -536,7 +538,7 @@ export class AppointmentService {
       }
 
       // Logic cho Admin, Staff, User
-      const isAdmin = role && this.hasRole(role, 'Admin');
+      const isAdmin = isInternal || (role && this.hasRole(role, 'Admin'));
 
       const records = await this.medicalRecordModel
         .find({ pet_id: petId })
@@ -566,8 +568,7 @@ export class AppointmentService {
       return records.map((r: any) => {
         let recordData = r;
 
-        // Nếu không phải Admin, ẩn clinic_id và vet_id
-        // Mặc định ẩn nếu role không được cung cấp (an toàn hơn)
+        // Nếu không phải Admin (hoặc Internal), ẩn clinic_id và vet_id
         if (!isAdmin) {
           const { clinic_id, vet_id, ...restRecord } = r;
           recordData = {
@@ -1786,19 +1787,19 @@ export class AppointmentService {
 
       let canView = false;
 
-      // Clinic staff can view records when status is Checked_In or In_Progress
+      // Clinic staff can view records when status is Checked_In, In_Progress, or Completed
       if (isClinic) {
-        if ([AppointmentStatus.Checked_In, AppointmentStatus.In_Progress].includes(appointment.status)) {
+        if ([AppointmentStatus.Checked_In, AppointmentStatus.In_Progress, AppointmentStatus.Completed].includes(appointment.status)) {
           canView = true;
         }
       }
-      // Vets can only view records when status is In_Progress
-      else if (isVet && appointment.status === AppointmentStatus.In_Progress) {
+      // Vets can view records if they are assigned (or simply if it's In_Progress/Completed?)
+      // Relaxing to allow viewing completed records for reference
+      else if (isVet && [AppointmentStatus.In_Progress, AppointmentStatus.Completed].includes(appointment.status)) {
         canView = true;
       }
-      // Users can view their own records when status is not Completed
-      else if (isUser && appointment.user_id === userId &&
-        appointment.status !== AppointmentStatus.Completed) {
+      // Users can view their own records (including Completed)
+      else if (isUser && appointment.user_id === userId) {
         canView = true;
       }
 

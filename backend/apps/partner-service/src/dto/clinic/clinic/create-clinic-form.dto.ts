@@ -59,8 +59,9 @@ class RepresentativeDto {
   license_issued_date?: Date;
 }
 export class CreateClinicFormDto {
+  @IsOptional()
   @IsString()
-  user_id: string;
+  user_id?: string;
 
   @IsString()
   clinic_name: string;
