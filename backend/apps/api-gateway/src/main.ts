@@ -2,11 +2,8 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { BadRequestException, ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-// import helmet from 'helmet';
 import { RpcToHttpExceptionFilter } from './filters/rpc-exception.filter';
 import { GlobalExceptionFilter } from './filters/global-exception.filter';
-// import { SanitizeResponseInterceptor } from './interceptors/sanitize-response.interceptor';
-// import { SanitizationPipe } from './pipes/sanitization.pipe';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -53,11 +50,8 @@ async function bootstrap() {
     'https://pettopia-user.onrender.com',
   ];
 
-  // --- SỬA LỖI TẠI ĐÂY ---
-  // Sử dụng enableCors chuẩn của NestJS thay vì middleware thủ công
   app.enableCors({
     origin: (origin, callback) => {
-      // Cho phép request không có origin (như Postman) hoặc nằm trong whitelist
       if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
@@ -75,7 +69,7 @@ async function bootstrap() {
       'Token', // <--- Header này là nguyên nhân gây lỗi
       'Accept',
       'Origin',
-      'X-Csrf-Token'
+      'X-Csrf-Token',
     ],
     exposedHeaders: ['X-Total-Count', 'X-Page-Count'],
   });
@@ -101,7 +95,9 @@ async function bootstrap() {
 
   const config = new DocumentBuilder()
     .setTitle('Pettopia API Gateway')
-    .setDescription('Secured API Gateway with CORS, XSS, and SQL Injection Protection')
+    .setDescription(
+      'Secured API Gateway with CORS, XSS, and SQL Injection Protection',
+    )
     .addBearerAuth()
     .build();
 

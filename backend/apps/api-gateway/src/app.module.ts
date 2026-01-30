@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { AuthController } from './controllers/auth.controller';
 import { CustomerController } from './controllers/customer.controller';
 import { AppService } from './app.service';
@@ -13,17 +13,17 @@ import { HealthcareController } from './controllers/healthcare.controller';
 import { PaymentController } from './controllers/payment.controller';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
+import { LoggerMiddleware } from './middleware/logger.middleware';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
     }),
-    // Rate Limiting Configuration
     ThrottlerModule.forRoot([
       {
         name: 'short',
-        ttl: 1000, // 1 second
+        ttl: 1000,
         limit: 10, // 10 requests per second
       },
       {
@@ -57,7 +57,8 @@ import { APP_GUARD } from '@nestjs/core';
         useFactory: (configService: ConfigService) => ({
           transport: Transport.TCP,
           options: {
-            host: configService.get<string>('CUSTOMER_HOST') || 'customer-service',
+            host:
+              configService.get<string>('CUSTOMER_HOST') || 'customer-service',
             port: configService.get<number>('TCP_CUSTOMER_PORT') || 5002,
           },
         }),
@@ -69,7 +70,8 @@ import { APP_GUARD } from '@nestjs/core';
         useFactory: (configService: ConfigService) => ({
           transport: Transport.TCP,
           options: {
-            host: configService.get<string>('PETCARE_HOST') || 'petcare-service',
+            host:
+              configService.get<string>('PETCARE_HOST') || 'petcare-service',
             port: configService.get<number>('TCP_PETCARE_PORT') || 5003,
           },
         }),
@@ -81,7 +83,8 @@ import { APP_GUARD } from '@nestjs/core';
         useFactory: (configService: ConfigService) => ({
           transport: Transport.TCP,
           options: {
-            host: configService.get<string>('PARTNER_HOST') || 'partner-service',
+            host:
+              configService.get<string>('PARTNER_HOST') || 'partner-service',
             port: configService.get<number>('TCP_PARTNER_PORT') || 5004,
           },
         }),
@@ -93,7 +96,9 @@ import { APP_GUARD } from '@nestjs/core';
         useFactory: (configService: ConfigService) => ({
           transport: Transport.TCP,
           options: {
-            host: configService.get<string>('HEALTHCARE_HOST') || 'healthcare-service',
+            host:
+              configService.get<string>('HEALTHCARE_HOST') ||
+              'healthcare-service',
             port: configService.get<number>('TCP_HEALTHCARE_PORT') || 5005,
           },
         }),
@@ -105,7 +110,9 @@ import { APP_GUARD } from '@nestjs/core';
         useFactory: (configService: ConfigService) => ({
           transport: Transport.TCP,
           options: {
-            host: configService.get<string>('COMMUNICATION_HOST') || 'communication-service',
+            host:
+              configService.get<string>('COMMUNICATION_HOST') ||
+              'communication-service',
             port: configService.get<number>('TCP_COMMUNICATION_PORT') || 5006,
           },
         }),
@@ -117,7 +124,8 @@ import { APP_GUARD } from '@nestjs/core';
         useFactory: (configService: ConfigService) => ({
           transport: Transport.TCP,
           options: {
-            host: configService.get<string>('BILLING_HOST') || 'billing-service',
+            host:
+              configService.get<string>('BILLING_HOST') || 'billing-service',
             port: configService.get<number>('TCP_BILLING_PORT') || 5007,
 
             timeout: 60000,
@@ -153,4 +161,8 @@ import { APP_GUARD } from '@nestjs/core';
     // },
   ],
 })
-export class AppModule { }
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(LoggerMiddleware).forRoutes('*');
+  }
+}

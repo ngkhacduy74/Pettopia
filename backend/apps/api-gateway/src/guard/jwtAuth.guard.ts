@@ -28,7 +28,6 @@ export class JwtAuthGuard implements CanActivate {
       request.user = decoded_token;
       return true;
     } catch (error) {
-      // 👇 Xử lý từng loại lỗi cụ thể
       if (error instanceof TokenExpiredError) {
         throw new UnauthorizedException(
           'Token đã hết hạn, vui lòng đăng nhập lại',
